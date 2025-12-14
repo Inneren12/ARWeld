@@ -39,15 +39,15 @@ core:domain
 
 ### app
 
-**Status:** ✅ Exists (basic structure)
+**Status:** ✅ Implemented (S1-02)
 
 **Description:**
 The Android application module. Entry point for the app, hosts navigation, and wires up dependency injection.
 
 **Key Responsibilities:**
-- Application class initialization
+- Application class initialization (@HiltAndroidApp)
 - Navigation host setup (Jetpack Navigation or Compose Navigation)
-- Dependency injection configuration (Hilt modules or Koin setup)
+- Dependency injection configuration via Hilt
 - Role-based navigation logic (route to Assembler/QC/Supervisor home based on current user role)
 - Global app configuration (theme, error handling, analytics)
 
@@ -55,24 +55,30 @@ The Android application module. Entry point for the app, hosts navigation, and w
 - All feature modules
 - All core modules
 
+**DI Configuration:**
+- **Framework:** Hilt (configured in S1-02)
+- **Application class:** `ArWeldApplication.kt` annotated with `@HiltAndroidApp`
+- **MainActivity:** Annotated with `@AndroidEntryPoint`
+- **Graph entry point:** Application-level Hilt component provides singleton instances
+
 **Key Files:**
-- `ArWeldApplication.kt` — Application class
-- `MainActivity.kt` — Single-activity architecture with NavHost
-- `di/AppModule.kt` — DI setup
-- `navigation/AppNavigation.kt` — Navigation graph and routes
+- `ArWeldApplication.kt` — Application class with @HiltAndroidApp
+- `MainActivity.kt` — Single-activity architecture with @AndroidEntryPoint
+- `navigation/AppNavigation.kt` — Navigation graph and routes (planned)
 
 **Notes:**
 - Thin layer; most logic lives in feature or core modules
 - Provides "assembly" of the app from reusable components
+- Hilt DI graph root is established here
 
 ---
 
 ### core:domain
 
-**Status:** 📋 Planned (Sprint 1)
+**Status:** ✅ Implemented (S1-01)
 
 **Description:**
-Pure domain logic with no Android dependencies. Contains business models, use cases, reducers, and policies.
+Pure domain logic with no Android dependencies. Contains business models, use cases, reducers, and policies. **No Hilt/DI code inside this module** — it remains a pure Kotlin library.
 
 **Key Responsibilities:**
 - Define domain models: `WorkItem`, `Event`, `Evidence`, `Role`, `User`
@@ -84,7 +90,11 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 - Use case interfaces (implementations may live in core:data or feature modules)
 
 **Dependencies:**
-- None (pure Kotlin)
+- None (pure Kotlin, no DI framework)
+
+**DI Configuration:**
+- **None** — This module is pure Kotlin with no DI annotations
+- Repository interfaces defined here are bound to implementations in core-data via Hilt
 
 **Key Files/Packages:**
 - `model/` — Data classes for domain entities
@@ -110,26 +120,38 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 
 ### core:data
 
-**Status:** 📋 Planned (Sprint 1)
+**Status:** ✅ Implemented (S1-02 - partial, DAOs and repositories only)
 
 **Description:**
-Data layer providing local storage, repositories, and data access abstractions.
+Data layer providing local storage, repositories, and data access abstractions. **Hilt DI modules configured here** to provide database and repository instances.
 
 **Key Responsibilities:**
 - Room database setup (`ArWeldDatabase`)
 - Entity definitions (Room schema)
 - DAOs (Data Access Objects) for CRUD operations
 - Repository implementations:
-  - `WorkItemRepository`
-  - `EventRepository`
-  - `EvidenceRepository`
-  - `SyncQueueRepository`
+  - `WorkItemRepository` ✅ Implemented
+  - `EventRepository` ✅ Implemented
+  - `EvidenceRepository` ✅ Stub
+  - `SyncQueueRepository` 📋 Planned
 - File management for evidence (photos, AR screenshots)
 - Offline queue management (`SyncManager`)
 - Data mappers (Entity ↔ Domain model)
+- **Hilt DI modules** that bind repositories to implementations
 
 **Dependencies:**
 - `core:domain` (for domain models)
+
+**DI Configuration:**
+- **Module:** `DataModule` (`core-data/src/main/kotlin/.../di/DataModule.kt`)
+  - Provides `ArWeldDatabase` singleton via Room.databaseBuilder()
+  - Provides DAOs (`WorkItemDao`, `EventDao`) from database instance
+- **Module:** `RepositoryModule` (`core-data/src/main/kotlin/.../di/DataModule.kt`)
+  - Binds `WorkItemRepository` → `WorkItemRepositoryImpl`
+  - Binds `EventRepository` → `EventRepositoryImpl`
+  - Binds `EvidenceRepository` → `EvidenceRepositoryImpl` (stub)
+- **Scope:** `@Singleton` — All repositories and database are application-scoped
+- **Where to add new bindings:** Add @Binds or @Provides methods to these modules
 
 **Key Files/Packages:**
 - `db/` — Room database
@@ -165,29 +187,36 @@ Data layer providing local storage, repositories, and data access abstractions.
 
 ### core:auth
 
-**Status:** 📋 Planned (Sprint 1)
+**Status:** ✅ Implemented (S1-02 - basic MVP version)
 
 **Description:**
-User authentication and role management. For MVP, uses local user storage (no server).
+User authentication and role management. For MVP, uses local user storage (no server). **Hilt DI module configured here** to provide auth services.
 
 **Key Responsibilities:**
-- Store current logged-in user in SharedPreferences or Room
+- Store current logged-in user in-memory (MVP: no persistence)
 - Provide `AuthRepository` with:
-  - `getCurrentUser(): User?`
-  - `login(userId: String)`
-  - `logout()`
-  - `hasPermission(permission: Permission): Boolean`
+  - `getCurrentUser(): User?` ✅ Implemented
+  - `login(userId: String)` ✅ Implemented (stub users)
+  - `logout()` ✅ Implemented
+  - `hasPermission(permission: Permission): Boolean` 📋 Planned
 - Role-based permission checking (delegates to `RolePolicy` in core:domain)
 
 **Dependencies:**
-- `core:domain` (for User, Role, Permission models)
-- `core:data` (for UserEntity storage)
+- `core:domain` (for User, Role models)
+
+**DI Configuration:**
+- **Module:** `AuthModule` (`core-auth/src/main/kotlin/.../di/AuthModule.kt`)
+  - Binds `AuthRepository` → `LocalAuthRepository`
+- **Scope:** `@Singleton` — Single AuthRepository instance per app
+- **Implementation:** `LocalAuthRepository` with hardcoded stub users (assembler1, qc1, supervisor1)
+- **Where to add auth providers:** Add @Binds or @Provides methods to AuthModule
 
 **Key Files:**
 - `AuthRepository.kt` — Main auth interface
-- `LocalAuthRepository.kt` — MVP implementation (local users)
-- `SessionManager.kt` — Tracks current user session
-- `PermissionChecker.kt` — Wraps RolePolicy for easy permission checks
+- `LocalAuthRepository.kt` — ✅ MVP implementation (in-memory, stub users)
+- `di/AuthModule.kt` — ✅ Hilt DI module
+- `SessionManager.kt` — 📋 Planned
+- `PermissionChecker.kt` — 📋 Planned
 
 **Notes:**
 - MVP uses hardcoded or seeded local users (no password, just user selection)
@@ -200,30 +229,40 @@ User authentication and role management. For MVP, uses local user storage (no se
 
 ### feature:home
 
-**Status:** 📋 Planned (Sprint 1)
+**Status:** ✅ Implemented (S1-02 - basic version with Hilt injection demo)
 
 **Description:**
-Home screen with role-based navigation tiles.
+Home screen with role-based navigation tiles. **Demonstrates Hilt ViewModel injection** working end-to-end.
 
 **Key Responsibilities:**
-- Display user's name and role
-- Show tiles based on current user role:
+- Display user's name and role ✅ Implemented
+- Show work item count from database ✅ Implemented (demonstrates DI working)
+- Show tiles based on current user role (📋 Planned for Sprint 2):
   - **Assembler:** "My Work", "Scan New Part"
   - **QC Inspector:** "QC Queue", "Scan to Inspect"
   - **Supervisor:** "Dashboard", "All Work Items", "Export"
 - Navigate to appropriate feature module based on tile selection
 
 **Dependencies:**
-- `core:domain` (for Role)
-- `core:auth` (for getCurrentUser)
+- `core:domain` (for Role, User, WorkItem)
+- `core:data` (for WorkItemRepository)
+- `core:auth` (for AuthRepository)
+
+**DI Configuration:**
+- **ViewModel:** `HomeViewModel` annotated with `@HiltViewModel`
+- **Constructor injection:** Receives `WorkItemRepository` and `AuthRepository` via `@Inject`
+- **Screen:** Uses `hiltViewModel()` to obtain ViewModel instance
+- **Demonstrates:** Full Hilt DI flow from app → feature → core modules
 
 **Key Files:**
-- `HomeScreen.kt` — Compose UI or Fragment
-- `HomeViewModel.kt` — Loads current user, determines visible tiles
+- `ui/HomeScreen.kt` — ✅ Compose UI with hiltViewModel()
+- `viewmodel/HomeViewModel.kt` — ✅ @HiltViewModel with injected repositories
+- `viewmodel/HomeUiState.kt` — ✅ Sealed class for UI state management
 
 **Notes:**
-- Simple navigation hub; no business logic
+- Simple navigation hub demonstrating DI integration
 - UI adapts based on role (example of role-based UI)
+- S1-02 implementation validates that Hilt DI is working correctly
 
 ---
 

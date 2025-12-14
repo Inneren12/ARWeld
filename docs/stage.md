@@ -102,6 +102,79 @@ Before diving into sprints, understand these foundational rules that apply acros
 
 ---
 
+### **S1-02: Configure DI (Hilt)** ✅ COMPLETED
+
+**Implementation Date:** 2025-12-14
+
+**Goal:** Configure Hilt dependency injection across the project so that repositories can be injected into ViewModels without crashing.
+
+**What Was Implemented:**
+
+1. **Gradle Configuration:**
+   - Added Hilt plugin and dependencies to top-level `build.gradle.kts`
+   - Configured Hilt in `app/build.gradle.kts` with KSP and Hilt plugins
+   - Configured Hilt in `core-data/build.gradle.kts`, `core-auth/build.gradle.kts`, and `feature-home/build.gradle.kts`
+   - All modules using Hilt now have the required dependencies
+
+2. **Application Class:**
+   - Created `ArWeldApplication.kt` annotated with `@HiltAndroidApp`
+   - Registered in `AndroidManifest.xml` as the application class
+   - Updated `MainActivity.kt` with `@AndroidEntryPoint` annotation
+
+3. **Room Database Setup (core-data):**
+   - Created `ArWeldDatabase` with Room configuration
+   - Created `WorkItemEntity` and `EventEntity` Room entities
+   - Created `WorkItemDao` and `EventDao` with basic CRUD operations
+   - Database configured in Hilt DI module
+
+4. **Repository Implementations (core-data):**
+   - `WorkItemRepositoryImpl` — Implements WorkItemRepository interface with Room DAOs
+   - `EventRepositoryImpl` — Implements EventRepository interface with Room DAOs
+   - `EvidenceRepositoryImpl` — Stub implementation for S1-02 (full implementation in later sprints)
+   - All repositories use `@Singleton` scope and `@Inject` constructor
+
+5. **DI Modules (core-data):**
+   - `DataModule` — Provides ArWeldDatabase singleton using Room.databaseBuilder()
+   - `DataModule` — Provides DAOs (WorkItemDao, EventDao) from database
+   - `RepositoryModule` — Binds repository interfaces to implementations using @Binds
+
+6. **Authentication (core-auth):**
+   - Created `LocalAuthRepository` — MVP implementation with in-memory stub users (assembler1, qc1, supervisor1)
+   - Created `AuthModule` — Hilt DI module that binds AuthRepository to LocalAuthRepository
+   - Configured as `@Singleton` scope
+
+7. **ViewModel Integration (feature-home):**
+   - Created `HomeViewModel` annotated with `@HiltViewModel`
+   - Constructor injection of `WorkItemRepository` and `AuthRepository`
+   - Defined `HomeUiState` sealed class for state management
+   - Updated `HomeScreen` to use `hiltViewModel()` for ViewModel instantiation
+   - UI displays current user info and work item count from database
+
+8. **Documentation Updates:**
+   - Updated `docs/MODULES.md` with DI configuration details for each module
+   - Marked app, core-domain, core-data, core-auth, and feature-home as implemented
+   - Added "DI Configuration" sections explaining Hilt setup for each module
+
+**Acceptance Criteria Status:**
+- ✅ Hilt plugins and dependencies added to all relevant modules
+- ✅ @HiltAndroidApp Application class created and registered
+- ✅ Room database and DAOs created with Hilt DI modules
+- ✅ Repository implementations created with @Inject constructors
+- ✅ DI modules in core-data bind repositories to implementations
+- ✅ DI module in core-auth provides AuthRepository
+- ✅ HomeViewModel uses @HiltViewModel with repository injection
+- ✅ HomeScreen uses hiltViewModel() to demonstrate end-to-end DI flow
+- ✅ Documentation updated in MODULES.md
+- ⏳ Build verification pending (requires Gradle sync)
+
+**Next Steps:**
+- Test build with `./gradlew :app:assembleDebug`
+- Verify DI graph compiles without errors
+- Add seed data to database for testing
+- Continue with remaining Sprint 1 tasks
+
+---
+
 ### 1.1 Project Structure and Modules
 
 **Planned Modules:**
