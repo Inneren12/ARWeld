@@ -31,13 +31,19 @@ class LocalAuthRepository @Inject constructor() : AuthRepository {
                 id = "qc1",
                 username = "qc1",
                 displayName = "Jane Doe",
-                role = Role.QC_INSPECTOR
+                role = Role.QC
             )
             "supervisor1" -> User(
                 id = "supervisor1",
                 username = "supervisor1",
                 displayName = "Bob Johnson",
                 role = Role.SUPERVISOR
+            )
+            "director1" -> User(
+                id = "director1",
+                username = "director1",
+                displayName = "Alice Williams",
+                role = Role.DIRECTOR
             )
             else -> return Result.failure(Exception("User not found"))
         }

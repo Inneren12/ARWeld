@@ -264,6 +264,91 @@ Before diving into sprints, understand these foundational rules that apply acros
 
 ---
 
+### **S1-04: Add Role and Permission Models** ✅ COMPLETED
+
+**Implementation Date:** 2025-12-14
+
+**Goal:** Add basic domain models for user roles and permissions, plus a policy helper that answers "does this role have this permission?".
+
+**What Was Implemented:**
+
+1. **Role Enum Updates:**
+   - Updated `Role.kt` to include all four roles: ASSEMBLER, QC, SUPERVISOR, DIRECTOR
+   - Changed QC_INSPECTOR to QC for consistency with business requirements
+   - Updated `LocalAuthRepository` to use Role.QC and added director1 stub user
+
+2. **Permission Enum (core-domain/auth):**
+   - Created `Permission.kt` enum with minimal set of permissions:
+     - CLAIM_WORK — Claim a work item
+     - START_QC — Start QC inspection
+     - PASS_QC — Pass QC inspection
+     - FAIL_QC — Fail QC inspection
+     - VIEW_ALL — View all work items (supervisor)
+   - Marked as extensible with TODO comment for future permissions
+
+3. **RolePolicy Implementation (core-domain/auth):**
+   - Created `RolePolicy` object with map-based permission configuration
+   - Implemented business rules:
+     - ASSEMBLER: can CLAIM_WORK only
+     - QC: can START_QC, PASS_QC, FAIL_QC, CLAIM_WORK
+     - SUPERVISOR: can VIEW_ALL, START_QC, PASS_QC, FAIL_QC
+     - DIRECTOR: full access to all permissions
+   - Provided `hasPermission(role, permission)` method
+   - Added extension function `Role.hasPermission(permission)` for convenient usage
+
+4. **Unit Tests:**
+   - Created `RolePolicyTest.kt` in core-domain/src/test/
+   - Comprehensive test coverage for all role-permission combinations:
+     - ASSEMBLER: 5 tests (1 granted, 4 denied)
+     - QC: 5 tests (4 granted, 1 denied)
+     - SUPERVISOR: 5 tests (4 granted, 1 denied)
+     - DIRECTOR: 5 tests (all granted)
+   - Tests for both extension function and RolePolicy.hasPermission() method
+
+5. **Documentation Updates:**
+   - **MODULES.md:**
+     - Updated core:domain to document new Permission enum
+     - Updated core:domain key files to include auth/ package
+     - Updated core:auth to show director1 stub user
+   - **FILE_OVERVIEW.md:**
+     - Updated project structure diagram to show auth/ package
+     - Added comprehensive guide for adding new permissions
+     - Updated "Where is...?" quick reference table
+   - **stage.md:** This section documents S1-04 completion
+
+**Acceptance Criteria Status:**
+- ✅ Role enum includes ASSEMBLER, QC, SUPERVISOR, DIRECTOR
+- ✅ Permission enum defines CLAIM_WORK, START_QC, PASS_QC, FAIL_QC, VIEW_ALL
+- ✅ RolePolicy implements business rules with hasPermission logic
+- ✅ Extension function Role.hasPermission(Permission) works correctly
+- ✅ All code in core-domain (pure Kotlin, no Android dependencies)
+- ✅ Unit tests verify role-permission behavior
+- ✅ Documentation updated in MODULES.md, FILE_OVERVIEW.md, stage.md
+- ⏳ Build verification pending
+
+**File Locations:**
+- `core-domain/src/main/kotlin/com/example/arweld/core/domain/model/Role.kt`
+- `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/Permission.kt`
+- `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/RolePolicy.kt`
+- `core-domain/src/test/kotlin/com/example/arweld/core/domain/auth/RolePolicyTest.kt`
+- `core-auth/src/main/kotlin/com/example/arweld/core/auth/LocalAuthRepository.kt` (updated)
+
+**Example Usage:**
+```kotlin
+// Using extension function
+val user = authRepository.getCurrentUser()
+if (user.role.hasPermission(Permission.PASS_QC)) {
+    // User can pass QC
+}
+
+// Using RolePolicy directly
+if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
+    // Director can view all
+}
+```
+
+---
+
 ### 1.1 Project Structure and Modules
 
 **Planned Modules:**
@@ -280,28 +365,36 @@ Before diving into sprints, understand these foundational rules that apply acros
 
 ### 1.2 Domain Models (core:domain)
 
+**Status:** ✅ Partially Completed (S1-04 completed Role/Permission models)
+
 Create the following domain models:
 
-**Role and Permissions:**
+**Role and Permissions:** ✅ Implemented in S1-04
 ```kotlin
+// ✅ COMPLETED in S1-04
 enum class Role {
     ASSEMBLER,
-    QC_INSPECTOR,
-    SUPERVISOR
+    QC,
+    SUPERVISOR,
+    DIRECTOR  // Added in S1-04
 }
 
-data class Permission(
-    val action: String,
-    val resource: String
-)
+// ✅ COMPLETED in S1-04
+enum class Permission {
+    CLAIM_WORK,
+    START_QC,
+    PASS_QC,
+    FAIL_QC,
+    VIEW_ALL
+}
 
+// ✅ COMPLETED in S1-04
 object RolePolicy {
-    // Defines which roles can perform which actions
-    // Examples:
-    // - ASSEMBLER can CLAIM, START_WORK, MARK_READY_FOR_QC
-    // - QC can START_QC, PASS, FAIL
-    // - SUPERVISOR can VIEW_ALL, EXPORT
+    fun hasPermission(role: Role, permission: Permission): Boolean
 }
+
+// ✅ COMPLETED in S1-04
+fun Role.hasPermission(permission: Permission): Boolean
 ```
 
 **WorkItem:**
