@@ -25,8 +25,9 @@ fun HomeScreen(
     user: User,
     onOpenWorkSummary: () -> Unit,
     onOpenTimeline: () -> Unit,
+    onOpenScan: () -> Unit,
 ) {
-    val tiles = tilesForRole(user.role, onOpenWorkSummary, onOpenTimeline)
+    val tiles = tilesForRole(user.role, onOpenWorkSummary, onOpenTimeline, onOpenScan)
 
     Column(
         modifier = Modifier
@@ -99,8 +100,14 @@ private fun tilesForRole(
     role: Role,
     onOpenWorkSummary: () -> Unit,
     onOpenTimeline: () -> Unit,
+    onOpenScan: () -> Unit,
 ): List<HomeTileModel> = when (role) {
     Role.ASSEMBLER -> listOf(
+        HomeTileModel(
+            title = "Scan code",
+            description = "Scan a barcode or QR to open work.",
+            onClick = onOpenScan
+        ),
         HomeTileModel(
             title = "My Work Queue",
             description = "View and manage your assigned work items.",

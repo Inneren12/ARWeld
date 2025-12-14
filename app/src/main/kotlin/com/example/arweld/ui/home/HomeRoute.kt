@@ -12,6 +12,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.arweld.feature.home.ui.HomeScreen
 import com.example.arweld.navigation.ROUTE_LOGIN
+import com.example.arweld.navigation.ROUTE_SCAN_CODE
 import com.example.arweld.navigation.ROUTE_TIMELINE
 import com.example.arweld.navigation.ROUTE_WORK_ITEM_SUMMARY
 
@@ -32,7 +33,8 @@ fun HomeRoute(
         else -> HomeScreen(
             user = user,
             onOpenWorkSummary = { navController.navigate(ROUTE_WORK_ITEM_SUMMARY) },
-            onOpenTimeline = { navController.navigate(ROUTE_TIMELINE) }
+            onOpenTimeline = { navController.navigate(ROUTE_TIMELINE) },
+            onOpenScan = { navController.navigate(ROUTE_SCAN_CODE) },
         )
     }
 }

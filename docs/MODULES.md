@@ -335,24 +335,23 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
 
 ### feature:scanner
 
-**Status:** ✅ Implemented (S2-02 — preview + barcode/QR decoding)
+**Status:** ✅ Implemented (S2-03 — preview + barcode/QR decoding + ScanCode screen)
 
 **Description:**
-Barcode/QR code scanning with CameraX preview surface exposed to Compose. The scanner module owns camera setup, permission handling, and ML Kit decoding so navigation modules can remain thin.
+Barcode/QR code scanning with CameraX preview surface exposed to Compose. The scanner module owns camera setup, permission handling, ML Kit decoding, and exposes the ScanCode screen so navigation modules can remain thin.
 
 **Key Responsibilities:**
 - CameraX preview with lifecycle-aware binding
 - ML Kit barcode/QR decoding via ImageAnalysis analyzer with duplicate suppression
-- Resolve scanned code to WorkItem (via `ResolveWorkItemUseCase`)
-- Navigate to WorkItemSummary if found, or show "Not Found" dialog
+- Present ScanCode screen that surfaces live preview, shows the last decoded value, and exposes navigation callbacks
 
 **Dependencies:**
 - `core:domain` (WorkItem)
 - `core:data` (WorkItemRepository)
 
 **Key Files:**
+- `ui/ScanCodeScreen.kt` — Public composable combining `ScannerPreview`, the last decoded code, and a "Continue" action
 - `ui/ScannerPreview.kt` — Composable wrapping `PreviewView` with permission handling and decoded-code callback
-- `ui/ScannerPreviewScreen.kt` — Simple screen to host the preview and show the last detected code
 - `camera/CameraPreviewController.kt` — CameraX setup and lifecycle binding for preview and analysis
 - `camera/BarcodeAnalyzer.kt` — ML Kit analyzer that emits deduplicated barcode/QR values
 - `ScannerViewModel.kt` — Handles scan results (planned)
@@ -528,7 +527,7 @@ Augmented reality visualization for alignment and inspection.
 | `core:auth` | 📋 Planned | Sprint 1 |
 | `feature:home` | 📋 Planned | Sprint 1 |
 | `feature:work` | 📋 Planned | Sprint 2 |
-| `feature:scanner` | 📋 Planned | Sprint 2 |
+| `feature:scanner` | ✅ Implemented | Sprint 2 |
 | `feature:arview` | 📋 Planned | Sprint 2 |
 | `feature:qc` | 📋 Planned | Sprint 3 |
 | `feature:supervisor` | 📋 Planned | Sprint 4 |

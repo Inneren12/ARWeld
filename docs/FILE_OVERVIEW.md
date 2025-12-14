@@ -113,8 +113,8 @@ ARWeld/
 │   ├── scanner/                           # Barcode/QR scanning
 │   │   ├── src/main/kotlin/com/example/arweld/feature/scanner/
 │   │   │   ├── ui/
-│   │   │   │   ├── ScannerPreview.kt      # CameraX preview composable with permission + ML Kit callback
-│   │   │   │   └── ScannerPreviewScreen.kt # Simple screen hosting the preview and showing last code
+│   │   │   │   ├── ScanCodeScreen.kt      # ScanCode screen combining preview + last code + Continue
+│   │   │   │   └── ScannerPreview.kt      # CameraX preview composable with permission + ML Kit callback
 │   │   │   ├── viewmodel/
 │   │   │   │   └── ScannerViewModel.kt    # Planned decoding/handling
 │   │   │   ├── usecase/
@@ -202,9 +202,8 @@ ARWeld/
 - `app/src/main/kotlin/com/example/arweld/navigation/AppNavigation.kt` — NavHost start destination (Login) and wiring for Home/WorkItemSummary/Timeline.
 
 ### Scanner entry points and ownership
-- **Scanner UI/logic lives in** `feature-scanner` (`ui/ScannerPreview.kt`, `camera/CameraPreviewController.kt`, `camera/BarcodeAnalyzer.kt`).
-- **Navigation into scanner** starts from the main app NavHost (home tile for Assembler/QC) once the route is added; during S2-01 manual testing, `ScannerPreviewScreen` can be hosted inside a temporary Nav destination in the app module without leaking navigation details into the feature.
-- `app/src/main/kotlin/com/example/arweld/ui/home/HomeRoute.kt` — Retrieves the current user and passes navigation callbacks into `feature-home`'s `HomeScreen`.
+- **Scanner UI/logic lives in** `feature-scanner` (`ui/ScanCodeScreen.kt`, `ui/ScannerPreview.kt`, `camera/CameraPreviewController.kt`, `camera/BarcodeAnalyzer.kt`).
+- **Navigation into scanner** is declared in `app/src/main/kotlin/com/example/arweld/navigation/Routes.kt` (`ROUTE_SCAN_CODE`) and `AppNavigation.kt`, with the wrapper composable in `app/src/main/kotlin/com/example/arweld/ui/scanner/ScanCodeRoute.kt`. The Assembler home tile triggers this route via `app/src/main/kotlin/com/example/arweld/ui/home/HomeRoute.kt`.
 
 **WorkItem models:**
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/domain/work/` (`WorkItemType.kt`, `WorkItem.kt`).

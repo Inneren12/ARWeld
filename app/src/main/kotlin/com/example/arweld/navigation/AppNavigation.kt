@@ -9,6 +9,7 @@ import com.example.arweld.ui.auth.LoginRoute
 import com.example.arweld.ui.home.HomeRoute
 import com.example.arweld.ui.work.WorkItemSummaryRoute
 import com.example.arweld.feature.work.ui.TimelineScreen
+import com.example.arweld.ui.scanner.ScanCodeRoute
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
@@ -30,6 +31,9 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
         composable(ROUTE_HOME) {
             HomeRoute(navController = navController)
+        }
+        composable(ROUTE_SCAN_CODE) {
+            ScanCodeRoute(navController = navController)
         }
         composable(ROUTE_WORK_ITEM_SUMMARY) {
             WorkItemSummaryRoute(
