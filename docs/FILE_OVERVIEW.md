@@ -185,6 +185,129 @@ ARWeld/
 
 ---
 
+## DI / Hilt Configuration
+
+ARWeld uses **Hilt** for dependency injection. This section explains where DI code lives and how to add new providers.
+
+### Application Entry Point
+
+**Location:** `app/src/main/kotlin/com/example/arweld/ArWeldApplication.kt`
+
+```kotlin
+@HiltAndroidApp
+class ArWeldApplication : Application() {
+    // Entry point for Hilt DI graph
+}
+```
+
+**Registered in:** `app/src/main/AndroidManifest.xml`
+```xml
+<application android:name=".ArWeldApplication" ...>
+```
+
+### DI Modules
+
+#### DataModule (core-data)
+
+**Location:** `core-data/src/main/kotlin/com/example/arweld/core/data/di/DataModule.kt`
+
+**Provides:**
+- `ArWeldDatabase` — Room database singleton
+- `WorkItemDao`, `EventDao` — DAOs from database
+
+**Where to add new database providers:**
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object DataModule {
+    @Provides
+    @Singleton
+    fun provideNewDao(database: ArWeldDatabase): NewDao {
+        return database.newDao()
+    }
+}
+```
+
+#### RepositoryModule (core-data)
+
+**Location:** `core-data/src/main/kotlin/com/example/arweld/core/data/di/DataModule.kt` (same file)
+
+**Binds:**
+- `WorkItemRepository` → `WorkItemRepositoryImpl`
+- `EventRepository` → `EventRepositoryImpl`
+- `EvidenceRepository` → `EvidenceRepositoryImpl`
+
+**Where to add new repository bindings:**
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
+    @Binds
+    @Singleton
+    abstract fun bindNewRepository(
+        impl: NewRepositoryImpl
+    ): NewRepository
+}
+```
+
+#### AuthModule (core-auth)
+
+**Location:** `core-auth/src/main/kotlin/com/example/arweld/core/auth/di/AuthModule.kt`
+
+**Binds:**
+- `AuthRepository` → `LocalAuthRepository`
+
+**Where to add new auth providers:**
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class AuthModule {
+    @Binds
+    @Singleton
+    abstract fun bindNewAuthService(
+        impl: NewAuthServiceImpl
+    ): NewAuthService
+}
+```
+
+### ViewModel Injection
+
+**Location:** Feature modules (e.g., `feature-home/src/main/kotlin/.../viewmodel/`)
+
+**How to create a Hilt ViewModel:**
+```kotlin
+@HiltViewModel
+class NewViewModel @Inject constructor(
+    private val repository: SomeRepository
+) : ViewModel() {
+    // ViewModel logic
+}
+```
+
+**How to use in Composable:**
+```kotlin
+@Composable
+fun NewScreen(
+    viewModel: NewViewModel = hiltViewModel()
+) {
+    // Use viewModel here
+}
+```
+
+### Quick Reference: Where to Add DI Code
+
+| What | Where |
+|------|-------|
+| Database provider | `core-data/di/DataModule.kt` → Add @Provides method |
+| DAO provider | `core-data/di/DataModule.kt` → Add @Provides method |
+| Repository binding | `core-data/di/DataModule.kt` (RepositoryModule) → Add @Binds method |
+| Auth service binding | `core-auth/di/AuthModule.kt` → Add @Binds method |
+| New ViewModel | Feature module → Annotate with @HiltViewModel, use @Inject constructor |
+| Activity injection | Annotate with @AndroidEntryPoint |
+| Fragment injection | Annotate with @AndroidEntryPoint |
+
+---
+
 ## Where to Add New Functionality
 
 ### "I need to add a new EventType"
