@@ -372,6 +372,25 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 
 ---
 
+### **S1-06: EventType и модель Event** ✅ COMPLETED
+
+**Goal:** Определить единый словарь событий (EventType) и доменную модель Event для event-sourcing. Каждое действие пользователя (claim, старт работы, QC, evidence, AR alignment, issue/rework) фиксируется как событие с актором, устройством и полезной нагрузкой.
+
+**What Was Implemented:**
+- Добавлен enum `EventType` с полным перечнем событий: WORK_CLAIMED, WORK_STARTED, WORK_READY_FOR_QC, QC_STARTED, QC_PASSED, QC_FAILED_REWORK, ISSUE_CREATED, EVIDENCE_CAPTURED, AR_ALIGNMENT_SET.
+- Добавлен data class `Event` (core-domain/event) с полями id, workItemId, type, timestamp (Long, миллисекунды epoch), actorId, actorRole (`Role`), deviceId и `payloadJson` (опциональный JSON с деталями).
+- Введён простой helper `isQcEvent()` для группировки QC-событий.
+- Создан unit test в core-domain, проверяющий создание Event и работу helper-функции.
+- Репозиторий событий в core-data обновлён для хранения actorRole и payloadJson как части event log.
+
+**Acceptance Criteria:**
+- ✅ EventType и Event компилируются в core-domain.
+- ✅ Event создаётся в unit-тестах с actorRole и payloadJson.
+- ✅ Документация (MODULES.md, FILE_OVERVIEW.md, stage.md) отражает новую модель событий и их расположение.
+- ✅ Core-data сохраняет/загружает события, включая actorRole и payloadJson.
+
+---
+
 ### 1.1 Project Structure and Modules
 
 **Planned Modules:**
@@ -445,10 +464,11 @@ data class Event(
     val id: String,
     val workItemId: String,
     val type: EventType,
+    val timestamp: Long,           // Milliseconds since epoch
     val actorId: String,           // User who performed action
+    val actorRole: Role,           // Role of the actor at event time
     val deviceId: String,
-    val timestamp: Instant,
-    val payload: Map<String, Any>  // Event-specific data
+    val payloadJson: String?       // Optional JSON blob with event-specific data
 )
 
 enum class EventType {
@@ -457,10 +477,10 @@ enum class EventType {
     WORK_READY_FOR_QC,
     QC_STARTED,
     QC_PASSED,
-    QC_FAILED,
-    REWORK_STARTED,
+    QC_FAILED_REWORK,
+    ISSUE_CREATED,
+    EVIDENCE_CAPTURED,
     AR_ALIGNMENT_SET,
-    EVIDENCE_CAPTURED
 }
 ```
 

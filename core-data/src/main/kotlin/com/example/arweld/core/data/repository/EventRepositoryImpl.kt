@@ -2,13 +2,12 @@ package com.example.arweld.core.data.repository
 
 import com.example.arweld.core.data.db.dao.EventDao
 import com.example.arweld.core.data.db.entity.EventEntity
-import com.example.arweld.core.domain.model.Event
-import com.example.arweld.core.domain.model.EventType
+import com.example.arweld.core.domain.event.Event
+import com.example.arweld.core.domain.event.EventType
+import com.example.arweld.core.domain.model.Role
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -38,23 +37,21 @@ class EventRepositoryImpl @Inject constructor(
         id = id,
         workItemId = workItemId,
         type = type.name,
-        actorId = actorId,
-        deviceId = deviceId,
         timestamp = timestamp,
-        payload = Json.encodeToString(payload)
+        actorId = actorId,
+        actorRole = actorRole.name,
+        deviceId = deviceId,
+        payloadJson = payloadJson
     )
 
     private fun EventEntity.toDomain() = Event(
         id = id,
         workItemId = workItemId,
         type = EventType.valueOf(type),
-        actorId = actorId,
-        deviceId = deviceId,
         timestamp = timestamp,
-        payload = try {
-            Json.decodeFromString(payload)
-        } catch (e: Exception) {
-            emptyMap()
-        }
+        actorId = actorId,
+        actorRole = Role.valueOf(actorRole),
+        deviceId = deviceId,
+        payloadJson = payloadJson
     )
 }
