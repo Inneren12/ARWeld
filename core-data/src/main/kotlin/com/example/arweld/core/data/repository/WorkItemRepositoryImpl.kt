@@ -26,7 +26,7 @@ class WorkItemRepositoryImpl @Inject constructor(
     }
 
     override suspend fun findByCode(code: String): WorkItem? {
-        return workItemDao.findByCode(code)?.toDomain()
+        return workItemDao.getByCode(code)?.toDomain()
     }
 
     override fun observeAll(): Flow<List<WorkItem>> {

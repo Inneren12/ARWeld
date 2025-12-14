@@ -207,6 +207,16 @@ ARWeld/
 - `UserEntity` ↔ `core-domain` `User` (id, name/displayName, role, optional lastSeen, isActive flag)
 - `SyncQueueEntity` ↔ sync queue items (id, payloadJson, createdAt, status, retryCount) with index on `status`
 
+## DAOs (core-data)
+
+**Package:** `core-data/src/main/kotlin/com/example/arweld/core/data/db/dao/`
+
+- `WorkItemDao` — lookup by id or code and bulk inserts for seeding/scans
+- `EventDao` — insert single/bulk events, query timeline by workItemId (ASC), and recent actions by actorId (DESC)
+- `EvidenceDao` — insert evidence and fetch attachments for a given event
+- `UserDao` — fetch a single user, list all users, and seed/update user roster
+- `SyncQueueDao` — enqueue single/bulk sync items and fetch earliest pending items by status/limit
+
 ---
 
 ## DI / Hilt Configuration

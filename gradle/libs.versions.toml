@@ -25,6 +25,9 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-test-core = { group = "androidx.test", name = "core", version = "1.6.1" }
+androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "roomVersion" }
+robolectric = { group = "org.robolectric", name = "robolectric", version = "4.12.2" }
 
 # Compose
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
