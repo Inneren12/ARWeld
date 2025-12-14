@@ -1,6 +1,6 @@
 package com.example.arweld.core.data.repository
 
-import com.example.arweld.core.domain.model.Event
+import com.example.arweld.core.domain.event.Event
 import kotlinx.coroutines.flow.Flow
 
 /**
