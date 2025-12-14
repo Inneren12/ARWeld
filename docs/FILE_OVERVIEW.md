@@ -699,13 +699,13 @@ All route constants are centralized:
 ```kotlin
 object Routes {
     // Auth Graph
-    const val SPLASH = "splash"
-    const val LOGIN = "login"
+    const val ROUTE_SPLASH = "splash"
+    const val ROUTE_LOGIN = "login"
 
     // Main Graph
-    const val HOME = "home"
-    const val WORK_ITEM_SUMMARY = "work_item_summary"
-    const val TIMELINE = "timeline"
+    const val ROUTE_HOME = "home"
+    const val ROUTE_WORK_ITEM_SUMMARY = "work_item_summary"
+    const val ROUTE_TIMELINE = "timeline"
 }
 ```
 
@@ -713,7 +713,7 @@ object Routes {
 
 **Auth Screens (app module):**
 - `app/src/main/kotlin/com/example/arweld/ui/auth/SplashScreen.kt`
-  - Auto-redirects to Login on launch
+  - Start destination; renders centered branding and auto-redirects to Login on launch
   - Uses `LaunchedEffect` for navigation with `popUpTo` to prevent back
 - `app/src/main/kotlin/com/example/arweld/ui/auth/LoginScreen.kt`
   - Mock authentication with role selection buttons
@@ -734,7 +734,7 @@ object Routes {
 ### Navigation Flow
 
 **Current Implementation (S1-03):**
-1. **App Launch:** MainActivity → NavHost with startDestination = SPLASH
+1. **App Launch:** MainActivity → NavHost with startDestination = ROUTE_SPLASH
 2. **Splash:** Immediately navigates to LOGIN (clears splash from back stack)
 3. **Login:** User selects role → navigates to HOME (clears login from back stack)
 4. **Home:** User can navigate to WORK_ITEM_SUMMARY or TIMELINE

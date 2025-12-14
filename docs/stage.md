@@ -454,6 +454,22 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - `loginMock(Role.ASSEMBLER)` returns a `User` with `role == ASSEMBLER`.
 - `currentUser()` returns the last logged-in user until `logout()` is called.
 - Documentation reflects the new contract, implementation location, and DI binding.
+
+### **S1-17: экран Splash (init + route)** ✅ COMPLETED
+
+**Goal:** Создать стартовый экран Splash в модуле app, который отображает бренд и сразу перенаправляет пользователя на Login без дополнительной логики аутентификации.
+
+**Subtasks:**
+- Добавить/проверить константы маршрутов `ROUTE_SPLASH` и `ROUTE_LOGIN` в `app/navigation/Routes.kt`.
+- Установить `startDestination = ROUTE_SPLASH` в `AppNavigation` и зарегистрировать `composable(ROUTE_SPLASH) { SplashScreen(...) }`.
+- Реализовать `SplashScreen(navController: NavHostController)` в `app/ui/auth/SplashScreen.kt` с центрированным текстом/логотипом и `LaunchedEffect` для перехода на Login c `popUpTo(ROUTE_SPLASH)`.
+- Обновить документацию (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`) для отражения стартового экрана и маршрутов.
+
+**Acceptance Criteria:**
+- Навигационный граф запускается с `ROUTE_SPLASH` как `startDestination` и содержит `SplashScreen` как первый экран.
+- `SplashScreen` отображает бренд и автоматически вызывает `navController.navigate(ROUTE_LOGIN)` с `popUpTo` для очистки стека.
+- Переход Splash → Login происходит без падений и блокирующих задержек.
+- Документация синхронизирована с реализацией маршрутов и расположением файлов.
 ### **S1-07: Evidence модель** ✅ COMPLETED
 
 **Goal:** Ввести базовую доменную модель для доказательств (evidence), прикрепляемых к событиям QC и другим событиям.

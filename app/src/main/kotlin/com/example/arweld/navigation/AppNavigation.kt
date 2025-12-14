@@ -24,28 +24,28 @@ fun AppNavigation(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Routes.SPLASH,
+        startDestination = Routes.ROUTE_SPLASH,
         modifier = modifier
     ) {
         // Auth Graph
-        composable(Routes.SPLASH) {
+        composable(Routes.ROUTE_SPLASH) {
             SplashScreen(navController = navController)
         }
 
-        composable(Routes.LOGIN) {
+        composable(Routes.ROUTE_LOGIN) {
             LoginScreen(navController = navController)
         }
 
         // Main Graph
-        composable(Routes.HOME) {
+        composable(Routes.ROUTE_HOME) {
             HomeRoute(navController = navController)
         }
 
-        composable(Routes.WORK_ITEM_SUMMARY) {
+        composable(Routes.ROUTE_WORK_ITEM_SUMMARY) {
             WorkItemSummaryScreen()
         }
 
-        composable(Routes.TIMELINE) {
+        composable(Routes.ROUTE_TIMELINE) {
             TimelineScreen()
         }
     }
@@ -59,10 +59,10 @@ fun AppNavigation(
 private fun HomeRoute(navController: NavHostController) {
     HomeScreen(
         onNavigateToWorkSummary = {
-            navController.navigate(Routes.WORK_ITEM_SUMMARY)
+            navController.navigate(Routes.ROUTE_WORK_ITEM_SUMMARY)
         },
         onNavigateToTimeline = {
-            navController.navigate(Routes.TIMELINE)
+            navController.navigate(Routes.ROUTE_TIMELINE)
         }
     )
 }
