@@ -1031,6 +1031,16 @@ Test state transitions:
 - Дубли одного и того же кода подавляются коротким интервалом; новые значения проходят сразу.
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-03 — экран ScanCode (превью + вывод распознанного кода) ✅
+
+**Goal:** Построить полноценный экран `ScanCode` в модуле `feature-scanner`, показывающий превью камеры, отображающий последний распознанный код и кнопку продолжения.
+
+**Acceptance:**
+- Пользователь может открыть экран ScanCode из домашнего тайла Ассемблера и увидеть живой CameraX preview.
+- При распознавании кода он отображается под превью в формате `Last code: <value>` или сообщение об отсутствии кода.
+- Кнопка "Continue" активна только при наличии кода и вызывает callback `onCodeResolved` для перехода к WorkItemSummary (S2-04 resolver).
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**
