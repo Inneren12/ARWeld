@@ -1965,6 +1965,24 @@ fun shouldRecommendRealignment(quality: AlignmentQuality): Boolean {
 
 ---
 
+### **S1-25: Instrumentation test — Room insert/read Event** ✅ COMPLETED
+
+**Goal:** Verify Room wiring for the event log by inserting and reading an `EventEntity` through `EventDao` in an instrumentation
+environment.
+
+**What Was Implemented:**
+- Added `EventDaoInstrumentedTest` under `core-data/src/androidTest/.../db/dao/`.
+- The test builds an in-memory `AppDatabase`, inserts a sample `EventEntity`, reads it back via `getByWorkItemId`, and asserts all
+  fields (id, workItemId, type, timestamp, actorId, actorRole, deviceId, payloadJson).
+- Updated documentation to point to the new instrumentation test and coverage.
+
+**Acceptance Criteria Status:**
+- ✅ Instrumentation test builds its own in-memory Room database.
+- ✅ Event insert and query via `EventDao.getByWorkItemId` return the expected entity and fields.
+- ✅ Documentation reflects the new Room instrumentation coverage.
+
+---
+
 ## Post-Sprint 6: Future Enhancements (Out of MVP Scope)
 
 The following are explicitly **NOT** in the MVP but may be roadmapped for future releases:
