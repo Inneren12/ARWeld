@@ -369,6 +369,25 @@ Before diving into sprints, understand these foundational rules that apply acros
 
 ---
 
+### **S1-23: Unit test — юнит-тест reducer: fail→rework→ready→pass** ✅ COMPLETED
+
+**Implementation Date:** 2026-02-24
+
+**Goal:** Ensure the WorkItem reducer covers a rework scenario where QC fails, assemblers rework, and QC ultimately passes.
+
+**What Was Implemented:**
+
+1. **Reducer coverage:** Added `reduce_reworkFlow_failThenReadyThenPass` alongside the happy-path test to assert the fail → rework → ready → pass lifecycle with chronological events.
+2. **Assertions:** Verified intermediate `REWORK_REQUIRED` status after `QC_FAILED_REWORK` and final `APPROVED/PASSED` with `lastEvent = QC_PASSED` after the second QC cycle.
+3. **Documentation updates:** Refreshed FILE_OVERVIEW to note reducer tests now cover both happy path and rework flows.
+
+**Acceptance Criteria Status:**
+- ✅ Reducer reaches REWORK_REQUIRED immediately after a QC fail.
+- ✅ Reducer reaches APPROVED/PASSED once QC passes after rework.
+- ✅ Documentation notes the rework test coverage.
+
+---
+
 ### **S1-04: Add Role and Permission Models** ✅ COMPLETED
 
 **Implementation Date:** 2025-12-14
