@@ -26,9 +26,12 @@ ARWeld/
 │   │   ├── src/main/kotlin/com/example/arweld/core/domain/
 │   │   │   ├── model/                     # Domain models
 │   │   │   │   ├── WorkItem.kt
-│   │   │   │   ├── Event.kt
 │   │   │   │   ├── User.kt
 │   │   │   │   ├── Role.kt                # ✅ S1-04: ASSEMBLER, QC, SUPERVISOR, DIRECTOR
+│   │   │   ├── event/                     # Event log domain
+│   │   │   │   ├── Event.kt               # Immutable domain event
+│   │   │   │   ├── EventType.kt           # Workflow milestones
+│   │   │   │   └── EventRepository.kt     # Domain contract to append/query events
 │   │   │   ├── state/                     # ✅ S1-08: Derived state + reducer
 │   │   │   │   └── WorkItemState.kt       # WorkStatus, QcStatus, reduce(events)
 │   │   │   ├── evidence/                  # ✅ S1-07: Evidence domain models
@@ -58,6 +61,8 @@ ARWeld/
 │   │   │   │       ├── EventDao.kt
 │   │   │   │       ├── EvidenceDao.kt
 │   │   │   │       └── SyncQueueDao.kt
+│   │   │   ├── event/                      # Event entity/domain mappers
+│   │   │   │   └── EventMappers.kt         # EventEntity ↔ Event conversions
 │   │   │   ├── repository/                # Repository implementations
 │   │   │   │   ├── WorkItemRepositoryImpl.kt
 │   │   │   │   ├── EventRepositoryImpl.kt
@@ -67,8 +72,6 @@ ARWeld/
 │   │   │   │   └── ChecksumCalculator.kt  # SHA-256 hashing
 │   │   │   ├── sync/                      # Offline queue
 │   │   │   │   └── SyncManager.kt
-│   │   │   └── mapper/                    # Entity ↔ Domain mappers
-│   │   │       └── EntityMappers.kt
 │   │   └── build.gradle.kts               # Android library + Room
 │   │
 │   └── auth/                              # Authentication
@@ -274,7 +277,7 @@ object DataModule {
 
 **Binds:**
 - `WorkItemRepository` → `WorkItemRepositoryImpl`
-- `EventRepository` → `EventRepositoryImpl`
+- `EventRepository` (core-domain/event) → `EventRepositoryImpl` (core-data)
 - `EvidenceRepository` → `EvidenceRepositoryImpl`
 
 **Where to add new repository bindings:**
@@ -289,6 +292,10 @@ abstract class RepositoryModule {
     ): NewRepository
 }
 ```
+
+**EventRepository + mapping:**
+- Domain contract: `core-domain/src/main/kotlin/com/example/arweld/core/domain/event/EventRepository.kt`
+- Mapping helpers: `core-data/src/main/kotlin/com/example/arweld/core/data/event/EventMappers.kt` handle `EventEntity` ↔ `Event` (enum name ↔ value conversions)
 
 #### AuthModule (core-auth)
 

@@ -108,6 +108,7 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
   - `QcEvidencePolicy` — Validates evidence requirements for QC decisions
 - Repository contracts:
   - `WorkRepository` — Domain-facing interface for fetching WorkItems by code and deriving WorkItemState/queues from the event log
+  - `EventRepository` — Domain-facing interface for appending events (single/batch) and querying timelines by WorkItem
 - Use case interfaces (implementations may live in core:data or feature modules)
 
 **Dependencies:**
@@ -151,7 +152,7 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 
 ### core:data
 
-**Status:** ✅ Implemented (S1-02 - partial, DAOs and repositories only) — 📌 Updated with S1-10 Room entities
+**Status:** ✅ Implemented (S1-02 - partial, DAOs and repositories only) — 📌 Updated with S1-10 Room entities and S1-14 EventRepository
 
 **Description:**
 Data layer providing local storage, repositories, and data access abstractions. **Hilt DI modules configured here** to provide database and repository instances.
@@ -162,7 +163,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
 - DAOs (Data Access Objects) for CRUD operations: `WorkItemDao`, `EventDao`, `EvidenceDao`, `UserDao`, `SyncQueueDao`
 - Repository implementations:
   - `WorkItemRepository` ✅ Implemented
-  - `EventRepository` ✅ Implemented
+  - `EventRepository` ✅ Implemented (Room-backed with centralized EventEntity ↔ Event mappers)
   - `EvidenceRepository` ✅ Stub
   - `WorkRepositoryImpl` ✅ S1-13: derives WorkItemState and queues using Room + reducer
   - `SyncQueueRepository` 📋 Planned
@@ -202,6 +203,8 @@ Data layer providing local storage, repositories, and data access abstractions. 
     - `EventDao.kt`
     - `EvidenceDao.kt`
     - `SyncQueueDao.kt`
+- `event/` — EventEntity ↔ Event mappers shared across repositories
+  - `EventMappers.kt`
 - `repository/` — Repository implementations
   - `WorkItemRepositoryImpl.kt`
   - `EventRepositoryImpl.kt`

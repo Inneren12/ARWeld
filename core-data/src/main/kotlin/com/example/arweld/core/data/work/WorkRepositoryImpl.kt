@@ -2,11 +2,9 @@ package com.example.arweld.core.data.work
 
 import com.example.arweld.core.data.db.dao.EventDao
 import com.example.arweld.core.data.db.dao.WorkItemDao
-import com.example.arweld.core.data.db.entity.EventEntity
 import com.example.arweld.core.data.db.entity.WorkItemEntity
+import com.example.arweld.core.data.event.toDomain
 import com.example.arweld.core.domain.event.Event
-import com.example.arweld.core.domain.event.EventType
-import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.model.WorkItem
 import com.example.arweld.core.domain.model.WorkItemType
 import com.example.arweld.core.domain.state.WorkItemState
@@ -61,16 +59,5 @@ class WorkRepositoryImpl @Inject constructor(
         zone = zoneId,
         nodeId = nodeId,
         createdAt = createdAt ?: 0L,
-    )
-
-    private fun EventEntity.toDomain() = Event(
-        id = id,
-        workItemId = workItemId,
-        type = EventType.valueOf(type),
-        timestamp = timestamp,
-        actorId = actorId,
-        actorRole = Role.valueOf(actorRole),
-        deviceId = deviceId,
-        payloadJson = payloadJson,
     )
 }

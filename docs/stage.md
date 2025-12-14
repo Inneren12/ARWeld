@@ -407,6 +407,22 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 **Acceptance Criteria:**
 - In tests, you can insert a `WorkItemEntity`, add `EventEntity` history, and fetch the derived `WorkItemState` via `WorkRepository` (e.g., APPROVED after QC_PASSED).
 - Documentation updated (`MODULES.md`, `FILE_OVERVIEW.md`, this file) to reflect the new repository and queue definitions.
+
+### **S1-14: EventRepository** ✅ COMPLETED
+
+**Goal:** Hide Room-specific details behind a domain-facing EventRepository that appends events (single/batch), retrieves timelines, and centralizes entity ↔ domain mapping.
+
+**What Was Implemented:**
+- Added `EventRepository` interface to `core-domain/event` with `appendEvent`, `appendEvents`, and `getEventsForWorkItem`.
+- Centralized `EventEntity` ↔ `Event` mapping in `core-data/event/EventMappers.kt`, including enum name conversions for `type` and `actorRole`.
+- Updated `EventRepositoryImpl` to use mapping helpers and batch inserts with `EventDao`, and wired Hilt binding to the domain interface.
+- Reused the shared mappers inside `WorkRepositoryImpl` to keep event conversions consistent.
+- Added an in-memory Room test validating that appended events are read back in order with all fields intact.
+
+**Acceptance Criteria:**
+- Repository can append single or multiple events and retrieve work item timelines via `EventDao`.
+- EventEntity ↔ Event conversions are centralized and used by repositories, preserving enum values and payloads.
+- Documentation reflects the domain interface location and mapper file.
 ### **S1-07: Evidence модель** ✅ COMPLETED
 
 **Goal:** Ввести базовую доменную модель для доказательств (evidence), прикрепляемых к событиям QC и другим событиям.
