@@ -999,6 +999,21 @@ Test state transitions:
 
 **Result:** Assembler can scan, claim, mark ready for QC, and use AR screen v1 as a validation tool.
 
+### S2-01 — добавить CameraX preview для сканирования ✅
+
+**Goal:** Показать живой превью камеры в модуле `feature-scanner`, подготовив основу для распознавания штрих/QR-кодов.
+
+**Subtasks:**
+- Добавить зависимости CameraX (core, camera2, lifecycle, view) в `feature-scanner`.
+- Создать обёртку над PreviewView для Compose (`ScannerPreview`) с обработкой разрешения камеры.
+- Вынести логику биндинга CameraX в отдельный контроллер (`camera/CameraPreviewController.kt`).
+- Подготовить простой экран для ручной проверки превью (`ScannerPreviewScreen`).
+
+**Acceptance:**
+- Живое изображение с камеры отображается в `ScannerPreview` без падений.
+- Разрешение камеры запрашивается корректно; при разрешённой камере превью стартует автоматически.
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**

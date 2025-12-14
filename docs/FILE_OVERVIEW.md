@@ -113,13 +113,14 @@ ARWeld/
 │   ├── scanner/                           # Barcode/QR scanning
 │   │   ├── src/main/kotlin/com/example/arweld/feature/scanner/
 │   │   │   ├── ui/
-│   │   │   │   └── ScannerScreen.kt       # Camera preview + detection
+│   │   │   │   ├── ScannerPreview.kt      # CameraX preview composable with permission handling
+│   │   │   │   └── ScannerPreviewScreen.kt # Simple screen hosting the preview
 │   │   │   ├── viewmodel/
-│   │   │   │   └── ScannerViewModel.kt
+│   │   │   │   └── ScannerViewModel.kt    # Planned decoding/handling
 │   │   │   ├── usecase/
 │   │   │   │   └── ResolveWorkItemUseCase.kt # Code → WorkItem lookup
 │   │   │   └── camera/
-│   │   │       └── CameraManager.kt       # CameraX setup
+│   │   │       └── CameraPreviewController.kt # CameraX setup and lifecycle binding
 │   │   └── build.gradle.kts
 │   │
 │   ├── qc/                                # QC inspector workflows
@@ -198,6 +199,10 @@ ARWeld/
 - `app/src/main/kotlin/com/example/arweld/ui/auth/LoginRoute.kt` — Compose UI with four role buttons (Assembler/QC/Supervisor/Director) that triggers mock login and navigates to Home.
 - `app/src/main/kotlin/com/example/arweld/ui/auth/LoginViewModel.kt` — Hilt ViewModel injecting `AuthRepository` and invoking `loginMock(role)` before navigation to Home.
 - `app/src/main/kotlin/com/example/arweld/navigation/AppNavigation.kt` — NavHost start destination (Login) and wiring for Home/WorkItemSummary/Timeline.
+
+### Scanner entry points and ownership
+- **Scanner UI/logic lives in** `feature-scanner` (`ui/ScannerPreview.kt`, `camera/CameraPreviewController.kt`).
+- **Navigation into scanner** starts from the main app NavHost (home tile for Assembler/QC) once the route is added; during S2-01 manual testing, `ScannerPreviewScreen` can be hosted inside a temporary Nav destination in the app module without leaking navigation details into the feature.
 - `app/src/main/kotlin/com/example/arweld/ui/home/HomeRoute.kt` — Retrieves the current user and passes navigation callbacks into `feature-home`'s `HomeScreen`.
 
 **WorkItem models:**
