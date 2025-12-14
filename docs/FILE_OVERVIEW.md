@@ -197,6 +197,8 @@ ARWeld/
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/evidence/` (`EvidenceKind.kt`, `Evidence.kt`).
 - To add a new evidence type (e.g., sensor log), extend `EvidenceKind` and update downstream clients (policies, storage, UI).
 - `metaJson` stores flexible metadata (camera params, AR alignment, units). `createdAt` uses milliseconds since epoch.
+- EvidenceRepository currently handles **metadata only** (Room persistence of URIs/checksums); actual photo/AR/video file I/O
+  lives in the file layer and will be wired in a later sprint.
 
 ## Repositories and derived state
 - **WorkRepository (domain interface):** `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/WorkRepository.kt`

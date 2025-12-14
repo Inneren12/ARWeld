@@ -423,6 +423,22 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - Repository can append single or multiple events and retrieve work item timelines via `EventDao`.
 - EventEntity ↔ Event conversions are centralized and used by repositories, preserving enum values and payloads.
 - Documentation reflects the domain interface location and mapper file.
+
+### **S1-15: EvidenceRepository (metadata only)** ✅ COMPLETED
+
+**Goal:** Provide a Room-backed EvidenceRepository that stores evidence metadata (URIs, hashes, kind) without handling file I/O yet.
+
+**What Was Implemented:**
+- Added domain interface `EvidenceRepository` in `core-domain/evidence` with methods to save one or many records and query by `eventId`.
+- Implemented `EvidenceEntity` ↔ `Evidence` mappers in `core-data/evidence/EvidenceMappers.kt`, including enum conversions for `EvidenceKind`.
+- Updated `EvidenceRepositoryImpl` to use `EvidenceDao` for metadata persistence only (no file reads/writes), plus batch insert support.
+- Hilt binding now connects the domain interface to the Room-backed implementation.
+- Documentation updated (`MODULES.md`, `FILE_OVERVIEW.md`, this file) to reflect metadata-only scope for Sprint 1.
+
+**Acceptance Criteria:**
+- Evidence metadata can be saved via `saveEvidence`/`saveAll` and read back with `getEvidenceForEvent`.
+- Repository compiles without file storage dependencies; URIs are treated as opaque references.
+- Docs capture the metadata-only limitation for S1.
 ### **S1-07: Evidence модель** ✅ COMPLETED
 
 **Goal:** Ввести базовую доменную модель для доказательств (evidence), прикрепляемых к событиям QC и другим событиям.
