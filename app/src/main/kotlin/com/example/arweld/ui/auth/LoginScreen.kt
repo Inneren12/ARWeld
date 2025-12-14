@@ -44,8 +44,8 @@ fun LoginScreen(navController: NavController) {
             // Sign in as Assembler
             Button(
                 onClick = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    navController.navigate(Routes.ROUTE_HOME) {
+                        popUpTo(Routes.ROUTE_LOGIN) { inclusive = true }
                     }
                 },
                 modifier = Modifier
@@ -60,8 +60,8 @@ fun LoginScreen(navController: NavController) {
             // Sign in as QC
             Button(
                 onClick = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    navController.navigate(Routes.ROUTE_HOME) {
+                        popUpTo(Routes.ROUTE_LOGIN) { inclusive = true }
                     }
                 },
                 modifier = Modifier
@@ -76,8 +76,8 @@ fun LoginScreen(navController: NavController) {
             // Sign in as Supervisor
             Button(
                 onClick = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    navController.navigate(Routes.ROUTE_HOME) {
+                        popUpTo(Routes.ROUTE_LOGIN) { inclusive = true }
                     }
                 },
                 modifier = Modifier

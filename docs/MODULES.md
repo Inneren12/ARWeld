@@ -63,11 +63,11 @@ The Android application module. Entry point for the app, hosts navigation, and w
 
 **Navigation Structure (S1-03):**
 - **NavHost:** Defined in `navigation/AppNavigation.kt`
-- **Routes:** Defined in `navigation/Routes.kt`
+- **Routes:** Defined in `navigation/Routes.kt` (`ROUTE_SPLASH`, `ROUTE_LOGIN`, `ROUTE_HOME`, `ROUTE_WORK_ITEM_SUMMARY`, `ROUTE_TIMELINE`)
 - **AuthGraph:** Splash → Login
 - **MainGraph:** Home → WorkItemSummary → Timeline
 - **Auth Screens:**
-  - `ui/auth/SplashScreen.kt` — Entry point, auto-redirects to Login
+  - `ui/auth/SplashScreen.kt` — Entry point/start destination, auto-redirects to Login
   - `ui/auth/LoginScreen.kt` — Role selection (Assembler/QC/Supervisor)
 - **Navigation Flow:**
   - Splash → Login → Home (with popUpTo to prevent back to auth)
