@@ -189,6 +189,11 @@ ARWeld/
 └── gradle.properties                      # Gradle properties
 ```
 
+### Auth flow entry points
+- `app/src/main/kotlin/com/example/arweld/ui/auth/SplashScreen.kt` — Start destination that immediately navigates to Login.
+- `app/src/main/kotlin/com/example/arweld/ui/auth/LoginScreen.kt` — Compose UI with role buttons (Assembler/QC/Supervisor/Director) that triggers mock login.
+- `app/src/main/kotlin/com/example/arweld/ui/auth/LoginViewModel.kt` — Hilt ViewModel injecting `AuthRepository` and invoking `loginMock(role)` before navigation to Home.
+
 **WorkItem models:**
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/domain/work/` (`WorkItemType.kt`, `WorkItem.kt`).
 - Extend WorkItem schema here first (e.g., project/zone fields); map database entities in `core-data` to these domain types.

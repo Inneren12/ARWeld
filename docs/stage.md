@@ -470,6 +470,22 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - `SplashScreen` отображает бренд и автоматически вызывает `navController.navigate(ROUTE_LOGIN)` с `popUpTo` для очистки стека.
 - Переход Splash → Login происходит без падений и блокирующих задержек.
 - Документация синхронизирована с реализацией маршрутов и расположением файлов.
+
+### **S1-18: экран Login (mock users)** ✅ COMPLETED
+
+**Goal:** Реализовать экран Login, который позволяет выбрать любую роль (Assembler, QC, Supervisor, Director) и выполнить моковую авторизацию.
+
+**What Was Implemented:**
+- Добавлен `LoginViewModel` с `AuthRepository.loginMock(role)` для мокового входа по выбранной роли.
+- `LoginScreen` показывает четыре кнопки (Assembler/QC/Supervisor/Director), вызывает `onRoleSelected(role)` и после успешного вызова `loginMock` переходит на Home с очисткой стека до Login.
+- Навигационный граф `AppNavigation` регистрирует Login с Hilt ViewModel, обеспечивая DI `AuthRepository`.
+- Документация обновлена (`MODULES.md`, `FILE_OVERVIEW.md`, `stage.md`) с описанием мокового входа и расположения файлов.
+
+**Acceptance Criteria:**
+- На Login экране можно выбрать любую роль (Assembler, QC, Supervisor, Director) — каждая кнопка вызывает `loginMock(role)`.
+- После выбора роли выполняется переход на Home с `popUpTo(ROUTE_LOGIN)` и без крашей.
+- Hilt успешно инжектит `AuthRepository` в `LoginViewModel`.
+- Документация отражает моковую авторизацию и путь к LoginScreen/LoginViewModel.
 ### **S1-07: Evidence модель** ✅ COMPLETED
 
 **Goal:** Ввести базовую доменную модель для доказательств (evidence), прикрепляемых к событиям QC и другим событиям.
