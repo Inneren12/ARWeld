@@ -2,11 +2,10 @@ package com.example.arweld.ui.auth
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -34,14 +33,12 @@ fun LoginScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    fun onLoginSelected(role: Role) {
-        coroutineScope.launch {
-            viewModel.onRoleSelected(role)
-            navController.navigate(Routes.ROUTE_HOME) {
-                popUpTo(Routes.ROUTE_LOGIN) { inclusive = true }
-            }
-        }
-    }
+    val roleButtons = listOf(
+        RoleButton("Sign in as Assembler", Role.ASSEMBLER),
+        RoleButton("Sign in as QC", Role.QC),
+        RoleButton("Sign in as Supervisor", Role.SUPERVISOR),
+        RoleButton("Sign in as Director", Role.DIRECTOR)
+    )
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -58,57 +55,34 @@ fun LoginScreen(
                 text = "Login",
                 style = MaterialTheme.typography.headlineLarge
             )
-            Spacer(modifier = Modifier.height(32.dp))
             Text(
                 text = "Select your role to continue:",
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(top = 16.dp)
             )
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Sign in as Assembler
-            Button(
-                onClick = { onLoginSelected(Role.ASSEMBLER) },
-                modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(56.dp)
-            ) {
-                Text("Sign in as Assembler")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Sign in as QC
-            Button(
-                onClick = { onLoginSelected(Role.QC) },
-                modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(56.dp)
-            ) {
-                Text("Sign in as QC")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Sign in as Supervisor
-            Button(
-                onClick = { onLoginSelected(Role.SUPERVISOR) },
-                modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(56.dp)
-            ) {
-                Text("Sign in as Supervisor")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = { onLoginSelected(Role.DIRECTOR) },
-                modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(56.dp)
-            ) {
-                Text("Sign in as Director")
+            roleButtons.forEachIndexed { index, roleButton ->
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            viewModel.onRoleSelected(roleButton.role)
+                            navController.navigate(Routes.ROUTE_HOME) {
+                                popUpTo(Routes.ROUTE_LOGIN) { inclusive = true }
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .sizeIn(minHeight = 56.dp)
+                        .padding(top = if (index == 0) 32.dp else 16.dp)
+                ) {
+                    Text(roleButton.label)
+                }
             }
         }
     }
 }
+
+private data class RoleButton(
+    val label: String,
+    val role: Role
+)

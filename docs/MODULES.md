@@ -48,7 +48,7 @@ The Android application module. Entry point for the app, hosts navigation, and w
 - Application class initialization (@HiltAndroidApp)
 - Navigation host setup (Compose Navigation) ✅ Implemented in S1-03
 - Dependency injection configuration via Hilt
-- Auth screens (Splash, Login) ✅ Implemented in S1-03; Login uses AuthRepository.loginMock via LoginViewModel for role-based mock sign-in
+- Auth screens (Splash, Login) ✅ Implemented in S1-03; Login uses AuthRepository.loginMock via LoginViewModel for role-based mock sign-in with four role buttons (Assembler/QC/Supervisor/Director)
 - Global app configuration (theme, error handling, analytics)
 
 **Dependencies:**
@@ -68,7 +68,7 @@ The Android application module. Entry point for the app, hosts navigation, and w
 - **MainGraph:** Home → WorkItemSummary → Timeline
 - **Auth Screens:**
   - `ui/auth/SplashScreen.kt` — Entry point/start destination, auto-redirects to Login
-  - `ui/auth/LoginScreen.kt` — Role selection (Assembler/QC/Supervisor/Director)
+  - `ui/auth/LoginScreen.kt` — Role selection (Assembler/QC/Supervisor/Director) using `AuthRepository.loginMock` via `LoginViewModel`
 - **Navigation Flow:**
   - Splash → Login → Home (with popUpTo to prevent back to auth)
   - Home → WorkItemSummary or Timeline
