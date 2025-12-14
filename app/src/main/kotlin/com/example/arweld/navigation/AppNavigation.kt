@@ -7,8 +7,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.arweld.ui.auth.LoginRoute
 import com.example.arweld.ui.home.HomeRoute
-import com.example.arweld.ui.placeholder.PlaceholderScreen
 import com.example.arweld.ui.work.WorkItemSummaryRoute
+import com.example.arweld.feature.work.ui.TimelineScreen
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
@@ -38,7 +38,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
         composable(ROUTE_TIMELINE) {
-            PlaceholderScreen(title = "Timeline")
+            TimelineScreen()
         }
     }
 }
