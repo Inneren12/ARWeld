@@ -595,43 +595,156 @@ fun NewScreen(
 
 ---
 
-## Navigation Routes
+## Navigation
 
-**Defined in:** `app/navigation/AppNavigation.kt`
+**Implementation Status:** ✅ Implemented in S1-03
 
-**Route Naming Convention:**
-- Lowercase with underscores: `"home"`, `"my_work"`, `"qc_inspection/{workItemId}"`
-- Use path parameters for IDs: `{workItemId}`, `{userId}`
+### Overview
 
-**Example Routes:**
+ARWeld uses **Compose Navigation** with a single-activity architecture. Navigation is organized into two conceptual graphs:
+- **AuthGraph:** Splash → Login
+- **MainGraph:** Home → WorkItemSummary → Timeline
+
+### NavHost Location
+
+**File:** `app/src/main/kotlin/com/example/arweld/navigation/AppNavigation.kt`
+
+The main NavHost is defined in `AppNavigation` composable, which is called from `MainActivity`.
+
+### Route Constants
+
+**File:** `app/src/main/kotlin/com/example/arweld/navigation/Routes.kt`
+
+All route constants are centralized:
 ```kotlin
-"home"                           → HomeScreen
+object Routes {
+    // Auth Graph
+    const val SPLASH = "splash"
+    const val LOGIN = "login"
+
+    // Main Graph
+    const val HOME = "home"
+    const val WORK_ITEM_SUMMARY = "work_item_summary"
+    const val TIMELINE = "timeline"
+}
+```
+
+### Screen Locations
+
+**Auth Screens (app module):**
+- `app/src/main/kotlin/com/example/arweld/ui/auth/SplashScreen.kt`
+  - Auto-redirects to Login on launch
+  - Uses `LaunchedEffect` for navigation with `popUpTo` to prevent back
+- `app/src/main/kotlin/com/example/arweld/ui/auth/LoginScreen.kt`
+  - Mock authentication with role selection buttons
+  - Navigates to Home with `popUpTo` to clear auth stack
+
+**Home Screen (feature-home module):**
+- `feature-home/src/main/kotlin/com/example/arweld/feature/home/ui/HomeScreen.kt`
+  - Accepts `onNavigateToWorkSummary` and `onNavigateToTimeline` callbacks
+  - Called from `HomeRoute` wrapper in `AppNavigation.kt`
+  - Does not directly depend on navigation library
+
+**Work Screens (feature-work module):**
+- `feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/WorkItemSummaryScreen.kt`
+  - Stub implementation for S1-03
+- `feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/TimelineScreen.kt`
+  - Stub implementation for S1-03
+
+### Navigation Flow
+
+**Current Implementation (S1-03):**
+1. **App Launch:** MainActivity → NavHost with startDestination = SPLASH
+2. **Splash:** Immediately navigates to LOGIN (clears splash from back stack)
+3. **Login:** User selects role → navigates to HOME (clears login from back stack)
+4. **Home:** User can navigate to WORK_ITEM_SUMMARY or TIMELINE
+5. **Back from Home:** Does NOT return to Login/Splash (popUpTo prevents this)
+6. **Back from WorkItemSummary/Timeline:** Returns to Home
+
+**Planned Enhancements (Sprint 2+):**
+- Deep linking for work items: `"work_item/{workItemId}"`
+- Conditional navigation based on user role
+- Bottom navigation or drawer for main screens
+- AR view integration: `"ar_view/{workItemId}"`
+
+### Adding New Destinations
+
+**Step 1: Define Route Constant**
+
+Edit `app/src/main/kotlin/com/example/arweld/navigation/Routes.kt`:
+```kotlin
+const val NEW_SCREEN = "new_screen"
+// Or with parameter:
+const val NEW_SCREEN_WITH_ID = "new_screen/{itemId}"
+```
+
+**Step 2: Create Screen Composable**
+
+In appropriate feature module (e.g., `feature-work`):
+```kotlin
+@Composable
+fun NewScreen(
+    modifier: Modifier = Modifier,
+    onNavigateBack: () -> Unit = {}
+) {
+    // Screen implementation
+}
+```
+
+**Step 3: Add to NavHost**
+
+Edit `app/src/main/kotlin/com/example/arweld/navigation/AppNavigation.kt`:
+```kotlin
+composable(Routes.NEW_SCREEN) {
+    NewScreen()
+}
+
+// Or with parameter:
+composable(
+    route = Routes.NEW_SCREEN_WITH_ID,
+    arguments = listOf(navArgument("itemId") { type = NavType.StringType })
+) { backStackEntry ->
+    val itemId = backStackEntry.arguments?.getString("itemId")
+    NewScreen(itemId = itemId)
+}
+```
+
+**Step 4: Navigate to New Screen**
+
+From another screen:
+```kotlin
+navController.navigate(Routes.NEW_SCREEN)
+// Or with parameter:
+navController.navigate("new_screen/$itemId")
+```
+
+### Route Naming Convention
+
+- **Lowercase with underscores:** `"home"`, `"my_work"`, `"qc_inspection/{workItemId}"`
+- **Path parameters:** `{workItemId}`, `{userId}`
+- **AuthGraph routes:** `"splash"`, `"login"`
+- **MainGraph routes:** Feature-specific names like `"work_item_summary"`, `"timeline"`
+
+### Planned Routes (Future Sprints)
+
+```kotlin
+// Sprint 2+
 "my_work"                        → MyWorkScreen (Assembler)
-"work_item/{workItemId}"         → WorkItemSummaryScreen
+"work_item/{workItemId}"         → WorkItemSummaryScreen (with data)
 "scan"                           → ScannerScreen
+"ar_view/{workItemId}"           → ArViewScreen
+
+// Sprint 3+
 "qc_queue"                       → QcQueueScreen
 "qc_inspection/{workItemId}"     → QcInspectionScreen
-"ar_view/{workItemId}"           → ArViewScreen
+
+// Sprint 4+
 "supervisor_dashboard"           → SupervisorDashboardScreen
 "work_item_list"                 → WorkItemListScreen
 "work_item_detail/{workItemId}"  → WorkItemDetailScreen (Supervisor)
 "reports"                        → ReportsScreen
 "export"                         → ExportScreen
 ```
-
-**Adding a New Route:**
-1. Define in `AppNavigation.kt`:
-   ```kotlin
-   composable("new_route/{param}") { backStackEntry ->
-       val param = backStackEntry.arguments?.getString("param")
-       NewScreen(param = param)
-   }
-   ```
-
-2. Navigate from another screen:
-   ```kotlin
-   navController.navigate("new_route/$paramValue")
-   ```
 
 ---
 

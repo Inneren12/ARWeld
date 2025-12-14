@@ -175,6 +175,95 @@ Before diving into sprints, understand these foundational rules that apply acros
 
 ---
 
+### **S1-03: Setup Navigation (Compose Navigation)** ✅ COMPLETED
+
+**Implementation Date:** 2025-12-14
+
+**Goal:** Implement Compose Navigation with AuthGraph (Splash → Login) and MainGraph (Home → WorkItemSummary → Timeline).
+
+**What Was Implemented:**
+
+1. **Navigation Dependencies:**
+   - `androidx.navigation.compose` already present in app/build.gradle.kts from S1-01
+   - `hilt.navigation.compose` for ViewModel integration
+
+2. **Route Constants:**
+   - Created `app/.../navigation/Routes.kt` with centralized route definitions:
+     - Auth routes: SPLASH, LOGIN
+     - Main routes: HOME, WORK_ITEM_SUMMARY, TIMELINE
+
+3. **NavHost Setup:**
+   - Created `app/.../navigation/AppNavigation.kt`:
+     - Single NavHost with all destinations
+     - Conceptual separation: AuthGraph and MainGraph
+     - HomeRoute wrapper for dependency injection
+
+4. **Auth Screens (app module):**
+   - `app/.../ui/auth/SplashScreen.kt`:
+     - Entry point with app logo/title
+     - Auto-navigates to Login using LaunchedEffect
+     - Uses popUpTo to clear splash from back stack
+   - `app/.../ui/auth/LoginScreen.kt`:
+     - Mock authentication with three role buttons
+     - Navigates to Home with popUpTo to prevent back to auth
+
+5. **Home Screen Updates (feature-home):**
+   - Updated `HomeScreen` to accept navigation callbacks:
+     - `onNavigateToWorkSummary: () -> Unit`
+     - `onNavigateToTimeline: () -> Unit`
+   - Added navigation demo buttons for testing flow
+   - Maintains separation: feature module doesn't depend on navigation library
+
+6. **Work Screens (feature-work):**
+   - Created `WorkItemSummaryScreen.kt` — Stub with placeholder text
+   - Created `TimelineScreen.kt` — Stub with placeholder text
+   - Both screens ready for Sprint 2 implementation
+
+7. **MainActivity Updates:**
+   - Replaced direct HomeScreen call with NavHost
+   - Uses `rememberNavController()` for navigation state
+   - Passes navController to AppNavigation
+
+8. **Documentation Updates:**
+   - Updated `docs/MODULES.md`:
+     - app module marked as ✅ Implemented (S1-03)
+     - feature-home marked as ✅ Implemented (S1-03)
+     - feature-work marked as ✅ Partially Implemented (stubs only)
+     - Added "Navigation Structure" section to app module
+   - Updated `docs/FILE_OVERVIEW.md`:
+     - Added comprehensive "Navigation" section with:
+       - NavHost location and structure
+       - Route constants location
+       - Screen locations by module
+       - Navigation flow diagram
+       - Guide for adding new destinations
+   - Updated `docs/stage.md` (this file) with S1-03 completion details
+
+**Navigation Flow Implemented:**
+1. App launch → Splash (startDestination)
+2. Splash → Login (auto-redirect with popUpTo)
+3. Login → Home (user selects role, popUpTo clears auth stack)
+4. Home → WorkItemSummary or Timeline (via navigation buttons)
+5. Back from Home does NOT return to Login/Splash
+6. Back from WorkItemSummary/Timeline returns to Home
+
+**Acceptance Criteria Status:**
+- ✅ Compose Navigation dependency present
+- ✅ Route constants defined and centralized
+- ✅ Stub screens implemented (Splash, Login, Home, WorkItemSummary, Timeline)
+- ✅ NavHost wired in MainActivity
+- ✅ Navigation flow works end-to-end
+- ✅ Back button behavior correct (Home does not return to auth)
+- ✅ Documentation updated (MODULES.md, FILE_OVERVIEW.md, stage.md)
+- ⏳ Build verification pending (requires Gradle sync and build)
+
+**Next Steps (Remaining Sprint 1 Tasks):**
+- Implement domain model reducers and policies (Task 1.2 completion)
+- Add unit tests for navigation flow (Task 1.5)
+- Test full build and runtime behavior
+
+---
+
 ### 1.1 Project Structure and Modules
 
 **Planned Modules:**

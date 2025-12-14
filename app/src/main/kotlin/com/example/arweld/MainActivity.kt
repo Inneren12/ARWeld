@@ -8,13 +8,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import com.example.arweld.feature.home.ui.HomeScreen
+import androidx.navigation.compose.rememberNavController
+import com.example.arweld.navigation.AppNavigation
 import com.example.arweld.ui.theme.ArWeldTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * Main activity - entry point for the ARWeld application.
- * Uses Jetpack Compose for UI.
+ * Uses Jetpack Compose for UI with Navigation Compose.
  * Annotated with @AndroidEntryPoint to enable Hilt dependency injection.
  */
 @AndroidEntryPoint
@@ -24,8 +25,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ArWeldTheme {
+                val navController = rememberNavController()
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    HomeScreen(
+                    AppNavigation(
+                        navController = navController,
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
