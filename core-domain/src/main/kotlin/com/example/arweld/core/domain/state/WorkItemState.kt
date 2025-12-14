@@ -1,7 +1,7 @@
 package com.example.arweld.core.domain.state
 
-import com.example.arweld.core.domain.model.Event
-import com.example.arweld.core.domain.model.EventType
+import com.example.arweld.core.domain.event.Event
+import com.example.arweld.core.domain.event.EventType
 
 /**
  * Derived state of a WorkItem computed from the ordered event log.
@@ -81,7 +81,7 @@ fun reduce(events: List<Event>): WorkItemState {
                 qcStatus = QcStatus.PASSED,
             )
 
-            EventType.QC_FAILED -> state.copy(
+            EventType.QC_FAILED_REWORK -> state.copy(
                 status = WorkStatus.REWORK_REQUIRED,
                 qcStatus = QcStatus.REWORK_REQUIRED,
             )

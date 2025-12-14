@@ -14,6 +14,8 @@ import com.example.arweld.core.data.repository.EvidenceRepository
 import com.example.arweld.core.data.repository.EvidenceRepositoryImpl
 import com.example.arweld.core.data.repository.WorkItemRepository
 import com.example.arweld.core.data.repository.WorkItemRepositoryImpl
+import com.example.arweld.core.data.work.WorkRepositoryImpl
+import com.example.arweld.core.domain.work.WorkRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -96,4 +98,10 @@ abstract class RepositoryModule {
     abstract fun bindEvidenceRepository(
         impl: EvidenceRepositoryImpl
     ): EvidenceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindWorkRepository(
+        impl: WorkRepositoryImpl
+    ): WorkRepository
 }
