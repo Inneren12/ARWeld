@@ -349,6 +349,26 @@ Before diving into sprints, understand these foundational rules that apply acros
 
 ---
 
+### **S1-22: Unit test — reducer happy path assembler → QC → pass** ✅ COMPLETED
+
+**Implementation Date:** 2026-02-23
+
+**Goal:** Verify that the event-sourced reducer reaches APPROVED when an assembler hands off to QC and QC passes the work item.
+
+**What Was Implemented:**
+
+1. **Reducer coverage:** Added `WorkItemReducerHappyPathTest` in `core-domain/src/test/.../state/` that constructs a deterministic event list:
+   - WORK_CLAIMED (assembler), WORK_READY_FOR_QC (assembler), QC_STARTED (qc), QC_PASSED (qc) with increasing timestamps.
+2. **Assertions:** Confirms `status == APPROVED`, `qcStatus == PASSED`, `currentAssigneeId` remains the assembler, and `lastEvent` is `QC_PASSED`.
+3. **Documentation updates:** FILE_OVERVIEW now points to the reducer happy-path test location.
+
+**Acceptance Criteria Status:**
+- ✅ Happy-path reducer test executes the assembler → QC → pass sequence.
+- ✅ Reducer output matches APPROVED/PASSED with lastEvent = QC_PASSED.
+- ✅ Documentation updated to record the test location and sprint acceptance.
+
+---
+
 ### **S1-04: Add Role and Permission Models** ✅ COMPLETED
 
 **Implementation Date:** 2025-12-14

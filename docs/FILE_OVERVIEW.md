@@ -8,6 +8,7 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 
 - `feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/WorkItemSummaryScreen.kt` — S1-20 stub composable showing the passed `workItemId`.
 - `app/src/main/kotlin/com/example/arweld/ui/work/WorkItemSummaryRoute.kt` — NavHost wrapper that invokes the feature stub (currently called with `workItemId = null`).
+- `core-domain/src/test/kotlin/com/example/arweld/core/domain/state/WorkItemReducerHappyPathTest.kt` — S1-22 reducer unit test covering assembler → QC → pass flow.
 
 ---
 
