@@ -39,16 +39,16 @@ core:domain
 
 ### app
 
-**Status:** ✅ Implemented (S1-02)
+**Status:** ✅ Implemented (S1-03)
 
 **Description:**
 The Android application module. Entry point for the app, hosts navigation, and wires up dependency injection.
 
 **Key Responsibilities:**
 - Application class initialization (@HiltAndroidApp)
-- Navigation host setup (Jetpack Navigation or Compose Navigation)
+- Navigation host setup (Compose Navigation) ✅ Implemented in S1-03
 - Dependency injection configuration via Hilt
-- Role-based navigation logic (route to Assembler/QC/Supervisor home based on current user role)
+- Auth screens (Splash, Login) ✅ Implemented in S1-03
 - Global app configuration (theme, error handling, analytics)
 
 **Dependencies:**
@@ -61,15 +61,31 @@ The Android application module. Entry point for the app, hosts navigation, and w
 - **MainActivity:** Annotated with `@AndroidEntryPoint`
 - **Graph entry point:** Application-level Hilt component provides singleton instances
 
+**Navigation Structure (S1-03):**
+- **NavHost:** Defined in `navigation/AppNavigation.kt`
+- **Routes:** Defined in `navigation/Routes.kt`
+- **AuthGraph:** Splash → Login
+- **MainGraph:** Home → WorkItemSummary → Timeline
+- **Auth Screens:**
+  - `ui/auth/SplashScreen.kt` — Entry point, auto-redirects to Login
+  - `ui/auth/LoginScreen.kt` — Role selection (Assembler/QC/Supervisor)
+- **Navigation Flow:**
+  - Splash → Login → Home (with popUpTo to prevent back to auth)
+  - Home → WorkItemSummary or Timeline
+
 **Key Files:**
 - `ArWeldApplication.kt` — Application class with @HiltAndroidApp
-- `MainActivity.kt` — Single-activity architecture with @AndroidEntryPoint
-- `navigation/AppNavigation.kt` — Navigation graph and routes (planned)
+- `MainActivity.kt` — Single-activity architecture with @AndroidEntryPoint and NavHost
+- `navigation/AppNavigation.kt` — ✅ Navigation graph and routes
+- `navigation/Routes.kt` — ✅ Route constants
+- `ui/auth/SplashScreen.kt` — ✅ Splash screen
+- `ui/auth/LoginScreen.kt` — ✅ Login screen
 
 **Notes:**
 - Thin layer; most logic lives in feature or core modules
 - Provides "assembly" of the app from reusable components
 - Hilt DI graph root is established here
+- Navigation uses Compose Navigation for single-activity architecture
 
 ---
 
@@ -229,7 +245,7 @@ User authentication and role management. For MVP, uses local user storage (no se
 
 ### feature:home
 
-**Status:** ✅ Implemented (S1-02 - basic version with Hilt injection demo)
+**Status:** ✅ Implemented (S1-03 - with navigation callbacks)
 
 **Description:**
 Home screen with role-based navigation tiles. **Demonstrates Hilt ViewModel injection** working end-to-end.
@@ -237,11 +253,11 @@ Home screen with role-based navigation tiles. **Demonstrates Hilt ViewModel inje
 **Key Responsibilities:**
 - Display user's name and role ✅ Implemented
 - Show work item count from database ✅ Implemented (demonstrates DI working)
+- Navigation to WorkItemSummary and Timeline ✅ Implemented in S1-03 (stub buttons)
 - Show tiles based on current user role (📋 Planned for Sprint 2):
   - **Assembler:** "My Work", "Scan New Part"
   - **QC Inspector:** "QC Queue", "Scan to Inspect"
   - **Supervisor:** "Dashboard", "All Work Items", "Export"
-- Navigate to appropriate feature module based on tile selection
 
 **Dependencies:**
 - `core:domain` (for Role, User, WorkItem)
@@ -254,55 +270,68 @@ Home screen with role-based navigation tiles. **Demonstrates Hilt ViewModel inje
 - **Screen:** Uses `hiltViewModel()` to obtain ViewModel instance
 - **Demonstrates:** Full Hilt DI flow from app → feature → core modules
 
+**Navigation (S1-03):**
+- Accepts `onNavigateToWorkSummary` and `onNavigateToTimeline` callbacks
+- Called from `HomeRoute` wrapper in app module's `AppNavigation.kt`
+- Demonstrates proper separation: feature module doesn't depend on navigation library
+
 **Key Files:**
-- `ui/HomeScreen.kt` — ✅ Compose UI with hiltViewModel()
+- `ui/HomeScreen.kt` — ✅ Compose UI with hiltViewModel() and navigation callbacks
 - `viewmodel/HomeViewModel.kt` — ✅ @HiltViewModel with injected repositories
 - `viewmodel/HomeUiState.kt` — ✅ Sealed class for UI state management
 
 **Notes:**
 - Simple navigation hub demonstrating DI integration
 - UI adapts based on role (example of role-based UI)
-- S1-02 implementation validates that Hilt DI is working correctly
+- S1-03 adds navigation buttons for demo purposes
 
 ---
 
 ### feature:work
 
-**Status:** 📋 Planned (Sprint 2)
+**Status:** ✅ Partially Implemented (S1-03 - stub screens only)
 
 **Description:**
 Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
 
 **Key Responsibilities:**
-- Display list of WorkItems assigned to current Assembler
-- Filter by status: IN_PROGRESS, READY_FOR_QC, REWORK_REQUIRED
-- Actions:
+- Display list of WorkItems assigned to current Assembler (📋 Sprint 2)
+- Filter by status: IN_PROGRESS, READY_FOR_QC, REWORK_REQUIRED (📋 Sprint 2)
+- Actions (📋 Sprint 2):
   - Claim work (creates WORK_CLAIMED event)
   - Start work (creates WORK_STARTED event)
   - Mark ready for QC (creates WORK_READY_FOR_QC event)
-- Navigate to WorkItemSummary screen
-- Navigate to ARView if WorkItem has nodeId
+- WorkItemSummary screen ✅ Stub implemented in S1-03
+- Timeline screen ✅ Stub implemented in S1-03
+- Navigate to ARView if WorkItem has nodeId (📋 Sprint 2)
 
 **Dependencies:**
 - `core:domain` (WorkItem, Event models)
 - `core:data` (WorkItemRepository, EventRepository)
 - `core:auth` (get current Assembler)
 
+**Navigation (S1-03):**
+- Screens are accessible from Home via navigation buttons
+- Full integration planned for Sprint 2
+
 **Key Files/Packages:**
 - `ui/` — Screens
-  - `MyWorkScreen.kt` — List of Assembler's work items
-  - `WorkItemSummaryScreen.kt` — Shared screen for WorkItem details (may move to shared module)
-- `viewmodel/`
+  - `WorkScreen.kt` — ✅ Placeholder from S1-01
+  - `WorkItemSummaryScreen.kt` — ✅ Stub implemented in S1-03
+  - `TimelineScreen.kt` — ✅ Stub implemented in S1-03
+  - `MyWorkScreen.kt` — 📋 Planned for Sprint 2
+- `viewmodel/` — 📋 Planned for Sprint 2
   - `MyWorkViewModel.kt`
   - `WorkItemSummaryViewModel.kt`
-- `usecase/` — Business operations
+- `usecase/` — 📋 Planned for Sprint 2
   - `ClaimWorkUseCase.kt`
   - `StartWorkUseCase.kt`
   - `MarkReadyForQcUseCase.kt`
 
 **Notes:**
 - "feature:work" may also be called "feature:assembler"
-- WorkItemSummaryScreen is shared across roles; consider extracting to common feature or core:ui if needed
+- WorkItemSummaryScreen and TimelineScreen are currently stubs for navigation demo
+- Full implementation with business logic planned for Sprint 2
 
 ---
 

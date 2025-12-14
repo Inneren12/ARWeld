@@ -1,7 +1,12 @@
 package com.example.arweld.feature.home.ui
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,6 +25,8 @@ import com.example.arweld.feature.home.viewmodel.HomeViewModel
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
+    onNavigateToWorkSummary: () -> Unit = {},
+    onNavigateToTimeline: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -41,7 +48,9 @@ fun HomeScreen(
                 HomeContent(
                     userName = state.currentUser?.displayName ?: "Guest",
                     userRole = state.currentUser?.role?.name ?: "N/A",
-                    workItemCount = state.workItemCount
+                    workItemCount = state.workItemCount,
+                    onNavigateToWorkSummary = onNavigateToWorkSummary,
+                    onNavigateToTimeline = onNavigateToTimeline
                 )
             }
             is HomeUiState.Error -> {
@@ -63,7 +72,9 @@ fun HomeScreen(
 private fun HomeContent(
     userName: String,
     userRole: String,
-    workItemCount: Int
+    workItemCount: Int,
+    onNavigateToWorkSummary: () -> Unit,
+    onNavigateToTimeline: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -105,6 +116,25 @@ private fun HomeContent(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "Navigation Demo",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = onNavigateToWorkSummary,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("Work Item Summary")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onNavigateToTimeline,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("Timeline")
         }
     }
 }
