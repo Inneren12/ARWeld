@@ -335,14 +335,14 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
 
 ### feature:scanner
 
-**Status:** 📋 Planned (Sprint 2)
+**Status:** 🚧 In progress (S2-01 CameraX preview ready; decoding arrives in S2-02)
 
 **Description:**
-Barcode/QR code scanning with camera.
+Barcode/QR code scanning with CameraX preview surface exposed to Compose. The scanner module owns camera setup and permission handling so navigation modules can remain thin.
 
 **Key Responsibilities:**
-- CameraX preview with code detection overlay
-- Integrate MLKit Barcode Scanner or ZXing
+- CameraX preview with lifecycle-aware binding
+- Integrate MLKit Barcode Scanner or ZXing (planned for S2-02)
 - Resolve scanned code to WorkItem (via `ResolveWorkItemUseCase`)
 - Navigate to WorkItemSummary if found, or show "Not Found" dialog
 
@@ -351,13 +351,14 @@ Barcode/QR code scanning with camera.
 - `core:data` (WorkItemRepository)
 
 **Key Files:**
-- `ScannerScreen.kt` — Camera preview + code detection
-- `ScannerViewModel.kt` — Handles scan results
+- `ui/ScannerPreview.kt` — Composable wrapping `PreviewView` with permission handling
+- `ui/ScannerPreviewScreen.kt` — Simple screen to host the preview during development
+- `camera/CameraPreviewController.kt` — CameraX setup and lifecycle binding for preview
+- `ScannerViewModel.kt` — Handles scan results (planned)
 - `ResolveWorkItemUseCase.kt` — Looks up WorkItem by code
-- `camera/CameraManager.kt` — CameraX setup
 
 **Notes:**
-- Supports QR codes, barcodes (Code 128, Code 39, etc.)
+- Supports QR codes, barcodes (Code 128, Code 39, etc.) once decoding is added
 - NFC support can be added later (requires NFC-enabled device)
 - Keep UI simple: just camera preview + scan indicator
 
