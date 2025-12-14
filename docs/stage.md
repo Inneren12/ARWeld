@@ -722,6 +722,25 @@ Test state transitions:
 
 **Artifact:** Test coverage ≥80% for core:domain reducers and policies.
 
+### **S1-10: Entities для Room** ✅ IN PROGRESS
+
+**Goal:** Define Room @Entity classes in `core-data` that mirror the core-domain models so the Room compiler has a complete schema foundation for WorkItems, Events, Evidence, Users, and the Sync queue.
+
+**Subtasks (ordered):**
+1. Create/confirm package `core-data/src/main/kotlin/.../data/db/entity` for Room entities.
+2. Implement `WorkItemEntity` with at least: `id`, `projectId`, `zoneId`, `type`, `code` (string storage for enums), optional description/node metadata.
+3. Implement `EventEntity` with indices on `workItemId` and `actorId`; fields: `id`, `workItemId`, `type`, `timestamp`, `actorId`, `actorRole`, `deviceId`, `payloadJson`.
+4. Implement `EvidenceEntity` with index on `eventId`; fields: `id`, `eventId`, `kind`, `uri`, `sha256`, `metaJson`, `createdAt`.
+5. Implement `UserEntity` with primary key `id`, `name`/`displayName`, `role`, optional `lastSeenAt`, and `isActive` flag.
+6. Implement `SyncQueueEntity` (structure only) with index on `status`; fields: `id`, `payloadJson`, `createdAt`, `status`, `retryCount`.
+7. Wire entities into `ArWeldDatabase` so Room sees the schema (DAOs/repositories can remain minimal in S1).
+
+**Acceptance Criteria:**
+- All five entities exist under the entity package with @Entity annotations and primary keys set.
+- Indices present on foreign key/status fields (`workItemId`, `actorId`, `eventId`, `status`).
+- `./gradlew :core-data:compileDebugKotlin` succeeds (Room annotation processing passes).
+- Docs updated (MODULES.md, FILE_OVERVIEW.md, stage.md) to reflect entity locations and schema.
+
 ---
 
 ## Sprint 2 (Weeks 3–4): Assembler Workflow + AR v1

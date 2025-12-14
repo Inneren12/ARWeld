@@ -5,6 +5,9 @@ import androidx.room.RoomDatabase
 import com.example.arweld.core.data.db.dao.EventDao
 import com.example.arweld.core.data.db.dao.WorkItemDao
 import com.example.arweld.core.data.db.entity.EventEntity
+import com.example.arweld.core.data.db.entity.EvidenceEntity
+import com.example.arweld.core.data.db.entity.SyncQueueEntity
+import com.example.arweld.core.data.db.entity.UserEntity
 import com.example.arweld.core.data.db.entity.WorkItemEntity
 
 /**
@@ -14,7 +17,10 @@ import com.example.arweld.core.data.db.entity.WorkItemEntity
 @Database(
     entities = [
         WorkItemEntity::class,
-        EventEntity::class
+        EventEntity::class,
+        EvidenceEntity::class,
+        UserEntity::class,
+        SyncQueueEntity::class,
     ],
     version = 1,
     exportSchema = false
