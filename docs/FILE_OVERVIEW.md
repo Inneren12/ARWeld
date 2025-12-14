@@ -1042,6 +1042,7 @@ androidTestImplementation(libs.androidx.junit)
 | Role enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/model/Role.kt` ✅ S1-04 |
 | Permission enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/Permission.kt` ✅ S1-04 |
 | RolePolicy (permission checking) | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/RolePolicy.kt` ✅ S1-04 |
+| RolePolicy tests | `core-domain/src/test/kotlin/com/example/arweld/core/domain/auth/RolePolicyTest.kt` ✅ S1-24 |
 | AuthRepository interface | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/AuthRepository.kt` ✅ S1-16 |
 | AuthRepositoryImpl (mock) | `core-data/src/main/kotlin/com/example/arweld/core/data/auth/AuthRepositoryImpl.kt` ✅ S1-16 |
 | Database entities | `core/data/db/entity/` |
