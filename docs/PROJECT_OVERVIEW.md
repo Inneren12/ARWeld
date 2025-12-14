@@ -110,7 +110,7 @@ ARWeld uses **event sourcing** architecture:
   - Device (where)
   - Type (what action)
   - Payload (additional context)
-- WorkItem "status" is not stored directly; it's **derived** from the event log using a reducer
+- WorkItem "status" is not stored directly; it's **derived** from the event log using a reducer (`reduce(events) → WorkItemState` with `WorkStatus`/`QcStatus`)
 - This provides:
   - Complete audit trail (every action is logged)
   - Time-travel debugging (can reconstruct state at any point)

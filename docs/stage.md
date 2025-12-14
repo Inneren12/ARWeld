@@ -53,12 +53,13 @@ Before diving into sprints, understand these foundational rules that apply acros
    - Added all necessary AndroidX Lifecycle and Navigation components
 
 2. **Core Modules Created:**
-   - **core-domain**: Pure Kotlin module with domain models:
-     - `WorkItem`, `WorkItemType`, `WorkItemStatus`
-     - `Event`, `EventType`
-     - `Evidence`, `EvidenceKind`
-     - `User`, `Role`
-     - All models use Kotlinx Serialization
+    - **core-domain**: Pure Kotlin module with domain models:
+      - `WorkItem`, `WorkItemType`
+      - `Event`, `EventType`
+      - `Evidence`, `EvidenceKind`
+      - `User`, `Role`
+      - Derived state (`WorkStatus`, `QcStatus`, `WorkItemState`) via reducer
+      - All models use Kotlinx Serialization
    - **core-data**: Android library with repository interfaces:
      - `WorkItemRepository`
      - `EventRepository`
@@ -372,6 +373,22 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 
 ---
 
+### **S1-08: WorkItemState + reducer событий** ✅ COMPLETED
+
+**Goal:** Define the WorkItem state model (WorkStatus + QcStatus) and implement a pure reducer `reduce(events)` that derives WorkItemState from the event log.
+
+**What Was Implemented:**
+- Added `WorkStatus`, `QcStatus`, and `WorkItemState` in `core-domain/state/WorkItemState.kt` with initial state: NEW status, NOT_STARTED qcStatus, no assignee, no lastEvent.
+- Implemented deterministic reducer that sorts events by timestamp/id and applies transitions for WORK_CLAIMED/WORK_STARTED → IN_PROGRESS (with assignee), WORK_READY_FOR_QC → READY_FOR_QC, QC_STARTED → QC_IN_PROGRESS, QC_PASSED → APPROVED, QC_FAILED → REWORK_REQUIRED, REWORK_STARTED → IN_PROGRESS.
+- lastEvent is always updated; reducer remains pure (no I/O).
+- Unit tests cover empty lists, claim-only path, full pass path, rework path, and unsorted events.
+- Documentation refreshed (PROJECT_OVERVIEW, MODULES, FILE_OVERVIEW, this stage file) to reference WorkStatus/QcStatus and reducer location.
+
+**Acceptance:**
+- Reducer is deterministic and pure; identical event lists (even unsorted) yield identical derived state.
+- Initial state returned for empty lists with qcStatus NOT_STARTED.
+- Tests assert state transitions for claim → pass and claim → rework flows, including chronological sorting guarantees.
+- Docs describe where state/reducer live and how to extend transitions for new EventTypes.
 ### **S1-07: Evidence модель** ✅ COMPLETED
 
 **Goal:** Ввести базовую доменную модель для доказательств (evidence), прикрепляемых к событиям QC и другим событиям.
@@ -531,23 +548,26 @@ data class EvidenceMetadata(
 **WorkItemState (Derived):**
 ```kotlin
 data class WorkItemState(
-    val workItemId: String,
-    val status: WorkItemStatus,
-    val currentAssignee: String?,
-    val lastUpdated: Instant,
-    val qcAttempts: Int,
-    val hasRequiredEvidence: Boolean
+    val status: WorkStatus,
+    val lastEvent: Event?,
+    val currentAssigneeId: String?,
+    val qcStatus: QcStatus?,
 )
 
-enum class WorkItemStatus {
+enum class WorkStatus {
     NEW,
-    CLAIMED,
     IN_PROGRESS,
     READY_FOR_QC,
     QC_IN_PROGRESS,
+    APPROVED,
+    REWORK_REQUIRED,
+}
+
+enum class QcStatus {
+    NOT_STARTED,
+    IN_PROGRESS,
     PASSED,
-    FAILED,
-    REWORK_REQUIRED
+    REWORK_REQUIRED,
 }
 ```
 
