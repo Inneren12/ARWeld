@@ -1,17 +1,22 @@
 package com.example.arweld.ui.auth
 
 import androidx.lifecycle.ViewModel
-import com.example.arweld.core.domain.auth.AuthRepository
-import com.example.arweld.core.domain.model.Role
+import androidx.lifecycle.viewModelScope
+import com.example.arweld.domain.auth.AuthRepository
+import com.example.arweld.domain.model.Role
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
-    suspend fun onRoleSelected(role: Role) {
-        authRepository.loginMock(role)
+    fun login(role: Role, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            authRepository.loginMock(role)
+            onSuccess()
+        }
     }
 }

@@ -239,6 +239,42 @@ Before diving into sprints, understand these foundational rules that apply acros
        - Guide for adding new destinations
    - Updated `docs/stage.md` (this file) with S1-03 completion details
 
+### **S1-19: Home screen (role-based tiles)** ✅ COMPLETED
+
+**Implementation Date:** 2025-02-15
+
+**Goal:** Show role-aware navigation tiles on the Home screen and wire them to WorkItemSummary and Timeline routes.
+
+**What Was Implemented:**
+
+1. **Home Screen (feature-home):**
+   - Added `HomeScreen` composable that greets the user and renders tiles based on `User.role`.
+   - Role mappings:
+     - Assembler: "My Work Queue", "Timeline"
+     - QC Inspector: "QC Queue", "Timeline"
+     - Supervisor/Director: "Shop overview", "Timeline"
+   - Tiles trigger callbacks for WorkItemSummary or Timeline navigation.
+
+2. **Home Route (app module):**
+   - Created `HomeRoute` wrapper that reads the current user from `AuthRepository` via `HomeViewModel`.
+   - Handles missing sessions by redirecting to Login.
+   - Supplies navigation lambdas to `HomeScreen` for WorkItemSummary and Timeline routes.
+
+3. **Navigation Wiring:**
+   - `AppNavigation` NavHost now includes Home, WorkItemSummary, and Timeline destinations.
+   - Added placeholder screens for WorkItemSummary/Timeline to keep the flow navigable.
+
+4. **Auth Infrastructure:**
+   - Introduced `InMemoryAuthRepository` with Hilt binding to satisfy Home/Login flows.
+
+5. **Documentation Updates:**
+   - Refreshed `docs/MODULES.md` and `docs/FILE_OVERVIEW.md` to reflect HomeScreen location and navigation wiring.
+
+**Acceptance Criteria Status:**
+- ✅ Home shows tiles based on role after login.
+- ✅ Tile taps navigate to WorkItemSummary or Timeline routes.
+- ✅ Documentation reflects the Home screen and routing updates.
+
 **Navigation Flow Implemented:**
 1. App launch → Splash (startDestination)
 2. Splash → Login (auto-redirect with popUpTo)

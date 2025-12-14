@@ -76,19 +76,16 @@ ARWeld/
 │   │
 │   └── auth/                              # Authentication
 │       ├── src/main/kotlin/com/example/arweld/core/auth/
-│       │   ├── AuthRepository.kt          # Auth interface
-│       │   ├── LocalAuthRepository.kt     # Local implementation
-│       │   ├── SessionManager.kt          # Session tracking
-│       │   └── PermissionChecker.kt       # Role permission checking
+│       │   ├── repository/                # Auth implementations
+│       │   │   └── InMemoryAuthRepository.kt
+│       │   └── di/AuthModule.kt           # Hilt binding for AuthRepository
 │       └── build.gradle.kts
 │
 ├── feature/
 │   ├── home/                              # Home screen
 │   │   ├── src/main/kotlin/com/example/arweld/feature/home/
-│   │   │   ├── ui/
-│   │   │   │   └── HomeScreen.kt          # Role-based navigation tiles
-│   │   │   └── viewmodel/
-│   │   │       └── HomeViewModel.kt
+│   │   │   └── ui/
+│   │   │       └── HomeScreen.kt          # Role-based navigation tiles
 │   │   └── build.gradle.kts
 │   │
 │   ├── work/                              # Assembler workflows (or "assembler")
@@ -190,9 +187,10 @@ ARWeld/
 ```
 
 ### Auth flow entry points
-- `app/src/main/kotlin/com/example/arweld/ui/auth/SplashScreen.kt` — Start destination that immediately navigates to Login.
-- `app/src/main/kotlin/com/example/arweld/ui/auth/LoginScreen.kt` — Compose UI with four role buttons (Assembler/QC/Supervisor/Director) that triggers mock login and navigates to Home.
+- `app/src/main/kotlin/com/example/arweld/ui/auth/LoginRoute.kt` — Compose UI with four role buttons (Assembler/QC/Supervisor/Director) that triggers mock login and navigates to Home.
 - `app/src/main/kotlin/com/example/arweld/ui/auth/LoginViewModel.kt` — Hilt ViewModel injecting `AuthRepository` and invoking `loginMock(role)` before navigation to Home.
+- `app/src/main/kotlin/com/example/arweld/navigation/AppNavigation.kt` — NavHost start destination (Login) and wiring for Home/WorkItemSummary/Timeline.
+- `app/src/main/kotlin/com/example/arweld/ui/home/HomeRoute.kt` — Retrieves the current user and passes navigation callbacks into `feature-home`'s `HomeScreen`.
 
 **WorkItem models:**
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/domain/work/` (`WorkItemType.kt`, `WorkItem.kt`).

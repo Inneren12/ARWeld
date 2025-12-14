@@ -2,67 +2,39 @@ package com.example.arweld.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.arweld.feature.home.ui.HomeScreen
-import com.example.arweld.feature.work.ui.TimelineScreen
-import com.example.arweld.feature.work.ui.WorkItemSummaryScreen
-import com.example.arweld.ui.auth.LoginScreen
-import com.example.arweld.ui.auth.SplashScreen
+import androidx.navigation.compose.rememberNavController
+import com.example.arweld.ui.auth.LoginRoute
+import com.example.arweld.ui.home.HomeRoute
+import com.example.arweld.ui.placeholder.PlaceholderScreen
 
-/**
- * Main navigation setup for ARWeld app.
- * Defines two conceptual graphs:
- * - AuthGraph: Splash → Login
- * - MainGraph: Home → WorkItemSummary → Timeline
- */
 @Composable
-fun AppNavigation(
-    navController: NavHostController,
-    modifier: Modifier = Modifier
-) {
+fun AppNavigation(modifier: Modifier = Modifier) {
+    val navController = rememberNavController()
+
     NavHost(
         navController = navController,
-        startDestination = Routes.ROUTE_SPLASH,
+        startDestination = ROUTE_LOGIN,
         modifier = modifier
     ) {
-        // Auth Graph
-        composable(Routes.ROUTE_SPLASH) {
-            SplashScreen(navController = navController)
+        composable(ROUTE_LOGIN) {
+            LoginRoute(
+                onLoginSuccess = {
+                    navController.navigate(ROUTE_HOME) {
+                        popUpTo(ROUTE_LOGIN) { inclusive = true }
+                    }
+                }
+            )
         }
-
-        composable(Routes.ROUTE_LOGIN) {
-            LoginScreen(navController = navController)
-        }
-
-        // Main Graph
-        composable(Routes.ROUTE_HOME) {
+        composable(ROUTE_HOME) {
             HomeRoute(navController = navController)
         }
-
-        composable(Routes.ROUTE_WORK_ITEM_SUMMARY) {
-            WorkItemSummaryScreen()
+        composable(ROUTE_WORK_ITEM_SUMMARY) {
+            PlaceholderScreen(title = "Work Item Summary")
         }
-
-        composable(Routes.ROUTE_TIMELINE) {
-            TimelineScreen()
+        composable(ROUTE_TIMELINE) {
+            PlaceholderScreen(title = "Timeline")
         }
     }
-}
-
-/**
- * Route wrapper for Home screen.
- * Wires navigation callbacks and provides ViewModel via Hilt.
- */
-@Composable
-private fun HomeRoute(navController: NavHostController) {
-    HomeScreen(
-        onNavigateToWorkSummary = {
-            navController.navigate(Routes.ROUTE_WORK_ITEM_SUMMARY)
-        },
-        onNavigateToTimeline = {
-            navController.navigate(Routes.ROUTE_TIMELINE)
-        }
-    )
 }
