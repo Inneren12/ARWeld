@@ -26,9 +26,9 @@ import com.example.arweld.core.data.db.entity.WorkItemEntity
         SyncQueueEntity::class,
     ],
     version = 1,
-    exportSchema = false
+    exportSchema = true
 )
-abstract class ArWeldDatabase : RoomDatabase() {
+abstract class AppDatabase : RoomDatabase() {
     abstract fun workItemDao(): WorkItemDao
     abstract fun eventDao(): EventDao
     abstract fun evidenceDao(): EvidenceDao

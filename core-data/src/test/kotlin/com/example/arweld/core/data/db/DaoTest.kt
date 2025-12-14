@@ -20,7 +20,7 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class DaoTest {
 
-    private lateinit var database: ArWeldDatabase
+    private lateinit var database: AppDatabase
     private lateinit var workItemDao: WorkItemDao
     private lateinit var eventDao: EventDao
     private lateinit var syncQueueDao: SyncQueueDao
@@ -29,7 +29,7 @@ class DaoTest {
     fun setup() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
-            ArWeldDatabase::class.java,
+            AppDatabase::class.java,
         )
             .allowMainThreadQueries()
             .build()

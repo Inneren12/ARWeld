@@ -123,7 +123,7 @@ Before diving into sprints, understand these foundational rules that apply acros
    - Updated `MainActivity.kt` with `@AndroidEntryPoint` annotation
 
 3. **Room Database Setup (core-data):**
-   - Created `ArWeldDatabase` with Room configuration
+   - Created `AppDatabase` with Room configuration
    - Created `WorkItemEntity` and `EventEntity` Room entities
    - Created `WorkItemDao` and `EventDao` with basic CRUD operations
    - Database configured in Hilt DI module
@@ -135,7 +135,7 @@ Before diving into sprints, understand these foundational rules that apply acros
    - All repositories use `@Singleton` scope and `@Inject` constructor
 
 5. **DI Modules (core-data):**
-   - `DataModule` — Provides ArWeldDatabase singleton using Room.databaseBuilder()
+   - `DataModule` — Provides AppDatabase singleton using Room.databaseBuilder()
    - `DataModule` — Provides DAOs (WorkItemDao, EventDao) from database
    - `RepositoryModule` — Binds repository interfaces to implementations using @Binds
 
@@ -733,7 +733,7 @@ Test state transitions:
 4. Implement `EvidenceEntity` with index on `eventId`; fields: `id`, `eventId`, `kind`, `uri`, `sha256`, `metaJson`, `createdAt`.
 5. Implement `UserEntity` with primary key `id`, `name`/`displayName`, `role`, optional `lastSeenAt`, and `isActive` flag.
 6. Implement `SyncQueueEntity` (structure only) with index on `status`; fields: `id`, `payloadJson`, `createdAt`, `status`, `retryCount`.
-7. Wire entities into `ArWeldDatabase` so Room sees the schema (DAOs/repositories can remain minimal in S1).
+7. Wire entities into `AppDatabase` so Room sees the schema (DAOs/repositories can remain minimal in S1).
 
 **Acceptance Criteria:**
 - All five entities exist under the entity package with @Entity annotations and primary keys set.
@@ -753,9 +753,24 @@ Test state transitions:
 - `SyncQueueDao` — insert single/bulk, fetch earliest pending entries with limit
 
 **Acceptance Criteria:**
-- DAOs compile with Room annotations and are exposed from `ArWeldDatabase`
+- DAOs compile with Room annotations and are exposed from `AppDatabase`
 - In-memory Room database can be created; basic insert/select queries for work items, events, and sync queue run without SQL errors
 - Docs updated (MODULES.md, FILE_OVERVIEW.md, stage.md) to reflect DAO package and query coverage
+
+### **S1-12: Database + миграции** ✅ COMPLETED
+
+**Goal:** Define the Room `AppDatabase` that aggregates all entities/DAOs and configure Hilt to build it with `Room.databaseBuilder`, keeping migration-ready architecture.
+
+**Scope:**
+- Add `AppDatabase : RoomDatabase` with entities `WorkItemEntity`, `EventEntity`, `EvidenceEntity`, `UserEntity`, `SyncQueueEntity` (version 1, exportSchema = true).
+- Expose DAO accessors: `workItemDao`, `eventDao`, `evidenceDao`, `userDao`, `syncQueueDao`.
+- Configure `DataModule` to provide the database singleton and DAO providers (no destructive migration; future migrations can be added).
+- Ensure Room schema export path configured for future migration diffs.
+
+**Acceptance Criteria:**
+- Hilt graph builds with `AppDatabase` and DAO providers injected via `DataModule`.
+- Room database starts without migration errors (version = 1, no migration objects required yet).
+- Schema export path configured for Room; docs updated (MODULES.md, FILE_OVERVIEW.md, stage.md) reflecting database location and DI wiring.
 
 ---
 

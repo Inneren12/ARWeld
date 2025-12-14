@@ -155,7 +155,7 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 Data layer providing local storage, repositories, and data access abstractions. **Hilt DI modules configured here** to provide database and repository instances.
 
 **Key Responsibilities:**
-- Room database setup (`ArWeldDatabase`)
+- Room database setup (`AppDatabase`)
 - Entity definitions (Room schema) — **WorkItemEntity, EventEntity, EvidenceEntity, UserEntity, SyncQueueEntity** (S1-10)
 - DAOs (Data Access Objects) for CRUD operations: `WorkItemDao`, `EventDao`, `EvidenceDao`, `UserDao`, `SyncQueueDao`
 - Repository implementations:
@@ -175,8 +175,8 @@ Data layer providing local storage, repositories, and data access abstractions. 
 
 **DI Configuration:**
 - **Module:** `DataModule` (`core-data/src/main/kotlin/.../di/DataModule.kt`)
-  - Provides `ArWeldDatabase` singleton via Room.databaseBuilder()
-  - Provides DAOs (`WorkItemDao`, `EventDao`) from database instance
+  - Provides `AppDatabase` singleton via Room.databaseBuilder()
+  - Provides DAOs (`WorkItemDao`, `EventDao`, `EvidenceDao`, `UserDao`, `SyncQueueDao`) from database instance
 - **Module:** `RepositoryModule` (`core-data/src/main/kotlin/.../di/DataModule.kt`)
   - Binds `WorkItemRepository` → `WorkItemRepositoryImpl`
   - Binds `EventRepository` → `EventRepositoryImpl`
@@ -186,7 +186,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
 
 **Key Files/Packages:**
 - `db/` — Room database
-  - `ArWeldDatabase.kt`
+  - `AppDatabase.kt`
   - `entity/` — Room entities
     - `WorkItemEntity.kt`
     - `EventEntity.kt`
