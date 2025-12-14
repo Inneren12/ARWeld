@@ -389,6 +389,24 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - Initial state returned for empty lists with qcStatus NOT_STARTED.
 - Tests assert state transitions for claim → pass and claim → rework flows, including chronological sorting guarantees.
 - Docs describe where state/reducer live and how to extend transitions for new EventTypes.
+
+---
+
+### **S1-13: WorkRepository (event-sourcing bridge)** ✅ COMPLETED
+
+**Goal:** Provide a repository that resolves WorkItems by code, derives WorkItemState from the event log, and exposes assembler/QC queues using the domain reducer.
+
+**What Was Implemented:**
+- Added domain interface `WorkRepository` in `core-domain/work` with methods to fetch by code, derive `WorkItemState`, and list assembler/QC queues.
+- Implemented `WorkRepositoryImpl` in `core-data/work` using `WorkItemDao` + `EventDao` to map entities to domain models and run the reducer.
+- Queue logic (v1):
+  - `getMyQueue(userId)` returns items where the user’s latest actions exist and state is not APPROVED.
+  - `getQcQueue()` filters items whose derived status is READY_FOR_QC or QC_IN_PROGRESS.
+- Hilt binding added in `RepositoryModule` to expose the implementation to features.
+
+**Acceptance Criteria:**
+- In tests, you can insert a `WorkItemEntity`, add `EventEntity` history, and fetch the derived `WorkItemState` via `WorkRepository` (e.g., APPROVED after QC_PASSED).
+- Documentation updated (`MODULES.md`, `FILE_OVERVIEW.md`, this file) to reflect the new repository and queue definitions.
 ### **S1-07: Evidence модель** ✅ COMPLETED
 
 **Goal:** Ввести базовую доменную модель для доказательств (evidence), прикрепляемых к событиям QC и другим событиям.
@@ -409,7 +427,7 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 **Goal:** Определить единый словарь событий (EventType) и доменную модель Event для event-sourcing. Каждое действие пользователя (claim, старт работы, QC, evidence, AR alignment, issue/rework) фиксируется как событие с актором, устройством и полезной нагрузкой.
 
 **What Was Implemented:**
-- Добавлен enum `EventType` с полным перечнем событий: WORK_CLAIMED, WORK_STARTED, WORK_READY_FOR_QC, QC_STARTED, QC_PASSED, QC_FAILED_REWORK, ISSUE_CREATED, EVIDENCE_CAPTURED, AR_ALIGNMENT_SET.
+- Добавлен enum `EventType` с полным перечнем событий: WORK_CLAIMED, WORK_STARTED, WORK_READY_FOR_QC, QC_STARTED, QC_PASSED, QC_FAILED_REWORK, REWORK_STARTED, ISSUE_CREATED, EVIDENCE_CAPTURED, AR_ALIGNMENT_SET.
 - Добавлен data class `Event` (core-domain/event) с полями id, workItemId, type, timestamp (Long, миллисекунды epoch), actorId, actorRole (`Role`), deviceId и `payloadJson` (опциональный JSON с деталями).
 - Введён простой helper `isQcEvent()` для группировки QC-событий.
 - Создан unit test в core-domain, проверяющий создание Event и работу helper-функции.

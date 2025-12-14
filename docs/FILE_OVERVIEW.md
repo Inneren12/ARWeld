@@ -195,6 +195,10 @@ ARWeld/
 - To add a new evidence type (e.g., sensor log), extend `EvidenceKind` and update downstream clients (policies, storage, UI).
 - `metaJson` stores flexible metadata (camera params, AR alignment, units). `createdAt` uses milliseconds since epoch.
 
+## Repositories and derived state
+- **WorkRepository (domain interface):** `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/WorkRepository.kt`
+- **WorkRepositoryImpl (data):** `core-data/src/main/kotlin/com/example/arweld/core/data/work/WorkRepositoryImpl.kt` — maps Room entities to domain models and uses the reducer to derive `WorkItemState`, including queue filters. Update here to change queue logic or mappings.
+
 ---
 
 ## Room entities (core-data)

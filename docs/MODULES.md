@@ -106,6 +106,8 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
   - `reduce(events)` — Derives `WorkItemState` from the ordered event list (pure, deterministic)
   - `RolePolicy` — ✅ Implemented in S1-04: Defines which roles can perform which actions via `hasPermission(role, permission)` and extension function `Role.hasPermission(permission)`
   - `QcEvidencePolicy` — Validates evidence requirements for QC decisions
+- Repository contracts:
+  - `WorkRepository` — Domain-facing interface for fetching WorkItems by code and deriving WorkItemState/queues from the event log
 - Use case interfaces (implementations may live in core:data or feature modules)
 
 **Dependencies:**
@@ -162,6 +164,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - `WorkItemRepository` ✅ Implemented
   - `EventRepository` ✅ Implemented
   - `EvidenceRepository` ✅ Stub
+  - `WorkRepositoryImpl` ✅ S1-13: derives WorkItemState and queues using Room + reducer
   - `SyncQueueRepository` 📋 Planned
 - File management for evidence (photos, AR screenshots)
 - Evidence storage metadata (URIs, SHA-256 hashes) aligned to `core-domain` `Evidence`
@@ -181,6 +184,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - Binds `WorkItemRepository` → `WorkItemRepositoryImpl`
   - Binds `EventRepository` → `EventRepositoryImpl`
   - Binds `EvidenceRepository` → `EvidenceRepositoryImpl` (stub)
+  - Binds `WorkRepository` (core-domain) → `WorkRepositoryImpl` (core-data)
 - **Scope:** `@Singleton` — All repositories and database are application-scoped
 - **Where to add new bindings:** Add @Binds or @Provides methods to these modules
 
