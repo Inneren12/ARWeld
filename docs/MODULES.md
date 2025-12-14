@@ -149,14 +149,14 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 
 ### core:data
 
-**Status:** ✅ Implemented (S1-02 - partial, DAOs and repositories only)
+**Status:** ✅ Implemented (S1-02 - partial, DAOs and repositories only) — 📌 Updated with S1-10 Room entities
 
 **Description:**
 Data layer providing local storage, repositories, and data access abstractions. **Hilt DI modules configured here** to provide database and repository instances.
 
 **Key Responsibilities:**
 - Room database setup (`ArWeldDatabase`)
-- Entity definitions (Room schema)
+- Entity definitions (Room schema) — **WorkItemEntity, EventEntity, EvidenceEntity, UserEntity, SyncQueueEntity** (S1-10)
 - DAOs (Data Access Objects) for CRUD operations
 - Repository implementations:
   - `WorkItemRepository` ✅ Implemented

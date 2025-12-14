@@ -9,10 +9,11 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "work_items")
 data class WorkItemEntity(
     @PrimaryKey val id: String,
-    val code: String,
+    val projectId: String,
+    val zoneId: String?,
     val type: String,
-    val description: String,
-    val zone: String?,
+    val code: String?,
+    val description: String?,
     val nodeId: String?,
-    val createdAt: Long
+    val createdAt: Long?,
 )

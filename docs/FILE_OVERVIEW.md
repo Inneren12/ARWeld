@@ -197,6 +197,18 @@ ARWeld/
 
 ---
 
+## Room entities (core-data)
+
+**Package:** `core-data/src/main/kotlin/com/example/arweld/core/data/db/entity/`
+
+- `WorkItemEntity` ↔ `core-domain` `WorkItem` (id, projectId, zoneId, type, code; also retains description/nodeId for mapping)
+- `EventEntity` ↔ `core-domain` `Event` (workItemId, type, timestamp, actorId, actorRole, deviceId, payloadJson) with indexes on `workItemId`, `actorId`
+- `EvidenceEntity` ↔ `core-domain` `Evidence` (eventId, kind, uri, sha256, metaJson, createdAt) with index on `eventId`
+- `UserEntity` ↔ `core-domain` `User` (id, name/displayName, role, optional lastSeen, isActive flag)
+- `SyncQueueEntity` ↔ sync queue items (id, payloadJson, createdAt, status, retryCount) with index on `status`
+
+---
+
 ## DI / Hilt Configuration
 
 ARWeld uses **Hilt** for dependency injection. This section explains where DI code lives and how to add new providers.

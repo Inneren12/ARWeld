@@ -37,21 +37,22 @@ class WorkItemRepositoryImpl @Inject constructor(
 
     private fun WorkItem.toEntity() = WorkItemEntity(
         id = id,
-        code = code,
+        projectId = "", // Project scoping will be added in a later sprint
+        zoneId = zone,
         type = type.name,
+        code = code,
         description = description,
-        zone = zone,
         nodeId = nodeId,
-        createdAt = createdAt
+        createdAt = createdAt,
     )
 
     private fun WorkItemEntity.toDomain() = WorkItem(
         id = id,
-        code = code,
+        code = code ?: "",
         type = WorkItemType.valueOf(type),
-        description = description,
-        zone = zone,
+        description = description ?: "",
+        zone = zoneId,
         nodeId = nodeId,
-        createdAt = createdAt
+        createdAt = createdAt ?: 0L
     )
 }
