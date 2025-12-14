@@ -302,7 +302,7 @@ Home screen with greeting and role-specific navigation tiles powered by domain `
 
 ### feature:work
 
-**Status:** ✅ Stub navigation (S1-20 WorkItemSummary stub)
+**Status:** ✅ Stub navigation (S1-20 WorkItemSummary stub, S1-21 Timeline stub)
 
 **Description:**
 Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC. Sprint 1 delivers stub entry points only.
@@ -317,13 +317,14 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
 - `core:data` (WorkItemRepository, EventRepository)
 - `core:auth` (get current Assembler)
 
-**Navigation (S1-20):**
+**Navigation (S1-20/S1-21):**
 - WorkItemSummary stub is reachable from Home via `ROUTE_WORK_ITEM_SUMMARY`
-- Timeline remains a placeholder destination in the app NavHost
+- Timeline stub composable lives in `feature-work` and is wired to `ROUTE_TIMELINE`
 
 **Key Files/Packages:**
 - `ui/` — Screens
   - `WorkItemSummaryScreen.kt` — ✅ S1-20 stub showing `Text("WorkItemSummary stub: id=$workItemId")`
+  - `TimelineScreen.kt` — ✅ S1-21 stub showing `Text("Timeline stub")`
 - `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` wires navigation to the feature stub
 
 **Notes:**

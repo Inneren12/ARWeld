@@ -739,7 +739,7 @@ object Routes {
 - `feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/WorkItemSummaryScreen.kt`
   - Stub implementation for S1-03
 - `feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/TimelineScreen.kt`
-  - Stub implementation for S1-03
+  - Stub implementation for S1-21 showing centered `Text("Timeline stub")`
 
 ### Navigation Flow
 

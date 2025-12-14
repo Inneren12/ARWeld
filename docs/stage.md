@@ -325,6 +325,30 @@ Before diving into sprints, understand these foundational rules that apply acros
 
 ---
 
+### **S1-21: Timeline stub screen** ✅ COMPLETED
+
+**Implementation Date:** 2025-02-17
+
+**Goal:** Deliver a minimal Timeline screen in `feature-work` and wire it into the main NavHost so navigation from Home shows a compiling stub.
+
+**What Was Implemented:**
+
+1. **Timeline stub (feature-work):**
+   - Added `TimelineScreen()` composable that renders centered `Text("Timeline stub")`.
+
+2. **Navigation wiring:**
+   - `AppNavigation` now uses `TimelineScreen()` for `ROUTE_TIMELINE` instead of the generic placeholder.
+
+3. **Documentation updates:**
+   - Updated `docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, and `docs/stage.md` to record the new stub screen and navigation hookup.
+
+**Acceptance Criteria Status:**
+- ✅ Timeline screen compiles inside `feature-work`.
+- ✅ Navigating from Home to `ROUTE_TIMELINE` shows the stub without crashing.
+- ✅ Documentation notes the screen path and stub status.
+
+---
+
 ### **S1-04: Add Role and Permission Models** ✅ COMPLETED
 
 **Implementation Date:** 2025-12-14
