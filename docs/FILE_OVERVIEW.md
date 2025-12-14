@@ -113,14 +113,15 @@ ARWeld/
 │   ├── scanner/                           # Barcode/QR scanning
 │   │   ├── src/main/kotlin/com/example/arweld/feature/scanner/
 │   │   │   ├── ui/
-│   │   │   │   ├── ScannerPreview.kt      # CameraX preview composable with permission handling
-│   │   │   │   └── ScannerPreviewScreen.kt # Simple screen hosting the preview
+│   │   │   │   ├── ScannerPreview.kt      # CameraX preview composable with permission + ML Kit callback
+│   │   │   │   └── ScannerPreviewScreen.kt # Simple screen hosting the preview and showing last code
 │   │   │   ├── viewmodel/
 │   │   │   │   └── ScannerViewModel.kt    # Planned decoding/handling
 │   │   │   ├── usecase/
 │   │   │   │   └── ResolveWorkItemUseCase.kt # Code → WorkItem lookup
 │   │   │   └── camera/
-│   │   │       └── CameraPreviewController.kt # CameraX setup and lifecycle binding
+│   │   │       ├── CameraPreviewController.kt # CameraX setup and lifecycle binding
+│   │   │       └── BarcodeAnalyzer.kt     # ML Kit analyzer emitting deduplicated barcode/QR values
 │   │   └── build.gradle.kts
 │   │
 │   ├── qc/                                # QC inspector workflows
@@ -201,7 +202,7 @@ ARWeld/
 - `app/src/main/kotlin/com/example/arweld/navigation/AppNavigation.kt` — NavHost start destination (Login) and wiring for Home/WorkItemSummary/Timeline.
 
 ### Scanner entry points and ownership
-- **Scanner UI/logic lives in** `feature-scanner` (`ui/ScannerPreview.kt`, `camera/CameraPreviewController.kt`).
+- **Scanner UI/logic lives in** `feature-scanner` (`ui/ScannerPreview.kt`, `camera/CameraPreviewController.kt`, `camera/BarcodeAnalyzer.kt`).
 - **Navigation into scanner** starts from the main app NavHost (home tile for Assembler/QC) once the route is added; during S2-01 manual testing, `ScannerPreviewScreen` can be hosted inside a temporary Nav destination in the app module without leaking navigation details into the feature.
 - `app/src/main/kotlin/com/example/arweld/ui/home/HomeRoute.kt` — Retrieves the current user and passes navigation callbacks into `feature-home`'s `HomeScreen`.
 

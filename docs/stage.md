@@ -1014,6 +1014,23 @@ Test state transitions:
 - Разрешение камеры запрашивается корректно; при разрешённой камере превью стартует автоматически.
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-02 — добавить распознавание штрих/QR-кодов ✅
+
+**Goal:** Добавить обработку кадров через CameraX ImageAnalysis и распознавать штрих/QR-коды (ML Kit), передавая расшифрованное значение наверх в `ScannerPreview`.
+
+**Subtasks:**
+- Добавить зависимость ML Kit Barcode Scanning в `feature-scanner`.
+- Настроить ImageAnalysis use case параллельно Preview и передать кадры в анализатор.
+- Реализовать анализатор, который конвертирует `ImageProxy` → `InputImage` и вызывает `onCodeDetected(code)` при успешном декодировании.
+- Встроить дедупликацию: игнорировать повторные срабатывания одного и того же кода в течение ~1.5–2 секунд.
+- Оформить простой экран для ручной проверки, отображающий последний считанный код.
+
+**Acceptance:**
+- `ScannerPreview` принимает callback `onCodeDetected` и вызывает его при обнаружении кода.
+- ImageAnalysis добавлен к CameraX пайплайну без backpressure предупреждений (image.close() в анализаторе).
+- Дубли одного и того же кода подавляются коротким интервалом; новые значения проходят сразу.
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**

@@ -335,14 +335,14 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
 
 ### feature:scanner
 
-**Status:** 🚧 In progress (S2-01 CameraX preview ready; decoding arrives in S2-02)
+**Status:** ✅ Implemented (S2-02 — preview + barcode/QR decoding)
 
 **Description:**
-Barcode/QR code scanning with CameraX preview surface exposed to Compose. The scanner module owns camera setup and permission handling so navigation modules can remain thin.
+Barcode/QR code scanning with CameraX preview surface exposed to Compose. The scanner module owns camera setup, permission handling, and ML Kit decoding so navigation modules can remain thin.
 
 **Key Responsibilities:**
 - CameraX preview with lifecycle-aware binding
-- Integrate MLKit Barcode Scanner or ZXing (planned for S2-02)
+- ML Kit barcode/QR decoding via ImageAnalysis analyzer with duplicate suppression
 - Resolve scanned code to WorkItem (via `ResolveWorkItemUseCase`)
 - Navigate to WorkItemSummary if found, or show "Not Found" dialog
 
@@ -351,9 +351,10 @@ Barcode/QR code scanning with CameraX preview surface exposed to Compose. The sc
 - `core:data` (WorkItemRepository)
 
 **Key Files:**
-- `ui/ScannerPreview.kt` — Composable wrapping `PreviewView` with permission handling
-- `ui/ScannerPreviewScreen.kt` — Simple screen to host the preview during development
-- `camera/CameraPreviewController.kt` — CameraX setup and lifecycle binding for preview
+- `ui/ScannerPreview.kt` — Composable wrapping `PreviewView` with permission handling and decoded-code callback
+- `ui/ScannerPreviewScreen.kt` — Simple screen to host the preview and show the last detected code
+- `camera/CameraPreviewController.kt` — CameraX setup and lifecycle binding for preview and analysis
+- `camera/BarcodeAnalyzer.kt` — ML Kit analyzer that emits deduplicated barcode/QR values
 - `ScannerViewModel.kt` — Handles scan results (planned)
 - `ResolveWorkItemUseCase.kt` — Looks up WorkItem by code
 
