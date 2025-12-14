@@ -157,7 +157,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
 **Key Responsibilities:**
 - Room database setup (`ArWeldDatabase`)
 - Entity definitions (Room schema) — **WorkItemEntity, EventEntity, EvidenceEntity, UserEntity, SyncQueueEntity** (S1-10)
-- DAOs (Data Access Objects) for CRUD operations
+- DAOs (Data Access Objects) for CRUD operations: `WorkItemDao`, `EventDao`, `EvidenceDao`, `UserDao`, `SyncQueueDao`
 - Repository implementations:
   - `WorkItemRepository` ✅ Implemented
   - `EventRepository` ✅ Implemented
@@ -213,6 +213,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
 - This is the **persistence layer** for the app
 - All feature modules interact with data via repositories (never directly with DAOs)
 - Repositories expose Flow or suspend functions for reactive/async data
+- DAOs cover core queries: WorkItem lookup by id/code, ordered event timelines and per-actor history, evidence by event, user roster retrieval, and pending sync queue fetches ordered by creation time
 
 ---
 

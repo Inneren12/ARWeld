@@ -741,6 +741,22 @@ Test state transitions:
 - `./gradlew :core-data:compileDebugKotlin` succeeds (Room annotation processing passes).
 - Docs updated (MODULES.md, FILE_OVERVIEW.md, stage.md) to reflect entity locations and schema.
 
+### **S1-11: DAO** ✅ COMPLETED
+
+**Goal:** Define Room DAO interfaces for all entities with basic CRUD/lookup queries so that an in-memory database can execute inserts and selects.
+
+**Scope:**
+- `WorkItemDao` — get by id/code, bulk insert
+- `EventDao` — insert single/bulk, timeline by workItemId (ASC), latest by user (DESC)
+- `EvidenceDao` — insert, fetch by eventId
+- `UserDao` — get by id, list all, bulk insert
+- `SyncQueueDao` — insert single/bulk, fetch earliest pending entries with limit
+
+**Acceptance Criteria:**
+- DAOs compile with Room annotations and are exposed from `ArWeldDatabase`
+- In-memory Room database can be created; basic insert/select queries for work items, events, and sync queue run without SQL errors
+- Docs updated (MODULES.md, FILE_OVERVIEW.md, stage.md) to reflect DAO package and query coverage
+
 ---
 
 ## Sprint 2 (Weeks 3–4): Assembler Workflow + AR v1
