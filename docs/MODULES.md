@@ -91,7 +91,7 @@ The Android application module. Entry point for the app, hosts navigation, and w
 
 ### core:domain
 
-**Status:** ✅ Implemented (S1-01, S1-05 domain models, S1-07 evidence model, S1-08 reducer)
+**Status:** ✅ Implemented (S1-01, S1-05 domain models, S1-07 evidence model, S1-08 reducer, S1-16 AuthRepository contract)
 
 **Description:**
 Pure domain logic with no Android dependencies. Contains business models, use cases, reducers, and policies. **No Hilt/DI code inside this module** — it remains a pure Kotlin library.
@@ -109,6 +109,7 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 - Repository contracts:
   - `WorkRepository` — Domain-facing interface for fetching WorkItems by code and deriving WorkItemState/queues from the event log
   - `EventRepository` — Domain-facing interface for appending events (single/batch) and querying timelines by WorkItem
+  - `AuthRepository` — Domain-facing authentication/session contract with `loginMock(role)`, `currentUser()`, and `logout()`
 - Use case interfaces (implementations may live in core:data or feature modules)
 
 **Dependencies:**
@@ -152,7 +153,7 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 
 ### core:data
 
-**Status:** ✅ Implemented (S1-02 - partial, DAOs and repositories only) — 📌 Updated with S1-10 Room entities and S1-14 EventRepository
+**Status:** ✅ Implemented (S1-02 - partial, DAOs and repositories only) — 📌 Updated with S1-10 Room entities, S1-14 EventRepository, S1-16 AuthRepositoryImpl
 
 **Description:**
 Data layer providing local storage, repositories, and data access abstractions. **Hilt DI modules configured here** to provide database and repository instances.
@@ -165,6 +166,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - `WorkItemRepository` ✅ Implemented
   - `EventRepository` ✅ Implemented (Room-backed with centralized EventEntity ↔ Event mappers)
   - `EvidenceRepository` ✅ Implemented for metadata-only storage (no file I/O yet)
+  - `AuthRepositoryImpl` ✅ S1-16: mock login with in-memory + SharedPreferences caching
   - `WorkRepositoryImpl` ✅ S1-13: derives WorkItemState and queues using Room + reducer
   - `SyncQueueRepository` 📋 Planned
 - File management for evidence (photos, AR screenshots)
@@ -185,6 +187,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
     - Binds `WorkItemRepository` → `WorkItemRepositoryImpl`
     - Binds `EventRepository` → `EventRepositoryImpl`
     - Binds `EvidenceRepository` → `EvidenceRepositoryImpl` (metadata-only in S1)
+    - Binds `AuthRepository` → `AuthRepositoryImpl` (mock login + SharedPreferences cache)
     - Binds `WorkRepository` (core-domain) → `WorkRepositoryImpl` (core-data)
 - **Scope:** `@Singleton` — All repositories and database are application-scoped
 - **Where to add new bindings:** Add @Binds or @Provides methods to these modules

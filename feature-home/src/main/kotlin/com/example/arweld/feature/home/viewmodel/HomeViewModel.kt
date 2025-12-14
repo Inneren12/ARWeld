@@ -2,8 +2,9 @@ package com.example.arweld.feature.home.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.arweld.core.auth.AuthRepository
 import com.example.arweld.core.data.repository.WorkItemRepository
+import com.example.arweld.core.domain.auth.AuthRepository
+import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.model.User
 import com.example.arweld.core.domain.model.WorkItem
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,9 +34,7 @@ class HomeViewModel @Inject constructor(
     private fun loadHomeData() {
         viewModelScope.launch {
             try {
-                // For MVP demonstration: login as default assembler
-                val loginResult = authRepository.login("assembler1")
-                val user = loginResult.getOrNull()
+                val user = authRepository.currentUser() ?: authRepository.loginMock(Role.ASSEMBLER)
 
                 // Collect work items
                 workItemRepository.observeAll().collect { workItems ->
