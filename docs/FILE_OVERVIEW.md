@@ -27,11 +27,13 @@ ARWeld/
 │   │   │   ├── model/                     # Domain models
 │   │   │   │   ├── WorkItem.kt
 │   │   │   │   ├── Event.kt
-│   │   │   │   ├── Evidence.kt
 │   │   │   │   ├── User.kt
 │   │   │   │   ├── Role.kt                # ✅ S1-04: ASSEMBLER, QC, SUPERVISOR, DIRECTOR
 │   │   │   ├── state/                     # ✅ S1-08: Derived state + reducer
 │   │   │   │   └── WorkItemState.kt       # WorkStatus, QcStatus, reduce(events)
+│   │   │   ├── evidence/                  # ✅ S1-07: Evidence domain models
+│   │   │   │   ├── EvidenceKind.kt        # PHOTO, AR_SCREENSHOT, VIDEO, MEASUREMENT
+│   │   │   │   └── Evidence.kt            # id, eventId, uri, sha256, metaJson, createdAt (ms since epoch)
 │   │   │   ├── auth/                      # ✅ S1-04: Authentication and authorization
 │   │   │   │   ├── Permission.kt          # Permissions enum (CLAIM_WORK, START_QC, etc.)
 │   │   │   │   └── RolePolicy.kt          # Role-based permission policy
@@ -188,6 +190,11 @@ ARWeld/
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/domain/work/` (`WorkItemType.kt`, `WorkItem.kt`).
 - Extend WorkItem schema here first (e.g., project/zone fields); map database entities in `core-data` to these domain types.
 
+**Evidence models:**
+- Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/evidence/` (`EvidenceKind.kt`, `Evidence.kt`).
+- To add a new evidence type (e.g., sensor log), extend `EvidenceKind` and update downstream clients (policies, storage, UI).
+- `metaJson` stores flexible metadata (camera params, AR alignment, units). `createdAt` uses milliseconds since epoch.
+
 ---
 
 ## DI / Hilt Configuration
@@ -311,13 +318,20 @@ fun NewScreen(
 | Activity injection | Annotate with @AndroidEntryPoint |
 | Fragment injection | Annotate with @AndroidEntryPoint |
 
+### Event sourcing map
+
+- **Event models** → `core-domain/src/main/kotlin/com/example/arweld/core/domain/event/Event.kt`
+- **EventType enum** → `core-domain/src/main/kotlin/com/example/arweld/core/domain/event/EventType.kt`
+- **WorkItem reducer/state** → `core-domain/src/main/kotlin/com/example/arweld/core/domain/reducer/WorkItemStateReducer.kt`
+
 ---
 
 ## Where to Add New Functionality
 
 ### "I need to add a new EventType"
 
-**Location:** `core/domain/src/main/kotlin/com/example/arweld/core/domain/model/Event.kt`
+**Location:** `core-domain/src/main/kotlin/com/example/arweld/core/domain/event/EventType.kt`
+- Event data class lives alongside the enum: `core-domain/src/main/kotlin/com/example/arweld/core/domain/event/Event.kt` (timestamp as milliseconds since epoch, actorRole: Role, optional payloadJson)
 
 **Steps:**
 1. Add new value to `EventType` enum:
@@ -457,17 +471,18 @@ fun NewScreen(
        suspend operator fun invoke(workItemId: String, params: SomeParams) {
            // Validate permissions
            val user = authRepository.getCurrentUser()
-           require(user.role == Role.QC_INSPECTOR) { "QC only" }
+           require(user.role == Role.QC) { "QC only" }
 
            // Create event
            val event = Event(
                id = generateId(),
                workItemId = workItemId,
                type = EventType.NEW_QC_ACTION,
+               timestamp = System.currentTimeMillis(),
                actorId = user.id,
+               actorRole = user.role,
                deviceId = getDeviceId(),
-               timestamp = Clock.System.now(),
-               payload = mapOf("data" to params)
+               payloadJson = "{\"data\":\"${'$'}{params.value}\"}"
            )
            eventRepository.insert(event)
        }
@@ -976,10 +991,10 @@ androidTestImplementation(libs.androidx.junit)
 
 | What | Location |
 |------|----------|
-| Domain models (WorkItem, Event, etc.) | `core/domain/model/` |
-| Role enum | `core/domain/model/Role.kt` ✅ S1-04 |
-| Permission enum | `core/domain/auth/Permission.kt` ✅ S1-04 |
-| RolePolicy (permission checking) | `core/domain/auth/RolePolicy.kt` ✅ S1-04 |
+| Domain models (WorkItem, Event, etc.) | `core-domain/src/main/kotlin/com/example/arweld/core/domain/` |
+| Role enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/model/Role.kt` ✅ S1-04 |
+| Permission enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/Permission.kt` ✅ S1-04 |
+| RolePolicy (permission checking) | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/RolePolicy.kt` ✅ S1-04 |
 | Database entities | `core/data/db/entity/` |
 | DAOs | `core/data/db/dao/` |
 | Repositories | `core/data/repository/` |

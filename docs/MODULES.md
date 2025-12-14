@@ -91,14 +91,17 @@ The Android application module. Entry point for the app, hosts navigation, and w
 
 ### core:domain
 
-**Status:** ✅ Implemented (S1-01, S1-05 domain models, S1-08 reducer)
+**Status:** ✅ Implemented (S1-01, S1-05 domain models, S1-07 evidence model, S1-08 reducer)
 
 **Description:**
 Pure domain logic with no Android dependencies. Contains business models, use cases, reducers, and policies. **No Hilt/DI code inside this module** — it remains a pure Kotlin library.
 
 **Key Responsibilities:**
-- Define domain models: `WorkItem` (typed by `WorkItemType`), `Event`, `Evidence`, `Role`, `User`
 - Define enums: `EventType`, `WorkItemType`, `EvidenceKind`, `Role`, `Permission`, **WorkStatus**, **QcStatus**
+- Define domain models: `WorkItem` (typed by `WorkItemType`), event log entries (`Event` + `EventType`), `Evidence`, `Role`, `User`
+- Event log contract:
+  - `Event` keeps `actorRole: Role`, `timestamp` as milliseconds since epoch, and optional `payloadJson` with event-specific JSON
+  - `EventType` enumerates workflow milestones (claim, QC, evidence, alignment, rework)
 - Business logic:
   - `reduce(events)` — Derives `WorkItemState` from the ordered event list (pure, deterministic)
   - `RolePolicy` — ✅ Implemented in S1-04: Defines which roles can perform which actions via `hasPermission(role, permission)` and extension function `Role.hasPermission(permission)`
@@ -116,12 +119,19 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 - `domain/work/` — Work tracking domain models
   - `WorkItemType.kt` — ✅ S1-05: PART, NODE, OPERATION
   - `WorkItem.kt` — ✅ S1-05: Base model (id, projectId, optional zoneId, type, optional code)
+- `event/` — Event log taxonomy and helpers
+  - `Event.kt` — Immutable event record with actorRole, device, and payloadJson
+  - `EventType.kt` — Enum for workflow milestones (claim, QC, evidence, alignment, rework)
+  - `EventExtensions.kt` (optional) — Helper functions such as `isQcEvent()`
 - `model/` — Data classes for other domain entities
   - `Event.kt`
   - `Evidence.kt`
   - `User.kt`, `Role.kt`
 - `state/` — ✅ Added in S1-08: Derived WorkItem state
   - `WorkItemState.kt` — `WorkStatus`, `QcStatus`, `WorkItemState`, and `reduce(events)`
+- `evidence/` — ✅ S1-07: QC evidence domain models
+  - `EvidenceKind.kt` — PHOTO, AR_SCREENSHOT, VIDEO, MEASUREMENT
+  - `Evidence.kt` — Evidence metadata (id, eventId, uri, sha256, metaJson, createdAt)
 - `auth/` — ✅ Added in S1-04: Authentication and authorization models
   - `Permission.kt` — Enum of permissions (CLAIM_WORK, START_QC, PASS_QC, FAIL_QC, VIEW_ALL)
   - `RolePolicy.kt` — Central policy for role-based permissions with extension function
@@ -154,8 +164,10 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - `EvidenceRepository` ✅ Stub
   - `SyncQueueRepository` 📋 Planned
 - File management for evidence (photos, AR screenshots)
+- Evidence storage metadata (URIs, SHA-256 hashes) aligned to `core-domain` `Evidence`
 - Offline queue management (`SyncManager`)
 - Data mappers (Entity ↔ Domain model)
+- Persist Event log using domain `Event`/`EventType` (including actorRole and payloadJson)
 - **Hilt DI modules** that bind repositories to implementations
 
 **Dependencies:**
@@ -384,7 +396,7 @@ QC inspector workflows: queue, start inspection, capture evidence, checklist, pa
   - Store with metadata and checksums
 - Display checklist (3–8 inspection points)
 - Enforce QC evidence policy before allowing PASS/FAIL
-- Create QC_PASSED or QC_FAILED event with notes, checklist, reason codes
+- Create QC_PASSED or QC_FAILED_REWORK event with notes, checklist, reason codes
 
 **Dependencies:**
 - `core:domain` (Event, Evidence, QcEvidencePolicy)
