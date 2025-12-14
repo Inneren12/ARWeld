@@ -204,7 +204,7 @@ Before diving into sprints, understand these foundational rules that apply acros
      - Auto-navigates to Login using LaunchedEffect
      - Uses popUpTo to clear splash from back stack
    - `app/.../ui/auth/LoginScreen.kt`:
-     - Mock authentication with three role buttons
+     - Mock authentication with four role buttons wired to `AuthRepository.loginMock` via `LoginViewModel`
      - Navigates to Home with popUpTo to prevent back to auth
 
 5. **Home Screen Updates (feature-home):**

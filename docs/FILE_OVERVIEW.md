@@ -191,7 +191,7 @@ ARWeld/
 
 ### Auth flow entry points
 - `app/src/main/kotlin/com/example/arweld/ui/auth/SplashScreen.kt` — Start destination that immediately navigates to Login.
-- `app/src/main/kotlin/com/example/arweld/ui/auth/LoginScreen.kt` — Compose UI with role buttons (Assembler/QC/Supervisor/Director) that triggers mock login.
+- `app/src/main/kotlin/com/example/arweld/ui/auth/LoginScreen.kt` — Compose UI with four role buttons (Assembler/QC/Supervisor/Director) that triggers mock login and navigates to Home.
 - `app/src/main/kotlin/com/example/arweld/ui/auth/LoginViewModel.kt` — Hilt ViewModel injecting `AuthRepository` and invoking `loginMock(role)` before navigation to Home.
 
 **WorkItem models:**
