@@ -22,17 +22,3 @@ enum class WorkItemType {
     ASSEMBLY,
     OPERATION
 }
-
-/**
- * Derived status of a WorkItem (computed from event log).
- */
-enum class WorkItemStatus {
-    NEW,
-    CLAIMED,
-    IN_PROGRESS,
-    READY_FOR_QC,
-    QC_IN_PROGRESS,
-    PASSED,
-    FAILED,
-    REWORK_REQUIRED
-}

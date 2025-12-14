@@ -30,12 +30,11 @@ ARWeld/
 │   │   │   │   ├── Evidence.kt
 │   │   │   │   ├── User.kt
 │   │   │   │   ├── Role.kt                # ✅ S1-04: ASSEMBLER, QC, SUPERVISOR, DIRECTOR
-│   │   │   │   └── WorkItemState.kt
+│   │   │   ├── state/                     # ✅ S1-08: Derived state + reducer
+│   │   │   │   └── WorkItemState.kt       # WorkStatus, QcStatus, reduce(events)
 │   │   │   ├── auth/                      # ✅ S1-04: Authentication and authorization
 │   │   │   │   ├── Permission.kt          # Permissions enum (CLAIM_WORK, START_QC, etc.)
 │   │   │   │   └── RolePolicy.kt          # Role-based permission policy
-│   │   │   ├── reducer/                   # State derivation
-│   │   │   │   └── WorkItemStateReducer.kt
 │   │   │   ├── policy/                    # Business rules
 │   │   │   │   └── QcEvidencePolicy.kt
 │   │   │   └── validation/                # Domain validation
@@ -331,7 +330,7 @@ fun NewScreen(
    }
    ```
 
-2. Update `WorkItemStateReducer.kt` to handle new event in state derivation logic
+2. Update `state/WorkItemState.kt` to handle new event in the `reduce(events)` state derivation logic
 
 3. Add use case in appropriate feature module to create the event
 
@@ -339,6 +338,18 @@ fun NewScreen(
 - Add to `EventType` enum
 - Update reducer: `WORK_STARTED + WORK_PAUSED → status = PAUSED`
 - Add `PauseWorkUseCase.kt` in `feature:work/usecase/`
+
+---
+
+### State & reducers
+
+- **Location:** `core/domain/src/main/kotlin/com/example/arweld/core/domain/state/WorkItemState.kt`
+  - Contains `WorkStatus`, `QcStatus`, `WorkItemState` model, and the pure `reduce(events: List<Event>)` function.
+- **Initial state:** `status = WorkStatus.NEW`, `qcStatus = QcStatus.NOT_STARTED`, `currentAssigneeId = null`, `lastEvent = null`.
+- **When adding new EventType that affects state:**
+  - Update `reduce` with the transition logic.
+  - Add/adjust unit tests in `core-domain/src/test/kotlin/com/example/arweld/core/domain/state/WorkItemReducerTest.kt`.
+  - Keep reducer deterministic: sort by `timestamp` then `id` before folding.
 
 ---
 
@@ -771,20 +782,21 @@ navController.navigate("new_screen/$itemId")
 ### Unit Tests (core:domain)
 **Location:** `core/domain/src/test/kotlin/com/example/arweld/core/domain/`
 
-**Naming:** `ClassNameTest.kt` (e.g., `WorkItemStateReducerTest.kt`)
+**Naming:** `ClassNameTest.kt` (e.g., `WorkItemReducerTest.kt`)
 
 **Example:**
 ```kotlin
-class WorkItemStateReducerTest {
+class WorkItemReducerTest {
     @Test
-    fun `reduce events from NEW to PASSED`() {
+    fun `reduce events from NEW to APPROVED`() {
         val events = listOf(
             Event(type = EventType.WORK_CLAIMED, /* ... */),
+            Event(type = EventType.WORK_READY_FOR_QC, /* ... */),
             Event(type = EventType.QC_STARTED, /* ... */),
             Event(type = EventType.QC_PASSED, /* ... */)
         )
-        val state = WorkItemStateReducer.reduce(events)
-        assertEquals(WorkItemStatus.PASSED, state.status)
+        val state = reduce(events)
+        assertEquals(WorkStatus.APPROVED, state.status)
     }
 }
 ```
@@ -943,7 +955,7 @@ androidTestImplementation(libs.androidx.junit)
 
 2. **Expose via Repository:** In `WorkItemRepositoryImpl.kt`:
    ```kotlin
-   override fun getByStatus(status: WorkItemStatus): Flow<List<WorkItem>> {
+   override fun getByStatus(status: WorkStatus): Flow<List<WorkItem>> {
        return workItemDao.observeByStatus(status.name)
            .map { entities -> entities.map { it.toDomain() } }
    }
@@ -952,7 +964,7 @@ androidTestImplementation(libs.androidx.junit)
 3. **Use in ViewModel:**
    ```kotlin
    val workItems: StateFlow<List<WorkItem>> = workItemRepository
-       .getByStatus(WorkItemStatus.IN_PROGRESS)
+       .getByStatus(WorkStatus.IN_PROGRESS)
        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
    ```
 

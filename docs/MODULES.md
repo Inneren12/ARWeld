@@ -91,16 +91,16 @@ The Android application module. Entry point for the app, hosts navigation, and w
 
 ### core:domain
 
-**Status:** ✅ Implemented (S1-01, S1-05 domain models)
+**Status:** ✅ Implemented (S1-01, S1-05 domain models, S1-08 reducer)
 
 **Description:**
 Pure domain logic with no Android dependencies. Contains business models, use cases, reducers, and policies. **No Hilt/DI code inside this module** — it remains a pure Kotlin library.
 
 **Key Responsibilities:**
 - Define domain models: `WorkItem` (typed by `WorkItemType`), `Event`, `Evidence`, `Role`, `User`
-- Define enums: `EventType`, `WorkItemType`, `EvidenceKind`, `Role`, `Permission`
+- Define enums: `EventType`, `WorkItemType`, `EvidenceKind`, `Role`, `Permission`, **WorkStatus**, **QcStatus**
 - Business logic:
-  - `WorkItemStateReducer` — Derives WorkItemState from Event list
+  - `reduce(events)` — Derives `WorkItemState` from the ordered event list (pure, deterministic)
   - `RolePolicy` — ✅ Implemented in S1-04: Defines which roles can perform which actions via `hasPermission(role, permission)` and extension function `Role.hasPermission(permission)`
   - `QcEvidencePolicy` — Validates evidence requirements for QC decisions
 - Use case interfaces (implementations may live in core:data or feature modules)
@@ -120,12 +120,11 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
   - `Event.kt`
   - `Evidence.kt`
   - `User.kt`, `Role.kt`
-  - `WorkItemState.kt`
+- `state/` — ✅ Added in S1-08: Derived WorkItem state
+  - `WorkItemState.kt` — `WorkStatus`, `QcStatus`, `WorkItemState`, and `reduce(events)`
 - `auth/` — ✅ Added in S1-04: Authentication and authorization models
   - `Permission.kt` — Enum of permissions (CLAIM_WORK, START_QC, PASS_QC, FAIL_QC, VIEW_ALL)
   - `RolePolicy.kt` — Central policy for role-based permissions with extension function
-- `reducer/` — State derivation logic
-  - `WorkItemStateReducer.kt`
 - `policy/` — Business rules
   - `QcEvidencePolicy.kt`
 - `validation/` — Domain validation logic
