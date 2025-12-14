@@ -302,49 +302,33 @@ Home screen with greeting and role-specific navigation tiles powered by domain `
 
 ### feature:work
 
-**Status:** ✅ Partially Implemented (S1-03 - stub screens only)
+**Status:** ✅ Stub navigation (S1-20 WorkItemSummary stub)
 
 **Description:**
-Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
+Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC. Sprint 1 delivers stub entry points only.
 
 **Key Responsibilities:**
-- Display list of WorkItems assigned to current Assembler (📋 Sprint 2)
-- Filter by status: IN_PROGRESS, READY_FOR_QC, REWORK_REQUIRED (📋 Sprint 2)
-- Actions (📋 Sprint 2):
-  - Claim work (creates WORK_CLAIMED event)
-  - Start work (creates WORK_STARTED event)
-  - Mark ready for QC (creates WORK_READY_FOR_QC event)
-- WorkItemSummary screen ✅ Stub implemented in S1-03
-- Timeline screen ✅ Stub implemented in S1-03
-- Navigate to ARView if WorkItem has nodeId (📋 Sprint 2)
+- Host screens for assembler workflows (to be implemented in Sprint 2+)
+- Provide WorkItem detail and timeline views (currently stubbed)
+- Surface AR entry points when a WorkItem has associated spatial data (future)
 
 **Dependencies:**
 - `core:domain` (WorkItem, Event models)
 - `core:data` (WorkItemRepository, EventRepository)
 - `core:auth` (get current Assembler)
 
-**Navigation (S1-03):**
-- Screens are accessible from Home via navigation buttons
-- Full integration planned for Sprint 2
+**Navigation (S1-20):**
+- WorkItemSummary stub is reachable from Home via `ROUTE_WORK_ITEM_SUMMARY`
+- Timeline remains a placeholder destination in the app NavHost
 
 **Key Files/Packages:**
 - `ui/` — Screens
-  - `WorkScreen.kt` — ✅ Placeholder from S1-01
-  - `WorkItemSummaryScreen.kt` — ✅ Stub implemented in S1-03
-  - `TimelineScreen.kt` — ✅ Stub implemented in S1-03
-  - `MyWorkScreen.kt` — 📋 Planned for Sprint 2
-- `viewmodel/` — 📋 Planned for Sprint 2
-  - `MyWorkViewModel.kt`
-  - `WorkItemSummaryViewModel.kt`
-- `usecase/` — 📋 Planned for Sprint 2
-  - `ClaimWorkUseCase.kt`
-  - `StartWorkUseCase.kt`
-  - `MarkReadyForQcUseCase.kt`
+  - `WorkItemSummaryScreen.kt` — ✅ S1-20 stub showing `Text("WorkItemSummary stub: id=$workItemId")`
+- `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` wires navigation to the feature stub
 
 **Notes:**
 - "feature:work" may also be called "feature:assembler"
-- WorkItemSummaryScreen and TimelineScreen are currently stubs for navigation demo
-- Full implementation with business logic planned for Sprint 2
+- Additional screens/viewmodels/use-cases arrive in Sprint 2
 
 ---
 

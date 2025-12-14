@@ -300,6 +300,31 @@ Before diving into sprints, understand these foundational rules that apply acros
 
 ---
 
+### **S1-20: WorkItemSummary stub screen** ✅ COMPLETED
+
+**Implementation Date:** 2025-02-16
+
+**Goal:** Provide a minimal WorkItemSummary screen in `feature-work` and wire it into the app navigation so the flow remains stable while detailed functionality is built.
+
+**What Was Implemented:**
+
+1. **WorkItemSummary stub (feature-work):**
+   - Added `WorkItemSummaryScreen(workItemId: String?)` that renders `Text("WorkItemSummary stub: id=$workItemId")`.
+
+2. **App wrapper and navigation:**
+   - Introduced `WorkItemSummaryRoute` in the app module to bridge NavHost to the feature screen (placeholder `workItemId = null`).
+   - Updated `AppNavigation` to use the new route instead of the generic placeholder screen.
+
+3. **Documentation updates:**
+   - Refreshed `docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, and `docs/PROJECT_OVERVIEW.md` to record the stub screen and navigation wiring.
+
+**Acceptance Criteria Status:**
+- ✅ WorkItemSummary screen compiles inside `feature-work`.
+- ✅ Navigating from Home to `ROUTE_WORK_ITEM_SUMMARY` shows the stub without crashing.
+- ✅ Documentation notes the screen path and stub status.
+
+---
+
 ### **S1-04: Add Role and Permission Models** ✅ COMPLETED
 
 **Implementation Date:** 2025-12-14

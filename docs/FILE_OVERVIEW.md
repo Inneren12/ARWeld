@@ -4,6 +4,13 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 
 ---
 
+### Sprint 1 stub locations (navigation targets)
+
+- `feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/WorkItemSummaryScreen.kt` — S1-20 stub composable showing the passed `workItemId`.
+- `app/src/main/kotlin/com/example/arweld/ui/work/WorkItemSummaryRoute.kt` — NavHost wrapper that invokes the feature stub (currently called with `workItemId = null`).
+
+---
+
 ## Project Structure
 
 ```
