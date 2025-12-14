@@ -14,6 +14,9 @@ interface EvidenceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(evidence: EvidenceEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(evidence: List<EvidenceEntity>)
+
     @Query("SELECT * FROM evidence WHERE eventId = :eventId")
     suspend fun getByEventId(eventId: String): List<EvidenceEntity>
 }

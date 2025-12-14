@@ -164,7 +164,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
 - Repository implementations:
   - `WorkItemRepository` ✅ Implemented
   - `EventRepository` ✅ Implemented (Room-backed with centralized EventEntity ↔ Event mappers)
-  - `EvidenceRepository` ✅ Stub
+  - `EvidenceRepository` ✅ Implemented for metadata-only storage (no file I/O yet)
   - `WorkRepositoryImpl` ✅ S1-13: derives WorkItemState and queues using Room + reducer
   - `SyncQueueRepository` 📋 Planned
 - File management for evidence (photos, AR screenshots)
@@ -181,11 +181,11 @@ Data layer providing local storage, repositories, and data access abstractions. 
 - **Module:** `DataModule` (`core-data/src/main/kotlin/.../di/DataModule.kt`)
   - Provides `AppDatabase` singleton via Room.databaseBuilder()
   - Provides DAOs (`WorkItemDao`, `EventDao`, `EvidenceDao`, `UserDao`, `SyncQueueDao`) from database instance
-- **Module:** `RepositoryModule` (`core-data/src/main/kotlin/.../di/DataModule.kt`)
-  - Binds `WorkItemRepository` → `WorkItemRepositoryImpl`
-  - Binds `EventRepository` → `EventRepositoryImpl`
-  - Binds `EvidenceRepository` → `EvidenceRepositoryImpl` (stub)
-  - Binds `WorkRepository` (core-domain) → `WorkRepositoryImpl` (core-data)
+  - **Module:** `RepositoryModule` (`core-data/src/main/kotlin/.../di/DataModule.kt`)
+    - Binds `WorkItemRepository` → `WorkItemRepositoryImpl`
+    - Binds `EventRepository` → `EventRepositoryImpl`
+    - Binds `EvidenceRepository` → `EvidenceRepositoryImpl` (metadata-only in S1)
+    - Binds `WorkRepository` (core-domain) → `WorkRepositoryImpl` (core-data)
 - **Scope:** `@Singleton` — All repositories and database are application-scoped
 - **Where to add new bindings:** Add @Binds or @Provides methods to these modules
 
@@ -219,6 +219,8 @@ Data layer providing local storage, repositories, and data access abstractions. 
 **Notes:**
 - This is the **persistence layer** for the app
 - All feature modules interact with data via repositories (never directly with DAOs)
+- EvidenceRepositoryImpl currently persists only metadata in Room; actual photo/AR/video files will be handled by a later file
+  manager component.
 - Repositories expose Flow or suspend functions for reactive/async data
 - DAOs cover core queries: WorkItem lookup by id/code, ordered event timelines and per-actor history, evidence by event, user roster retrieval, and pending sync queue fetches ordered by creation time
 

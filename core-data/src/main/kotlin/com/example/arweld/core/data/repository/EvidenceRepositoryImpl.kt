@@ -1,30 +1,32 @@
 package com.example.arweld.core.data.repository
 
-import com.example.arweld.core.domain.model.Evidence
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import com.example.arweld.core.data.db.dao.EvidenceDao
+import com.example.arweld.core.data.evidence.toDomain
+import com.example.arweld.core.data.evidence.toEntity
+import com.example.arweld.core.domain.evidence.Evidence
+import com.example.arweld.core.domain.evidence.EvidenceRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Implementation of EvidenceRepository.
- * This is a stub implementation for S1-02.
- * Full implementation with Room will be added in later sprints.
+ * Room-backed implementation of EvidenceRepository for metadata storage only.
+ * Actual file I/O is handled by other components.
  */
 @Singleton
-class EvidenceRepositoryImpl @Inject constructor() : EvidenceRepository {
+class EvidenceRepositoryImpl @Inject constructor(
+    private val evidenceDao: EvidenceDao
+) : EvidenceRepository {
 
-    override suspend fun insert(evidence: Evidence) {
-        // Stub implementation
+    override suspend fun saveEvidence(evidence: Evidence) {
+        evidenceDao.insert(evidence.toEntity())
     }
 
-    override suspend fun getByWorkItem(workItemId: String): List<Evidence> {
-        // Stub implementation
-        return emptyList()
+    override suspend fun saveAll(evidenceList: List<Evidence>) {
+        if (evidenceList.isEmpty()) return
+        evidenceDao.insertAll(evidenceList.map { it.toEntity() })
     }
 
-    override fun observeByWorkItem(workItemId: String): Flow<List<Evidence>> {
-        // Stub implementation
-        return flowOf(emptyList())
+    override suspend fun getEvidenceForEvent(eventId: String): List<Evidence> {
+        return evidenceDao.getByEventId(eventId).map { it.toDomain() }
     }
 }
