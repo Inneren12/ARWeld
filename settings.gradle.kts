@@ -21,4 +21,11 @@ dependencyResolutionManagement {
 
 rootProject.name = "ArWeld"
 include(":app")
+include(":core-domain")
+include(":core-data")
+include(":core-auth")
+include(":feature-home")
+include(":feature-work")
+include(":feature-scanner")
+include(":feature-arview")
  

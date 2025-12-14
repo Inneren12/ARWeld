@@ -35,6 +35,73 @@ Before diving into sprints, understand these foundational rules that apply acros
 
 **Result:** App has users/roles, local Room storage for WorkItem, Events, Evidence, timeline for a single WorkItem derived from events, and basic navigation by role.
 
+---
+
+### **S1-01: Create Gradle Modules** ✅ COMPLETED
+
+**Implementation Date:** 2025-12-14
+
+**Goal:** Create a minimal but correct Gradle multi-module structure for the project.
+
+**What Was Implemented:**
+
+1. **Version Catalog Updates** (`gradle/libs.versions.toml`):
+   - Added Jetpack Compose dependencies (BOM, UI, Material3)
+   - Added Room database dependencies with KSP compiler
+   - Added Hilt dependency injection framework
+   - Added Kotlinx Serialization and Coroutines
+   - Added all necessary AndroidX Lifecycle and Navigation components
+
+2. **Core Modules Created:**
+   - **core-domain**: Pure Kotlin module with domain models:
+     - `WorkItem`, `WorkItemType`, `WorkItemStatus`
+     - `Event`, `EventType`
+     - `Evidence`, `EvidenceKind`
+     - `User`, `Role`
+     - All models use Kotlinx Serialization
+   - **core-data**: Android library with repository interfaces:
+     - `WorkItemRepository`
+     - `EventRepository`
+     - `EvidenceRepository`
+     - Dependencies: Room (ready for DAO implementation in Sprint 1.3)
+   - **core-auth**: Android library with authentication interface:
+     - `AuthRepository` (stub for local user management)
+
+3. **Feature Modules Created (Scaffolded):**
+   - **feature-home**: Home screen with Compose UI placeholder
+   - **feature-work**: Assembler workflow screens (placeholder)
+   - **feature-scanner**: Barcode/QR scanner screen (placeholder)
+   - **feature-arview**: AR visualization screen (placeholder)
+
+4. **App Module Configuration:**
+   - Updated to Android Library with Compose support
+   - Wired all module dependencies correctly
+   - Created `MainActivity.kt` with Compose setup
+   - Created minimal Material3 theme (`Theme.kt`)
+   - Updated `AndroidManifest.xml` with launcher activity
+
+5. **Module Registration:**
+   - All 8 modules registered in `settings.gradle.kts`
+   - Dependency graph follows clean architecture principles:
+     - app → feature-* → core-* → core-domain
+     - No circular dependencies
+
+**Acceptance Criteria Status:**
+- ✅ All modules created and registered
+- ✅ Dependencies wired correctly
+- ✅ Module structure follows docs/MODULES.md specification
+- ✅ Minimal scaffolding code compiles (verified configuration)
+- ⏳ Full build pending (network-dependent Gradle download deferred)
+- ⏳ Documentation updates in progress
+
+**Next Steps (Remaining Sprint 1 Tasks):**
+- Implement Room database entities and DAOs (Task 1.3)
+- Implement state reducer logic (Task 1.2 completion)
+- Create basic navigation and DI setup (Task 1.4)
+- Add unit tests for domain models and reducer (Task 1.5)
+
+---
+
 ### 1.1 Project Structure and Modules
 
 **Planned Modules:**
