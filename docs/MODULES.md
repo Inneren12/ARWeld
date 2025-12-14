@@ -274,45 +274,29 @@ User authentication and role management. For MVP, uses local user storage (no se
 
 ### feature:home
 
-**Status:** ✅ Implemented (S1-03 - with navigation callbacks)
+**Status:** ✅ Implemented (S1-19 — role-based tiles)
 
 **Description:**
-Home screen with role-based navigation tiles. **Demonstrates Hilt ViewModel injection** working end-to-end.
+Home screen with greeting and role-specific navigation tiles powered by domain `User` + `Role`.
 
 **Key Responsibilities:**
 - Display user's name and role ✅ Implemented
-- Show work item count from database ✅ Implemented (demonstrates DI working)
-- Navigation to WorkItemSummary and Timeline ✅ Implemented in S1-03 (stub buttons)
-- Show tiles based on current user role (📋 Planned for Sprint 2):
-  - **Assembler:** "My Work", "Scan New Part"
-  - **QC Inspector:** "QC Queue", "Scan to Inspect"
-  - **Supervisor:** "Dashboard", "All Work Items", "Export"
+- Show tiles based on current user role ✅ Implemented
+  - **Assembler:** "My Work Queue", "Timeline"
+  - **QC Inspector:** "QC Queue", "Timeline"
+  - **Supervisor/Director:** "Shop overview", "Timeline"
+- Navigation to WorkItemSummary and Timeline via callbacks ✅ Implemented
 
 **Dependencies:**
-- `core:domain` (for Role, User, WorkItem)
-- `core:data` (for WorkItemRepository)
-- `core:auth` (for AuthRepository)
+- `core:domain` (for Role, User)
+- Called from app module navigation wrapper; no direct navigation dependency
 
-**DI Configuration:**
-- **ViewModel:** `HomeViewModel` annotated with `@HiltViewModel`
-- **Constructor injection:** Receives `WorkItemRepository` and `AuthRepository` via `@Inject`
-- **Screen:** Uses `hiltViewModel()` to obtain ViewModel instance
-- **Demonstrates:** Full Hilt DI flow from app → feature → core modules
-
-**Navigation (S1-03):**
-- Accepts `onNavigateToWorkSummary` and `onNavigateToTimeline` callbacks
-- Called from `HomeRoute` wrapper in app module's `AppNavigation.kt`
-- Demonstrates proper separation: feature module doesn't depend on navigation library
+**Navigation:**
+- Accepts `onOpenWorkSummary` and `onOpenTimeline` callbacks supplied by app module
+- Separation preserved: feature module stays navigation-agnostic
 
 **Key Files:**
-- `ui/HomeScreen.kt` — ✅ Compose UI with hiltViewModel() and navigation callbacks
-- `viewmodel/HomeViewModel.kt` — ✅ @HiltViewModel with injected repositories
-- `viewmodel/HomeUiState.kt` — ✅ Sealed class for UI state management
-
-**Notes:**
-- Simple navigation hub demonstrating DI integration
-- UI adapts based on role (example of role-based UI)
-- S1-03 adds navigation buttons for demo purposes
+- `ui/HomeScreen.kt` — Compose UI exposing role-based tiles and callback wiring
 
 ---
 

@@ -51,10 +51,12 @@ dependencies {
     // Core modules
     implementation(project(":core-domain"))
     implementation(project(":core-data"))
+    implementation(project(":core-auth"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.activity.compose)
 
     // Compose
@@ -69,6 +71,9 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+
+    // Kotlinx
+    implementation(libs.kotlinx.coroutines.android)
 
     // Testing
     testImplementation(libs.junit)
