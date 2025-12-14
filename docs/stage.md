@@ -349,6 +349,29 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 
 ---
 
+### **S1-05: WorkItemType + базовая модель WorkItem** ✅ COMPLETED
+
+**Goal:** Define the typed WorkItem model for parts, nodes, and operations without storing explicit status (status will be derived from events).
+
+**What Was Implemented:**
+- Added `WorkItemType` enum with PART, NODE, and OPERATION values.
+- Added base `WorkItem` data class with immutable fields: `id`, `projectId`, optional `zoneId`, typed `type`, and optional scan `code`.
+- Included simple helpers (`isPart`, `isNode`, `isOperation`) to ease branching without leaking status.
+- Added unit test to validate construction and equality semantics.
+- Updated documentation (MODULES.md, FILE_OVERVIEW.md) to point to the new domain/work package and clarify extension points.
+
+**Acceptance Criteria:**
+- ✅ WorkItemType and WorkItem compile in core-domain.
+- ✅ No status field stored; future state derived from event log.
+- ✅ Model stays storage-agnostic but mappable to database entities (id, projectId, zoneId, type, code).
+- ✅ Documentation updated to reflect location and purpose of WorkItem models.
+
+**Next Steps:**
+- Wire database mappers in core-data to persist/load WorkItem using WorkItemType.
+- Extend reducers to derive WorkItem state from event history (future sprint).
+
+---
+
 ### 1.1 Project Structure and Modules
 
 **Planned Modules:**

@@ -91,14 +91,14 @@ The Android application module. Entry point for the app, hosts navigation, and w
 
 ### core:domain
 
-**Status:** ✅ Implemented (S1-01)
+**Status:** ✅ Implemented (S1-01, S1-05 domain models)
 
 **Description:**
 Pure domain logic with no Android dependencies. Contains business models, use cases, reducers, and policies. **No Hilt/DI code inside this module** — it remains a pure Kotlin library.
 
 **Key Responsibilities:**
-- Define domain models: `WorkItem`, `Event`, `Evidence`, `Role`, `User`
-- Define enums: `EventType`, `WorkItemStatus`, `EvidenceKind`, `Role`, `Permission`
+- Define domain models: `WorkItem` (typed by `WorkItemType`), `Event`, `Evidence`, `Role`, `User`
+- Define enums: `EventType`, `WorkItemType`, `EvidenceKind`, `Role`, `Permission`
 - Business logic:
   - `WorkItemStateReducer` — Derives WorkItemState from Event list
   - `RolePolicy` — ✅ Implemented in S1-04: Defines which roles can perform which actions via `hasPermission(role, permission)` and extension function `Role.hasPermission(permission)`
@@ -113,8 +113,10 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 - Repository interfaces defined here are bound to implementations in core-data via Hilt
 
 **Key Files/Packages:**
-- `model/` — Data classes for domain entities
-  - `WorkItem.kt`
+- `domain/work/` — Work tracking domain models
+  - `WorkItemType.kt` — ✅ S1-05: PART, NODE, OPERATION
+  - `WorkItem.kt` — ✅ S1-05: Base model (id, projectId, optional zoneId, type, optional code)
+- `model/` — Data classes for other domain entities
   - `Event.kt`
   - `Evidence.kt`
   - `User.kt`, `Role.kt`
