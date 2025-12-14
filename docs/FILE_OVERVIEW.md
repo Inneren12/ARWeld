@@ -239,6 +239,11 @@ ARWeld/
 - `UserDao` — fetch a single user, list all users, and seed/update user roster
 - `SyncQueueDao` — enqueue single/bulk sync items and fetch earliest pending items by status/limit
 
+### Instrumentation tests (core-data)
+
+- `core-data/src/androidTest/java/com/example/arweld/core/data/db/dao/EventDaoInstrumentedTest.kt` — builds an in-memory `AppDatabase`,
+  inserts an `EventEntity`, and reads it back through `EventDao` to validate Room wiring.
+
 ---
 
 ## DI / Hilt Configuration
