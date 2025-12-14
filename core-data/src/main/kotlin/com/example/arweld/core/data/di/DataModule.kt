@@ -8,13 +8,13 @@ import com.example.arweld.core.data.db.dao.EvidenceDao
 import com.example.arweld.core.data.db.dao.SyncQueueDao
 import com.example.arweld.core.data.db.dao.UserDao
 import com.example.arweld.core.data.db.dao.WorkItemDao
-import com.example.arweld.core.data.repository.EventRepository
 import com.example.arweld.core.data.repository.EventRepositoryImpl
 import com.example.arweld.core.data.repository.EvidenceRepository
 import com.example.arweld.core.data.repository.EvidenceRepositoryImpl
 import com.example.arweld.core.data.repository.WorkItemRepository
 import com.example.arweld.core.data.repository.WorkItemRepositoryImpl
 import com.example.arweld.core.data.work.WorkRepositoryImpl
+import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.work.WorkRepository
 import dagger.Binds
 import dagger.Module
