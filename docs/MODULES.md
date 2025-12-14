@@ -91,7 +91,7 @@ The Android application module. Entry point for the app, hosts navigation, and w
 
 ### core:domain
 
-**Status:** ✅ Implemented (S1-01, S1-05 domain models)
+**Status:** ✅ Implemented (S1-01, S1-05 domain models, S1-07 evidence model)
 
 **Description:**
 Pure domain logic with no Android dependencies. Contains business models, use cases, reducers, and policies. **No Hilt/DI code inside this module** — it remains a pure Kotlin library.
@@ -124,9 +124,13 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
   - `EventType.kt` — Enum for workflow milestones (claim, QC, evidence, alignment, rework)
   - `EventExtensions.kt` (optional) — Helper functions such as `isQcEvent()`
 - `model/` — Data classes for other domain entities
+  - `Event.kt`
   - `Evidence.kt`
   - `User.kt`, `Role.kt`
   - `WorkItemState.kt`
+- `evidence/` — ✅ S1-07: QC evidence domain models
+  - `EvidenceKind.kt` — PHOTO, AR_SCREENSHOT, VIDEO, MEASUREMENT
+  - `Evidence.kt` — Evidence metadata (id, eventId, uri, sha256, metaJson, createdAt)
 - `auth/` — ✅ Added in S1-04: Authentication and authorization models
   - `Permission.kt` — Enum of permissions (CLAIM_WORK, START_QC, PASS_QC, FAIL_QC, VIEW_ALL)
   - `RolePolicy.kt` — Central policy for role-based permissions with extension function
@@ -161,6 +165,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - `EvidenceRepository` ✅ Stub
   - `SyncQueueRepository` 📋 Planned
 - File management for evidence (photos, AR screenshots)
+- Evidence storage metadata (URIs, SHA-256 hashes) aligned to `core-domain` `Evidence`
 - Offline queue management (`SyncManager`)
 - Data mappers (Entity ↔ Domain model)
 - Persist Event log using domain `Event`/`EventType` (including actorRole and payloadJson)
