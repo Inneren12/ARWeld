@@ -2,48 +2,61 @@ package com.example.arweld.feature.scanner.camera
 
 import android.content.Context
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
-/**
- * Lightweight helper that wires CameraX preview to a [PreviewView] and the provided [LifecycleOwner].
- * This class intentionally avoids any decoding logic; it only prepares the live camera feed.
- */
-class CameraPreviewController(private val context: Context) {
+class CameraPreviewController(
+    private val context: Context,
+    private val cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA,
+) {
 
-    private var cameraProvider: ProcessCameraProvider? = null
+    private val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+    private val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
-    fun bindPreview(
+    fun bind(
         previewView: PreviewView,
         lifecycleOwner: LifecycleOwner,
-        onCameraReady: () -> Unit = {},
+        analyzer: ImageAnalysis.Analyzer,
     ) {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-        val executor = ContextCompat.getMainExecutor(context)
+        cameraProviderFuture.addListener(
+            {
+                val cameraProvider = cameraProviderFuture.get()
+                val preview = Preview.Builder().build().apply {
+                    setSurfaceProvider(previewView.surfaceProvider)
+                }
+                val analysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .apply {
+                        setAnalyzer(cameraExecutor, analyzer)
+                    }
 
-        cameraProviderFuture.addListener({
-            val provider = cameraProviderFuture.get()
-            cameraProvider = provider
-
-            val preview = Preview.Builder().build().also { builtPreview ->
-                builtPreview.setSurfaceProvider(previewView.surfaceProvider)
-            }
-
-            provider.unbindAll()
-            provider.bindToLifecycle(
-                lifecycleOwner,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                preview,
-            )
-
-            onCameraReady()
-        }, executor)
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    cameraSelector,
+                    preview,
+                    analysis,
+                )
+            },
+            ContextCompat.getMainExecutor(context),
+        )
     }
 
-    fun unbind() {
-        cameraProvider?.unbindAll()
+    fun shutdown() {
+        cameraProviderFuture.addListener(
+            {
+                val cameraProvider = cameraProviderFuture.get()
+                cameraProvider.unbindAll()
+            },
+            ContextCompat.getMainExecutor(context),
+        )
+        cameraExecutor.shutdown()
     }
 }
