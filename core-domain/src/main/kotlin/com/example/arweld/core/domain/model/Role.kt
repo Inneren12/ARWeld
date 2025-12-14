@@ -6,6 +6,7 @@ package com.example.arweld.core.domain.model
  */
 enum class Role {
     ASSEMBLER,
-    QC_INSPECTOR,
-    SUPERVISOR
+    QC,
+    SUPERVISOR,
+    DIRECTOR
 }

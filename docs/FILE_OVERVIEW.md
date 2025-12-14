@@ -29,12 +29,14 @@ ARWeld/
 │   │   │   │   ├── Event.kt
 │   │   │   │   ├── Evidence.kt
 │   │   │   │   ├── User.kt
-│   │   │   │   ├── Role.kt
+│   │   │   │   ├── Role.kt                # ✅ S1-04: ASSEMBLER, QC, SUPERVISOR, DIRECTOR
 │   │   │   │   └── WorkItemState.kt
+│   │   │   ├── auth/                      # ✅ S1-04: Authentication and authorization
+│   │   │   │   ├── Permission.kt          # Permissions enum (CLAIM_WORK, START_QC, etc.)
+│   │   │   │   └── RolePolicy.kt          # Role-based permission policy
 │   │   │   ├── reducer/                   # State derivation
 │   │   │   │   └── WorkItemStateReducer.kt
 │   │   │   ├── policy/                    # Business rules
-│   │   │   │   ├── RolePolicy.kt
 │   │   │   │   └── QcEvidencePolicy.kt
 │   │   │   └── validation/                # Domain validation
 │   │   │       └── ValidationResult.kt
@@ -541,30 +543,42 @@ fun NewScreen(
 
 ### "I need to add a new permission check"
 
-**Location:** `core/domain/src/main/kotlin/com/example/arweld/core/domain/policy/RolePolicy.kt`
+**Location:** `core/domain/src/main/kotlin/com/example/arweld/core/domain/auth/` ✅ Updated in S1-04
 
 **Steps:**
-1. **Define Permission:** Add to RolePolicy
+1. **Add Permission to Enum:** Edit `Permission.kt`
    ```kotlin
-   object RolePolicy {
-       fun canPerform(role: Role, action: String): Boolean {
-           return when (role) {
-               Role.ASSEMBLER -> action in listOf("CLAIM", "START", "READY_FOR_QC")
-               Role.QC_INSPECTOR -> action in listOf("START_QC", "PASS", "FAIL", "NEW_ACTION")
-               Role.SUPERVISOR -> action in listOf("VIEW_ALL", "EXPORT", "NEW_SUPERVISOR_ACTION")
-           }
-       }
+   enum class Permission {
+       CLAIM_WORK,
+       START_QC,
+       PASS_QC,
+       FAIL_QC,
+       VIEW_ALL,
+       NEW_PERMISSION  // Add your new permission here
    }
    ```
 
-2. **Check in Use Case:** Enforce in relevant use case
+2. **Update RolePolicy:** Edit `RolePolicy.kt` to assign permission to roles
    ```kotlin
-   require(RolePolicy.canPerform(user.role, "NEW_ACTION")) {
+   private val rolePermissions: Map<Role, Set<Permission>> = mapOf(
+       Role.ASSEMBLER to setOf(
+           Permission.CLAIM_WORK,
+           Permission.NEW_PERMISSION  // Grant to ASSEMBLER if needed
+       ),
+       // ... update other roles as needed
+   )
+   ```
+
+3. **Check in Use Case:** Enforce in relevant use case
+   ```kotlin
+   require(user.role.hasPermission(Permission.NEW_PERMISSION)) {
        "User does not have permission"
    }
    ```
 
-3. **Update UI:** Hide/disable buttons based on permission (via ViewModel)
+4. **Update UI:** Hide/disable buttons based on permission (via ViewModel)
+
+5. **Add Tests:** Update `RolePolicyTest.kt` to verify permission behavior
 
 ---
 
@@ -947,6 +961,9 @@ androidTestImplementation(libs.androidx.junit)
 | What | Location |
 |------|----------|
 | Domain models (WorkItem, Event, etc.) | `core/domain/model/` |
+| Role enum | `core/domain/model/Role.kt` ✅ S1-04 |
+| Permission enum | `core/domain/auth/Permission.kt` ✅ S1-04 |
+| RolePolicy (permission checking) | `core/domain/auth/RolePolicy.kt` ✅ S1-04 |
 | Database entities | `core/data/db/entity/` |
 | DAOs | `core/data/db/dao/` |
 | Repositories | `core/data/repository/` |
@@ -956,7 +973,7 @@ androidTestImplementation(libs.androidx.junit)
 | Navigation routes | `app/navigation/AppNavigation.kt` |
 | DI setup | `app/di/AppModule.kt` |
 | Reducer logic | `core/domain/reducer/` |
-| Role/QC policies | `core/domain/policy/` |
+| QC evidence policies | `core/domain/policy/` |
 | AR rendering | `feature/arview/ar/` and `rendering/` |
 | Export logic | `feature/supervisor/export/` |
 

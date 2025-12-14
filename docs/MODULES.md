@@ -98,10 +98,10 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 
 **Key Responsibilities:**
 - Define domain models: `WorkItem`, `Event`, `Evidence`, `Role`, `User`
-- Define enums: `EventType`, `WorkItemStatus`, `EvidenceKind`, `Role`
+- Define enums: `EventType`, `WorkItemStatus`, `EvidenceKind`, `Role`, `Permission`
 - Business logic:
   - `WorkItemStateReducer` — Derives WorkItemState from Event list
-  - `RolePolicy` — Defines which roles can perform which actions
+  - `RolePolicy` — ✅ Implemented in S1-04: Defines which roles can perform which actions via `hasPermission(role, permission)` and extension function `Role.hasPermission(permission)`
   - `QcEvidencePolicy` — Validates evidence requirements for QC decisions
 - Use case interfaces (implementations may live in core:data or feature modules)
 
@@ -119,10 +119,12 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
   - `Evidence.kt`
   - `User.kt`, `Role.kt`
   - `WorkItemState.kt`
+- `auth/` — ✅ Added in S1-04: Authentication and authorization models
+  - `Permission.kt` — Enum of permissions (CLAIM_WORK, START_QC, PASS_QC, FAIL_QC, VIEW_ALL)
+  - `RolePolicy.kt` — Central policy for role-based permissions with extension function
 - `reducer/` — State derivation logic
   - `WorkItemStateReducer.kt`
 - `policy/` — Business rules
-  - `RolePolicy.kt`
   - `QcEvidencePolicy.kt`
 - `validation/` — Domain validation logic
   - `ValidationResult.kt`
@@ -224,7 +226,7 @@ User authentication and role management. For MVP, uses local user storage (no se
 - **Module:** `AuthModule` (`core-auth/src/main/kotlin/.../di/AuthModule.kt`)
   - Binds `AuthRepository` → `LocalAuthRepository`
 - **Scope:** `@Singleton` — Single AuthRepository instance per app
-- **Implementation:** `LocalAuthRepository` with hardcoded stub users (assembler1, qc1, supervisor1)
+- **Implementation:** `LocalAuthRepository` with hardcoded stub users (assembler1, qc1, supervisor1, director1) ✅ Updated in S1-04
 - **Where to add auth providers:** Add @Binds or @Provides methods to AuthModule
 
 **Key Files:**
