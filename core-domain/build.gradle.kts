@@ -15,4 +15,5 @@ dependencies {
 
     // Testing
     testImplementation(libs.junit)
+    testImplementation(libs.truth)
 }

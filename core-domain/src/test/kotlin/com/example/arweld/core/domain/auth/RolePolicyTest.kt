@@ -1,6 +1,7 @@
 package com.example.arweld.core.domain.auth
 
 import com.example.arweld.core.domain.model.Role
+import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -11,6 +12,16 @@ import kotlin.test.assertTrue
  * Tests verify that each role has the correct permissions according to business rules.
  */
 class RolePolicyTest {
+
+    @Test
+    fun qc_canPassQc() {
+        assertThat(Role.QC.hasPermission(Permission.PASS_QC)).isTrue()
+    }
+
+    @Test
+    fun assembler_cannotPassQc() {
+        assertThat(Role.ASSEMBLER.hasPermission(Permission.PASS_QC)).isFalse()
+    }
 
     // ASSEMBLER Tests
     @Test

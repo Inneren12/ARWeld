@@ -1949,6 +1949,22 @@ fun shouldRecommendRealignment(quality: AlignmentQuality): Boolean {
 
 ---
 
+### **S1-24: Unit test RolePolicy — QC can pass, Assembler cannot** ✅ COMPLETED
+
+**Goal:** Validate that the permission policy enforces QC's ability to pass inspections while preventing Assemblers from doing so.
+
+**What Was Implemented:**
+- Added targeted unit tests in `RolePolicyTest` using Truth assertions to check PASS_QC permission behavior for QC and Assembler roles.
+- Kept existing comprehensive RolePolicy coverage; new tests document the S1-24 acceptance explicitly.
+- Updated documentation to call out the test location and mark S1-24 coverage.
+
+**Acceptance Criteria Status:**
+- ✅ Role.QC.hasPermission(Permission.PASS_QC) returns true (validated by test).
+- ✅ Role.ASSEMBLER.hasPermission(Permission.PASS_QC) returns false (validated by test).
+- ✅ Documentation reflects the new test coverage.
+
+---
+
 ## Post-Sprint 6: Future Enhancements (Out of MVP Scope)
 
 The following are explicitly **NOT** in the MVP but may be roadmapped for future releases:
