@@ -299,23 +299,22 @@ abstract class RepositoryModule {
 - Domain contract: `core-domain/src/main/kotlin/com/example/arweld/core/domain/event/EventRepository.kt`
 - Mapping helpers: `core-data/src/main/kotlin/com/example/arweld/core/data/event/EventMappers.kt` handle `EventEntity` ↔ `Event` (enum name ↔ value conversions)
 
-#### AuthModule (core-auth)
+#### AuthRepository binding (core-data)
 
-**Location:** `core-auth/src/main/kotlin/com/example/arweld/core/auth/di/AuthModule.kt`
+**Location:** `core-data/src/main/kotlin/com/example/arweld/core/data/di/DataModule.kt` → `RepositoryModule`
 
 **Binds:**
-- `AuthRepository` → `LocalAuthRepository`
+- `AuthRepository` (domain) → `AuthRepositoryImpl` (mock login + SharedPreferences cache)
 
-**Where to add new auth providers:**
+**Where to adjust auth providers:**
 ```kotlin
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class AuthModule {
+abstract class RepositoryModule {
     @Binds
-    @Singleton
-    abstract fun bindNewAuthService(
-        impl: NewAuthServiceImpl
-    ): NewAuthService
+    abstract fun bindAuthRepository(
+        impl: AuthRepositoryImpl
+    ): AuthRepository
 }
 ```
 
@@ -350,7 +349,7 @@ fun NewScreen(
 | Database provider | `core-data/di/DataModule.kt` → Add @Provides method |
 | DAO provider | `core-data/di/DataModule.kt` → Add @Provides method |
 | Repository binding | `core-data/di/DataModule.kt` (RepositoryModule) → Add @Binds method |
-| Auth service binding | `core-auth/di/AuthModule.kt` → Add @Binds method |
+| Auth service binding | `core-data/di/DataModule.kt` (RepositoryModule) → Bind `AuthRepository` |
 | New ViewModel | Feature module → Annotate with @HiltViewModel, use @Inject constructor |
 | Activity injection | Annotate with @AndroidEntryPoint |
 | Fragment injection | Annotate with @AndroidEntryPoint |
@@ -501,14 +500,14 @@ fun NewScreen(
 **Steps:**
 1. **Create Use Case Class:**
    ```kotlin
-   class NewQcActionUseCase @Inject constructor(
-       private val eventRepository: EventRepository,
-       private val authRepository: AuthRepository
-   ) {
-       suspend operator fun invoke(workItemId: String, params: SomeParams) {
-           // Validate permissions
-           val user = authRepository.getCurrentUser()
-           require(user.role == Role.QC) { "QC only" }
+           class NewQcActionUseCase @Inject constructor(
+               private val eventRepository: EventRepository,
+               private val authRepository: AuthRepository
+           ) {
+               suspend operator fun invoke(workItemId: String, params: SomeParams) {
+                   // Validate permissions
+                   val user = authRepository.currentUser() ?: error("User must be logged in")
+                   require(user.role == Role.QC) { "QC only" }
 
            // Create event
            val event = Event(
@@ -1032,6 +1031,8 @@ androidTestImplementation(libs.androidx.junit)
 | Role enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/model/Role.kt` ✅ S1-04 |
 | Permission enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/Permission.kt` ✅ S1-04 |
 | RolePolicy (permission checking) | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/RolePolicy.kt` ✅ S1-04 |
+| AuthRepository interface | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/AuthRepository.kt` ✅ S1-16 |
+| AuthRepositoryImpl (mock) | `core-data/src/main/kotlin/com/example/arweld/core/data/auth/AuthRepositoryImpl.kt` ✅ S1-16 |
 | Database entities | `core/data/db/entity/` |
 | DAOs | `core/data/db/dao/` |
 | Repositories | `core/data/repository/` |

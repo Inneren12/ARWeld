@@ -139,10 +139,10 @@ Before diving into sprints, understand these foundational rules that apply acros
    - `DataModule` — Provides DAOs (WorkItemDao, EventDao) from database
    - `RepositoryModule` — Binds repository interfaces to implementations using @Binds
 
-6. **Authentication (core-auth):**
-   - Created `LocalAuthRepository` — MVP implementation with in-memory stub users (assembler1, qc1, supervisor1)
-   - Created `AuthModule` — Hilt DI module that binds AuthRepository to LocalAuthRepository
-   - Configured as `@Singleton` scope
+6. **Authentication (core-data, updated in S1-16):**
+   - Replaced the earlier core-auth stub with a domain-level `AuthRepository` contract and `AuthRepositoryImpl` (mock login) in core-data
+   - Hilt binding now lives in `core-data`'s `RepositoryModule` for a single source of truth
+   - Maintains `@Singleton` scope and persists the current user via SharedPreferences
 
 7. **ViewModel Integration (feature-home):**
    - Created `HomeViewModel` annotated with `@HiltViewModel`
@@ -161,8 +161,7 @@ Before diving into sprints, understand these foundational rules that apply acros
 - ✅ @HiltAndroidApp Application class created and registered
 - ✅ Room database and DAOs created with Hilt DI modules
 - ✅ Repository implementations created with @Inject constructors
-- ✅ DI modules in core-data bind repositories to implementations
-- ✅ DI module in core-auth provides AuthRepository
+- ✅ DI modules in core-data bind repositories to implementations (including AuthRepository)
 - ✅ HomeViewModel uses @HiltViewModel with repository injection
 - ✅ HomeScreen uses hiltViewModel() to demonstrate end-to-end DI flow
 - ✅ Documentation updated in MODULES.md
@@ -439,6 +438,22 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - Evidence metadata can be saved via `saveEvidence`/`saveAll` and read back with `getEvidenceForEvent`.
 - Repository compiles without file storage dependencies; URIs are treated as opaque references.
 - Docs capture the metadata-only limitation for S1.
+
+### **S1-16: AuthRepository (mock login)** ✅ COMPLETED
+
+**Goal:** Provide a mock authentication flow that returns role-based users and caches the active session for the app lifetime.
+
+**What Was Implemented:**
+- Added a domain `AuthRepository` contract in `core-domain/auth` with `loginMock(role)`, `currentUser()`, and `logout()`.
+- Implemented `AuthRepositoryImpl` in `core-data/auth` using an in-memory cache plus SharedPreferences persistence for the current user.
+- Wired DI binding in `core-data`'s `RepositoryModule` to expose the mock repository to features.
+- Updated `HomeViewModel` to rely on `loginMock(Role.ASSEMBLER)` when no session is present and removed the dependency on the legacy `core-auth` module.
+- Added Robolectric unit tests covering login, current user retrieval, and logout behavior.
+
+**Acceptance Criteria:**
+- `loginMock(Role.ASSEMBLER)` returns a `User` with `role == ASSEMBLER`.
+- `currentUser()` returns the last logged-in user until `logout()` is called.
+- Documentation reflects the new contract, implementation location, and DI binding.
 ### **S1-07: Evidence модель** ✅ COMPLETED
 
 **Goal:** Ввести базовую доменную модель для доказательств (evidence), прикрепляемых к событиям QC и другим событиям.
