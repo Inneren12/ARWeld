@@ -27,10 +27,12 @@ ARWeld/
 │   │   │   ├── model/                     # Domain models
 │   │   │   │   ├── WorkItem.kt
 │   │   │   │   ├── Event.kt
-│   │   │   │   ├── Evidence.kt
 │   │   │   │   ├── User.kt
 │   │   │   │   ├── Role.kt                # ✅ S1-04: ASSEMBLER, QC, SUPERVISOR, DIRECTOR
 │   │   │   │   └── WorkItemState.kt
+│   │   │   ├── evidence/                  # ✅ S1-07: Evidence domain models
+│   │   │   │   ├── EvidenceKind.kt        # PHOTO, AR_SCREENSHOT, VIDEO, MEASUREMENT
+│   │   │   │   └── Evidence.kt            # id, eventId, uri, sha256, metaJson, createdAt (ms since epoch)
 │   │   │   ├── auth/                      # ✅ S1-04: Authentication and authorization
 │   │   │   │   ├── Permission.kt          # Permissions enum (CLAIM_WORK, START_QC, etc.)
 │   │   │   │   └── RolePolicy.kt          # Role-based permission policy
@@ -188,6 +190,11 @@ ARWeld/
 **WorkItem models:**
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/domain/work/` (`WorkItemType.kt`, `WorkItem.kt`).
 - Extend WorkItem schema here first (e.g., project/zone fields); map database entities in `core-data` to these domain types.
+
+**Evidence models:**
+- Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/evidence/` (`EvidenceKind.kt`, `Evidence.kt`).
+- To add a new evidence type (e.g., sensor log), extend `EvidenceKind` and update downstream clients (policies, storage, UI).
+- `metaJson` stores flexible metadata (camera params, AR alignment, units). `createdAt` uses milliseconds since epoch.
 
 ---
 

@@ -372,6 +372,24 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 
 ---
 
+### **S1-07: Evidence модель** ✅ COMPLETED
+
+**Goal:** Ввести базовую доменную модель для доказательств (evidence), прикрепляемых к событиям QC и другим событиям.
+
+**Что реализовано:**
+- Добавлен enum `EvidenceKind` с типами PHOTO, AR_SCREENSHOT, VIDEO, MEASUREMENT.
+- Добавлен data class `Evidence` (id, eventId, kind, uri, sha256, metaJson, createdAt в миллисекундах эпохи) в `core-domain`.
+- Добавлен helper `Evidence.isVisual()` для быстрой проверки визуальных типов (фото/скриншот/видео).
+- Unit-тест покрывает создание экземпляров для всех видов и работу `isVisual()`.
+- Документация обновлена: `docs/MODULES.md`, `docs/FILE_OVERVIEW.md` отражают новое расположение моделей и расширяемость evidence.
+
+**Acceptance Criteria:**
+- ✅ EvidenceKind и Evidence компилируются в core-domain.
+- ✅ Поля модели готовы к маппингу в хранилище (id, eventId, kind, uri, sha256, metaJson, createdAt).
+- ✅ Документация синхронизирована с реализацией.
+
+---
+
 ### 1.1 Project Structure and Modules
 
 **Planned Modules:**
