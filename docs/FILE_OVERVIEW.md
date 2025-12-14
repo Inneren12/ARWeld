@@ -185,6 +185,10 @@ ARWeld/
 └── gradle.properties                      # Gradle properties
 ```
 
+**WorkItem models:**
+- Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/domain/work/` (`WorkItemType.kt`, `WorkItem.kt`).
+- Extend WorkItem schema here first (e.g., project/zone fields); map database entities in `core-data` to these domain types.
+
 ---
 
 ## DI / Hilt Configuration
