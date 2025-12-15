@@ -178,23 +178,17 @@ ARWeld/
 │       ├── src/main/kotlin/com/example/arweld/feature/arview/
 │       │   ├── ui/
 │       │   │   └── arview/
-│       │   │       ├── ARViewScreen.kt    # Compose AR view with lifecycle wiring
-│       │   │       └── AlignmentIndicatorWidget.kt # Quality indicator
-│       │   ├── viewmodel/
-│       │   │   └── ArViewViewModel.kt
+│       │   │       └── ARViewScreen.kt    # Compose AR view with lifecycle wiring + error overlay
 │       │   ├── arcore/
-│       │   │   ├── ARViewController.kt    # Hosts AR surface, lifecycle callbacks
+│       │   │   ├── ARViewController.kt    # Hosts AR surface, forwards lifecycle callbacks
+│       │   │   ├── ARCoreSessionManager.kt # Creates/configures ARCore Session; handles resume/pause/destroy
 │       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
-│       │   ├── ar/
-│       │   │   ├── ArSessionManager.kt    # ARCore session (future wiring)
-│       │   │   ├── ModelLoader.kt         # Load 3D models
-│       │   │   ├── MarkerDetector.kt      # Detect markers
-│       │   │   ├── AlignmentCalculator.kt # Alignment quality
-│       │   │   └── ScreenshotCapture.kt   # Capture AR frame
-│       │   └── rendering/
-│       │       ├── SceneRenderer.kt       # Render overlay
-│       │       └── ModelCache.kt          # Cache models
 │       └── build.gradle.kts
+│
+│       ARCore session lifecycle wiring:
+│       - `ARViewLifecycleHost` observes lifecycle events and calls `ARViewController.onResume/onPause/onDestroy`.
+│       - `ARViewController` lazily initializes `ARCoreSessionManager` and forwards display rotation + surface size.
+│       - `ARCoreSessionManager` creates/configures `Session` on first resume (world tracking, horizontal plane finding) and handles pause/destroy with error logging surfaced to the Compose overlay.
 │
 ├── docs/                                  # Documentation
 │   ├── stage.md                           # Sprint roadmap (this!)

@@ -1105,6 +1105,16 @@ Test state transitions:
 - Логируются вызовы `onCreate/onResume/onPause/onDestroy` при смене состояния lifecycle.
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-13 — подключить ARCore Session init/resume/pause (Pixel 9) ✅
+
+**Goal:** Включить ARCore Session в lifecycle ARView: ленивый init, корректный resume/pause, базовая конфигурация для world tracking (Pixel 9).
+
+**Acceptance:**
+- Модуль `feature:arview` тянет зависимость `com.google.ar:core`.
+- `ARCoreSessionManager` создаёт и конфигурирует `Session` на первом `onResume`, обрабатывает `pause/destroy`, логирует/отдаёт ошибки в UI-оверлей.
+- `ARViewController` получает rotation и размеры surface, прокидывает их в `ARCoreSessionManager.onResume`, пробрасывает `onPause/onDestroy`.
+- ARView экран на Pixel 9 открывается без крэшей ARCore; при проблемах выводится текстовая ошибка поверх SurfaceView.
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**

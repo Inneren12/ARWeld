@@ -10,13 +10,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
 import com.example.arweld.feature.arview.R
 import com.example.arweld.feature.arview.arcore.ARViewController
 import com.example.arweld.feature.arview.arcore.ARViewLifecycleHost
@@ -30,6 +34,7 @@ fun ARViewScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
     val controller = remember { ARViewController(context) }
+    val errorMessage = controller.errorMessage.collectAsState()
 
     DisposableEffect(lifecycleOwner, controller) {
         val lifecycleHost = ARViewLifecycleHost(lifecycleOwner.lifecycle, controller)
@@ -58,6 +63,15 @@ fun ARViewScreen(
                 factory = { controller.getView() },
                 modifier = Modifier.fillMaxSize()
             )
+            errorMessage.value?.let { message ->
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(16.dp)
+                )
+            }
             infoOverlay()
         }
     }

@@ -54,6 +54,12 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.activity.compose)
 
+    // Coroutines/Flow
+    implementation(libs.kotlinx.coroutines.android)
+
+    // ARCore
+    implementation(libs.google.ar.core)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
