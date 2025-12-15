@@ -1060,6 +1060,16 @@ Test state transitions:
 - В сиде присутствуют коды `ARWELD-W-001` … `ARWELD-W-004`, однозначно маппящиеся на `workItemId` (`W-00X`).
 - `ResolveWorkItemByCode` находит эти сидовые элементы без бэкенда; документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-06 — добавить seed users (Assembler/QC/Supervisor)
+
+**Goal:** Засеять таблицу `users` моковыми аккаунтами под ключевые роли, чтобы локальный логин работал без бэкенда.
+
+**Acceptance:**
+- `SeedUsers` содержит минимум по одному пользователю для ролей ASSEMBLER, QC, SUPERVISOR (опционально DIRECTOR).
+- `DbSeedInitializer.seedIfEmpty()` вставляет сидовых пользователей, если таблица `users` пуста (вместе с сидовыми WorkItem).
+- `AuthRepository.loginMock(role)` возвращает сидового пользователя соответствующей роли (или мок-фоллбек) и сохраняет его в сессии.
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/PROJECT_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**

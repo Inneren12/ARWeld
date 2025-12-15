@@ -13,8 +13,9 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 ### Seed data (Sprint 2)
 
 - Seed definitions: `core-data/src/main/kotlin/com/example/arweld/core/data/seed/SeedWorkItems.kt` — mock `WorkItemEntity` records with stable ids/codes (`ARWELD-W-00X`).
-- Initializer: `core-data/src/main/kotlin/com/example/arweld/core/data/seed/DbSeedInitializer.kt` — inserts seeds when the `work_items` table is empty.
-- Trigger: `app/src/main/kotlin/com/example/arweld/ArWeldApplication.kt` — launches `seedIfEmpty()` on app start (IO scope) so scanning a known code resolves to a WorkItem immediately.
+- User seeds: `core-data/src/main/kotlin/com/example/arweld/core/data/seed/SeedUsers.kt` — mock `UserEntity` records for Assembler/QC/Supervisor (and Director) roles used by mock login.
+- Initializer: `core-data/src/main/kotlin/com/example/arweld/core/data/seed/DbSeedInitializer.kt` — inserts seeds when the `work_items` or `users` tables are empty.
+- Trigger: `app/src/main/kotlin/com/example/arweld/ArWeldApplication.kt` — launches `seedIfEmpty()` on app start (IO scope) so scanning a known code resolves to a WorkItem immediately and AuthRepository can return seeded users.
 
 ---
 
@@ -74,6 +75,7 @@ ARWeld/
 │   │   │   │       ├── WorkItemDao.kt
 │   │   │   │       ├── EventDao.kt
 │   │   │   │       ├── EvidenceDao.kt
+│   │   │   │       ├── UserDao.kt
 │   │   │   │       └── SyncQueueDao.kt
 │   │   │   ├── event/                      # Event entity/domain mappers
 │   │   │   │   └── EventMappers.kt         # EventEntity ↔ Event conversions
