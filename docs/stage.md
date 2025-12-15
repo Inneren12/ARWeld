@@ -1115,6 +1115,16 @@ Test state transitions:
 - `ARViewController` получает rotation и размеры surface, прокидывает их в `ARCoreSessionManager.onResume`, пробрасывает `onPause/onDestroy`.
 - ARView экран на Pixel 9 открывается без крэшей ARCore; при проблемах выводится текстовая ошибка поверх SurfaceView.
 
+### S2-14 — загрузка тестовой GLB модели узла из assets ✅
+
+**Goal:** Добавить тестовую GLB модель узла в assets и загрузчик в `feature-arview`, чтобы AR рендерер мог получить объект модели без крэшей.
+
+**Acceptance:**
+- В APK упакован файл `feature-arview/src/main/assets/models/test_node.glb`.
+- `ModelLoader.loadGlbFromAssets("models/test_node.glb")` возвращает валидный `LoadedModel` (Filament asset) без падений.
+- `ARViewController.loadTestNodeModel()` сохраняет ссылку на загруженную модель для последующего прикрепления к сцене.
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**
