@@ -1051,6 +1051,15 @@ Test state transitions:
 - `ScanCodeRoute`/`ScanCodeViewModel` вызывает use case при нажатии "Continue": если WorkItem найден — навигация на WorkItemSummary с `workItemId`; если нет — показывается snackbar "Work item not found".
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-05 — добавить seed workItems (mock) + привязка code→workItemId ✅
+
+**Goal:** Засеять небольшое множество WorkItem в локальную БД при первом старте, чтобы сканер мог офлайн сопоставлять QR/штрихкоды с WorkItemSummary.
+
+**Acceptance:**
+- `DbSeedInitializer.seedIfEmpty()` запускается при старте приложения (IO coroutine) и вставляет `SeedWorkItems` в пустую таблицу `work_items`.
+- В сиде присутствуют коды `ARWELD-W-001` … `ARWELD-W-004`, однозначно маппящиеся на `workItemId` (`W-00X`).
+- `ResolveWorkItemByCode` находит эти сидовые элементы без бэкенда; документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**

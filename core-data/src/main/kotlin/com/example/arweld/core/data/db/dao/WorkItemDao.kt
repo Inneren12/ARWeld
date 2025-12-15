@@ -21,6 +21,9 @@ interface WorkItemDao {
     @Query("SELECT * FROM work_items WHERE code = :code LIMIT 1")
     suspend fun getByCode(code: String): WorkItemEntity?
 
+    @Query("SELECT COUNT(*) FROM work_items")
+    suspend fun countAll(): Int
+
     @Query("SELECT * FROM work_items WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): WorkItemEntity?
 

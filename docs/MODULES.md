@@ -172,6 +172,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - `WorkRepositoryImpl` ✅ S1-13: derives WorkItemState and queues using Room + reducer
   - `ResolveWorkItemByCodeUseCaseImpl` ✅ S2-04: delegates to `WorkRepository.getWorkItemByCode` for scanner flows
   - `SyncQueueRepository` 📋 Planned
+- Seed infrastructure: `DbSeedInitializer` inserts `SeedWorkItems` into Room when the WorkItem table is empty (MVP mock data)
 - File management for evidence (photos, AR screenshots)
 - Evidence storage metadata (URIs, SHA-256 hashes) aligned to `core-domain` `Evidence`
 - Offline queue management (`SyncManager`)
@@ -215,6 +216,9 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - `WorkItemRepositoryImpl.kt`
   - `EventRepositoryImpl.kt`
   - `EvidenceRepositoryImpl.kt`
+- `seed/` — Mock data seeds
+  - `SeedWorkItems.kt`
+  - `DbSeedInitializer.kt`
 - `file/` — File storage management
   - `EvidenceFileManager.kt` — Save/load photos and AR screenshots
   - `ChecksumCalculator.kt` — SHA-256 hashing
