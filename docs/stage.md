@@ -1070,6 +1070,16 @@ Test state transitions:
 - `AuthRepository.loginMock(role)` возвращает сидового пользователя соответствующей роли (или мок-фоллбек) и сохраняет его в сессии.
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/PROJECT_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-07 — экран AssemblerQueue: IN_PROGRESS/READY_FOR_QC/REWORK
+
+**Goal:** Ассемблер видит свою очередь, сгруппированную по статусам, и может открыть WorkItemSummary для выбранной позиции.
+
+**Acceptance:**
+- В `feature-work` добавлен `AssemblerQueueScreen` (Compose) с секциями In Progress / Ready for QC / Rework required.
+- `AssemblerQueueViewModel` (Hilt) получает текущего пользователя через `AuthRepository`, запрашивает `workRepository.getMyQueue(userId)` и разделяет по статусу `WorkStatus`.
+- Навигация: `ROUTE_ASSEMBLER_QUEUE` в `AppNavigation`, роут-обертка `AssemblerQueueRoute` прокидывает callbacks `onBack`, `onRefresh`, `onWorkItemClick` → `WorkItemSummary`.
+- Домашний экран содержит кнопку перехода в очередь Ассемблера; документация синхронизирована (`MODULES.md`, `FILE_OVERVIEW.md`, `stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**

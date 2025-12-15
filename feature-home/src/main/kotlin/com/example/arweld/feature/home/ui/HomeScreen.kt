@@ -27,6 +27,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onNavigateToWorkSummary: () -> Unit = {},
     onNavigateToTimeline: () -> Unit = {},
+    onNavigateToAssemblerQueue: () -> Unit = {},
+    onNavigateToScan: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -50,7 +52,9 @@ fun HomeScreen(
                     userRole = state.currentUser?.role?.name ?: "N/A",
                     workItemCount = state.workItemCount,
                     onNavigateToWorkSummary = onNavigateToWorkSummary,
-                    onNavigateToTimeline = onNavigateToTimeline
+                    onNavigateToTimeline = onNavigateToTimeline,
+                    onNavigateToAssemblerQueue = onNavigateToAssemblerQueue,
+                    onNavigateToScan = onNavigateToScan
                 )
             }
             is HomeUiState.Error -> {
@@ -74,7 +78,9 @@ private fun HomeContent(
     userRole: String,
     workItemCount: Int,
     onNavigateToWorkSummary: () -> Unit,
-    onNavigateToTimeline: () -> Unit
+    onNavigateToTimeline: () -> Unit,
+    onNavigateToAssemblerQueue: () -> Unit,
+    onNavigateToScan: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -135,6 +141,20 @@ private fun HomeContent(
             modifier = Modifier.fillMaxWidth(0.7f)
         ) {
             Text("Timeline")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onNavigateToAssemblerQueue,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("Assembler Queue")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onNavigateToScan,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("Scan Code")
         }
     }
 }

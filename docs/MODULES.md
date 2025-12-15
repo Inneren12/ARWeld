@@ -309,10 +309,10 @@ Home screen with greeting and role-specific navigation tiles powered by domain `
 
 ### feature:work
 
-**Status:** ✅ Stub navigation (S1-20 WorkItemSummary stub, S1-21 Timeline stub)
+**Status:** 🚧 Sprint 2 (S2-07 Assembler queue wiring, plus S1-20/21 stubs)
 
 **Description:**
-Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC. Sprint 1 delivers stub entry points only.
+Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC. Sprint 2 introduces the AssemblerQueue screen grouped by status.
 
 **Key Responsibilities:**
 - Host screens for assembler workflows (to be implemented in Sprint 2+)
@@ -324,15 +324,19 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
 - `core:data` (WorkItemRepository, EventRepository)
 - `core:auth` (get current Assembler)
 
-**Navigation (S1-20/S1-21):**
+**Navigation (S1-20/S1-21/S2-07):**
 - WorkItemSummary stub is reachable from Home via `ROUTE_WORK_ITEM_SUMMARY`
 - Timeline stub composable lives in `feature-work` and is wired to `ROUTE_TIMELINE`
+- AssemblerQueueScreen lists the current user's queue grouped by IN_PROGRESS/READY_FOR_QC/REWORK_REQUIRED and is reachable via `ROUTE_ASSEMBLER_QUEUE`
 
 **Key Files/Packages:**
 - `ui/` — Screens
   - `WorkItemSummaryScreen.kt` — ✅ S1-20 stub showing `Text("WorkItemSummary stub: id=$workItemId")`
   - `TimelineScreen.kt` — ✅ S1-21 stub showing `Text("Timeline stub")`
+  - `AssemblerQueueScreen.kt` — 🚧 S2-07 grouped queue view with clickable items
+- `viewmodel/` — `AssemblerQueueViewModel.kt` derives grouped lists from `WorkRepository.getMyQueue`
 - `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` wires navigation to the feature stub
+  - `ui/work/AssemblerQueueRoute.kt` wires Hilt VM + navigation to WorkItemSummary
 
 **Notes:**
 - "feature:work" may also be called "feature:assembler"
