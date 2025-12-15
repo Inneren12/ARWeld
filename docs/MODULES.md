@@ -485,12 +485,13 @@ Supervisor workflows: dashboard, WorkItem list/filters, detail view with timelin
 
 ### feature:arview
 
-**Status:** 📋 Planned (Sprint 2, hardened in Sprint 6)
+**Status:** 🚧 In progress (Sprint 2 foundation; hardened in Sprint 6)
 
 **Description:**
-Augmented reality visualization for alignment and inspection.
+Augmented reality visualization for alignment and inspection. Sprint 2 introduces the baseline `ARViewScreen` with lifecycle-aware hosting for the AR surface; later sprints add ARCore session wiring, overlays, and evidence capture.
 
 **Key Responsibilities:**
+- Host AR rendering surface and lifecycle hooks via `ARViewScreen` + `ARViewController`
 - Load 3D models from assets or remote storage
 - Render AR overlay using ARCore + Sceneform/Filament
 - Alignment methods:
@@ -499,7 +500,7 @@ Augmented reality visualization for alignment and inspection.
 - Track alignment quality in real-time
 - Display quality indicator (green/yellow/red)
 - Capture AR screenshot with metadata (markers, tracking state, alignment quality)
-- Optionally log AR_ALIGNMENT_SET event
+- Log AR_ALIGNMENT_SET event as part of QC evidence chain
 - Multi-marker refinement (Sprint 6)
 - Performance optimizations (Sprint 6): culling, caching, FPS monitoring
 
@@ -508,13 +509,16 @@ Augmented reality visualization for alignment and inspection.
 - `core:data` (EvidenceRepository, EventRepository)
 
 **Key Files/Packages:**
-- `ui/`
-  - `ArViewScreen.kt` — Main AR view
+- `ui/arview/`
+  - `ARViewScreen.kt` — Compose screen hosting AR surface + lifecycle observer
   - `AlignmentIndicatorWidget.kt` — Quality indicator overlay
+- `arcore/`
+  - `ARViewController.kt` — Provides AR rendering surface and lifecycle callbacks
+  - `ARViewLifecycleHost.kt` — Bridges Android lifecycle events to the AR controller
 - `viewmodel/`
   - `ArViewViewModel.kt`
 - `ar/`
-  - `ArSessionManager.kt` — ARCore session lifecycle
+  - `ArSessionManager.kt` — ARCore session lifecycle (future wiring)
   - `ModelLoader.kt` — Load and parse 3D models (glTF, OBJ)
   - `MarkerDetector.kt` — Detect ArUco/AprilTag markers
   - `AlignmentCalculator.kt` — Compute alignment quality score
@@ -542,7 +546,7 @@ Augmented reality visualization for alignment and inspection.
 | `feature:home` | 📋 Planned | Sprint 1 |
 | `feature:work` | 📋 Planned | Sprint 2 |
 | `feature:scanner` | ✅ Implemented | Sprint 2 |
-| `feature:arview` | 📋 Planned | Sprint 2 |
+| `feature:arview` | 🚧 In progress (ARViewScreen + lifecycle) | Sprint 2 |
 | `feature:qc` | 📋 Planned | Sprint 3 |
 | `feature:supervisor` | 📋 Planned | Sprint 4 |
 

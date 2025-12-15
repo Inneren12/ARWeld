@@ -9,6 +9,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.arweld.ui.auth.LoginRoute
 import com.example.arweld.ui.home.HomeRoute
+import com.example.arweld.ui.ar.ARViewRoute
 import com.example.arweld.ui.work.AssemblerQueueRoute
 import com.example.arweld.ui.work.WorkItemSummaryRoute
 import com.example.arweld.feature.work.ui.TimelineScreen
@@ -59,6 +60,22 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
         composable(ROUTE_TIMELINE) {
             TimelineScreen()
+        }
+        composable(
+            route = "$ROUTE_AR_VIEW?workItemId={workItemId}",
+            arguments = listOf(
+                navArgument("workItemId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val workItemId = backStackEntry.arguments?.getString("workItemId")
+            ARViewRoute(
+                navController = navController,
+                workItemId = workItemId,
+            )
         }
     }
 }
