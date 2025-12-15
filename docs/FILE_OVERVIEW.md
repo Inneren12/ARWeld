@@ -10,6 +10,14 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `app/src/main/kotlin/com/example/arweld/ui/work/WorkItemSummaryRoute.kt` — NavHost wrapper that forwards `workItemId` arguments from ScanCode/AssemblerQueue into the Hilt ViewModel.
 - `core-domain/src/test/kotlin/com/example/arweld/core/domain/state/WorkItemReducerHappyPathTest.kt` — Reducer unit tests covering happy path and fail→rework→ready→pass rework flow.
 
+### AR view and rendering (feature-arview)
+
+- AR view controller + lifecycle bridge: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARViewController.kt` wires `SurfaceView` hosting to `ARViewLifecycleHost` and ARCore session events.
+- Filament renderer bridge: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARSceneRenderer.kt` renders a fixed-pose GLB once tracking is active (S2-15).
+- GLB loader: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/render/AndroidFilamentModelLoader.kt` (implements `ModelLoader.loadGlbFromAssets`).
+- Fixed AR test model render entry: `ARViewController.loadTestNodeModel()` attaches the test node to the scene via `ARSceneRenderer`.
+- Test GLB asset packaged at `feature-arview/src/main/assets/models/test_node.glb`.
+
 ### Seed data (Sprint 2)
 
 - Seed definitions: `core-data/src/main/kotlin/com/example/arweld/core/data/seed/SeedWorkItems.kt` — mock `WorkItemEntity` records with stable ids/codes (`ARWELD-W-00X`).
@@ -179,10 +187,11 @@ ARWeld/
 │       │   ├── ui/
 │       │   │   └── arview/
 │       │   │       └── ARViewScreen.kt    # Compose AR view with lifecycle wiring + error overlay
-│       │   ├── arcore/
-│       │   │   ├── ARViewController.kt    # Hosts AR surface, forwards lifecycle callbacks
-│       │   │   ├── ARCoreSessionManager.kt # Creates/configures ARCore Session; handles resume/pause/destroy
-│       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
+ │       │   ├── arcore/
+ │       │   │   ├── ARViewController.kt    # Hosts AR surface, forwards lifecycle callbacks
+ │       │   │   ├── ARSceneRenderer.kt     # ARCore → Filament bridge for fixed test model pose (S2-15)
+ │       │   │   ├── ARCoreSessionManager.kt # Creates/configures ARCore Session; handles resume/pause/destroy
+ │       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
 │       │   └── render/
 │       │       ├── ModelLoader.kt         # Abstraction for loading GLB assets from src/main/assets
 │       │       └── AndroidFilamentModelLoader.kt # Filament-based implementation returning LoadedModel

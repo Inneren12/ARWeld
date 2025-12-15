@@ -22,7 +22,7 @@ class AndroidFilamentModelLoader(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ModelLoader {
 
-    private val engine: Engine by lazy { Engine.create() }
+    override val engine: Engine by lazy { Engine.create() }
     private val materialProvider by lazy { UbershaderProvider(engine) }
     private val assetLoader: AssetLoader by lazy {
         Utils.init()
