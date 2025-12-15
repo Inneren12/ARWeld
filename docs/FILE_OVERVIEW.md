@@ -112,14 +112,13 @@ ARWeld/
 │   │
 │   ├── scanner/                           # Barcode/QR scanning
 │   │   ├── src/main/kotlin/com/example/arweld/feature/scanner/
-│   │   │   ├── ui/
-│   │   │   │   ├── ScanCodeScreen.kt      # ScanCode screen combining preview + last code + Continue
-│   │   │   │   └── ScannerPreview.kt      # CameraX preview composable with permission + ML Kit callback
-│   │   │   ├── viewmodel/
-│   │   │   │   └── ScannerViewModel.kt    # Planned decoding/handling
-│   │   │   ├── usecase/
-│   │   │   │   └── ResolveWorkItemUseCase.kt # Code → WorkItem lookup
-│   │   │   └── camera/
+  │   │   │   ├── ui/
+  │   │   │   │   ├── ScanCodeScreen.kt      # ScanCode screen combining preview + last code + Continue
+  │   │   │   │   └── ScannerPreview.kt      # CameraX preview composable with permission + ML Kit callback
+  │   │   │   ├── viewmodel/                  # (handled in app module via ui/scanner/ScanCodeViewModel.kt)
+  │   │   │   ├── usecase/
+  │   │   │   │   └── ResolveWorkItemByCodeUseCase.kt # Code → WorkItem lookup (core-domain contract)
+  │   │   │   └── camera/
 │   │   │       ├── CameraPreviewController.kt # CameraX setup and lifecycle binding
 │   │   │       └── BarcodeAnalyzer.kt     # ML Kit analyzer emitting deduplicated barcode/QR values
 │   │   └── build.gradle.kts
@@ -204,6 +203,8 @@ ARWeld/
 ### Scanner entry points and ownership
 - **Scanner UI/logic lives in** `feature-scanner` (`ui/ScanCodeScreen.kt`, `ui/ScannerPreview.kt`, `camera/CameraPreviewController.kt`, `camera/BarcodeAnalyzer.kt`).
 - **Navigation into scanner** is declared in `app/src/main/kotlin/com/example/arweld/navigation/Routes.kt` (`ROUTE_SCAN_CODE`) and `AppNavigation.kt`, with the wrapper composable in `app/src/main/kotlin/com/example/arweld/ui/scanner/ScanCodeRoute.kt`. The Assembler home tile triggers this route via `app/src/main/kotlin/com/example/arweld/ui/home/HomeRoute.kt`.
+- **ResolveWorkItemByCode use case** lives in `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/ResolveWorkItemByCodeUseCase.kt` with data implementation in `core-data/src/main/kotlin/com/example/arweld/core/data/work/ResolveWorkItemByCodeUseCaseImpl.kt`.
+- **Invocation:** `ScanCodeViewModel` (`app/src/main/kotlin/com/example/arweld/ui/scanner/ScanCodeViewModel.kt`) calls the use case when "Continue" is tapped on `ScanCodeScreen` and `ScanCodeRoute` navigates to `workItemSummaryRoute(workItemId)` on success.
 
 **WorkItem models:**
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/domain/work/` (`WorkItemType.kt`, `WorkItem.kt`).

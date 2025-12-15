@@ -15,8 +15,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallTopAppBar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,11 +31,22 @@ import androidx.compose.ui.unit.dp
 fun ScanCodeScreen(
     onCodeResolved: (String) -> Unit,
     onBack: () -> Unit,
+    errorMessage: String? = null,
+    onErrorConsumed: () -> Unit = {},
 ) {
     var lastCode by remember { mutableStateOf<String?>(null) }
     val canContinue = !lastCode.isNullOrBlank()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            onErrorConsumed()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             SmallTopAppBar(
                 title = { Text(text = "Scan code") },

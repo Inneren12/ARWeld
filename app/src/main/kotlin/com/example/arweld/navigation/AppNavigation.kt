@@ -5,6 +5,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.example.arweld.ui.auth.LoginRoute
 import com.example.arweld.ui.home.HomeRoute
 import com.example.arweld.ui.work.WorkItemSummaryRoute
@@ -35,10 +37,20 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         composable(ROUTE_SCAN_CODE) {
             ScanCodeRoute(navController = navController)
         }
-        composable(ROUTE_WORK_ITEM_SUMMARY) {
+        composable(
+            route = "$ROUTE_WORK_ITEM_SUMMARY?workItemId={workItemId}",
+            arguments = listOf(
+                navArgument("workItemId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val workItemId = backStackEntry.arguments?.getString("workItemId")
             WorkItemSummaryRoute(
                 navController = navController,
-                workItemId = null,
+                workItemId = workItemId,
             )
         }
         composable(ROUTE_TIMELINE) {

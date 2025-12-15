@@ -112,6 +112,7 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
   - `EventRepository` — Domain-facing interface for appending events (single/batch) and querying timelines by WorkItem
   - `AuthRepository` — Domain-facing authentication/session contract with `loginMock(role)`, `currentUser()`, and `logout()`
 - Use case interfaces (implementations may live in core:data or feature modules)
+  - `ResolveWorkItemByCodeUseCase` (S2-04) — resolves scanned codes to `WorkItem`
 
 **Dependencies:**
 - None (pure Kotlin, no DI framework)
@@ -169,6 +170,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - `EvidenceRepository` ✅ Implemented for metadata-only storage (no file I/O yet)
   - `AuthRepositoryImpl` ✅ S1-16: mock login with in-memory + SharedPreferences caching
   - `WorkRepositoryImpl` ✅ S1-13: derives WorkItemState and queues using Room + reducer
+  - `ResolveWorkItemByCodeUseCaseImpl` ✅ S2-04: delegates to `WorkRepository.getWorkItemByCode` for scanner flows
   - `SyncQueueRepository` 📋 Planned
 - File management for evidence (photos, AR screenshots)
 - Evidence storage metadata (URIs, SHA-256 hashes) aligned to `core-domain` `Evidence`
@@ -335,7 +337,7 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
 
 ### feature:scanner
 
-**Status:** ✅ Implemented (S2-03 — preview + barcode/QR decoding + ScanCode screen)
+**Status:** ✅ Implemented (S2-03 — preview + barcode/QR decoding + ScanCode screen; S2-04 — resolve code → WorkItemSummary)
 
 **Description:**
 Barcode/QR code scanning with CameraX preview surface exposed to Compose. The scanner module owns camera setup, permission handling, ML Kit decoding, and exposes the ScanCode screen so navigation modules can remain thin.
@@ -344,18 +346,19 @@ Barcode/QR code scanning with CameraX preview surface exposed to Compose. The sc
 - CameraX preview with lifecycle-aware binding
 - ML Kit barcode/QR decoding via ImageAnalysis analyzer with duplicate suppression
 - Present ScanCode screen that surfaces live preview, shows the last decoded value, and exposes navigation callbacks
+- Route scanned codes through `ResolveWorkItemByCodeUseCase` and navigate to `WorkItemSummary` when a match is found
 
 **Dependencies:**
-- `core:domain` (WorkItem)
-- `core:data` (WorkItemRepository)
+- `core:domain` (WorkItem, ResolveWorkItemByCodeUseCase contract)
+- `core:data` (WorkItemRepository / ResolveWorkItemByCodeUseCaseImpl)
 
 **Key Files:**
-- `ui/ScanCodeScreen.kt` — Public composable combining `ScannerPreview`, the last decoded code, and a "Continue" action
+- `ui/ScanCodeScreen.kt` — Public composable combining `ScannerPreview`, the last decoded code, and a "Continue" action plus error snackbar
 - `ui/ScannerPreview.kt` — Composable wrapping `PreviewView` with permission handling and decoded-code callback
 - `camera/CameraPreviewController.kt` — CameraX setup and lifecycle binding for preview and analysis
 - `camera/BarcodeAnalyzer.kt` — ML Kit analyzer that emits deduplicated barcode/QR values
-- `ScannerViewModel.kt` — Handles scan results (planned)
-- `ResolveWorkItemUseCase.kt` — Looks up WorkItem by code
+- `app/src/main/kotlin/com/example/arweld/ui/scanner/ScanCodeRoute.kt` — App wrapper that injects the resolver use case, handles errors, and navigates
+- `app/src/main/kotlin/com/example/arweld/ui/scanner/ScanCodeViewModel.kt` — Hilt VM that calls `ResolveWorkItemByCodeUseCase` and exposes snackbar errors
 
 **Notes:**
 - Supports QR codes, barcodes (Code 128, Code 39, etc.) once decoding is added

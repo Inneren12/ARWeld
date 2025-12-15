@@ -1041,6 +1041,16 @@ Test state transitions:
 - Кнопка "Continue" активна только при наличии кода и вызывает callback `onCodeResolved` для перехода к WorkItemSummary (S2-04 resolver).
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-04 — ResolveWorkItemByCode → WorkItemSummary ✅
+
+**Goal:** Добавить доменный use case для поиска WorkItem по отсканированному коду и связать его с экраном ScanCode так, чтобы валидные коды открывали WorkItemSummary.
+
+**Acceptance:**
+- В `core-domain` добавлен контракт `ResolveWorkItemByCodeUseCase` (suspend operator fun invoke(code): WorkItem?) с реализацией в `core-data`, использующей `WorkRepository.getWorkItemByCode`.
+- DI модуль core-data привязывает `ResolveWorkItemByCodeUseCase` к реализации.
+- `ScanCodeRoute`/`ScanCodeViewModel` вызывает use case при нажатии "Continue": если WorkItem найден — навигация на WorkItemSummary с `workItemId`; если нет — показывается snackbar "Work item not found".
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**
