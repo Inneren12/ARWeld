@@ -1090,6 +1090,21 @@ Test state transitions:
 - Для роли ASSEMBLER отображаются кнопки "Claim work" (NEW/REWORK_REQUIRED) и "Start work"/"Mark ready for QC" (IN_PROGRESS); действия вызывают use cases и после успеха перезагружают состояние.
 - Навигация принимает `workItemId` из ScanCode или AssemblerQueue; документация обновлена (`docs/PROJECT_OVERVIEW.md`, `docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-12 — создать ARViewScreen (Compose) + lifecycle hooks ✅
+
+**Goal:** Показать базовый экран AR с заглушкой SurfaceView и корректной обработкой Android lifecycle, чтобы в S2-13 подключить ARCore.
+
+**Subtasks:**
+- Создать `ARViewController` (feature-arview/arcore) с SurfaceView и методами `onCreate/onResume/onPause/onDestroy` (пока только логируют вызовы).
+- Создать `ARViewLifecycleHost`, пробрасывающий события жизненного цикла в контроллер.
+- Реализовать `ARViewScreen` (feature-arview/ui/arview) на Compose: `AndroidView` с SurfaceView, `DisposableEffect` + `LifecycleEventObserver`, AppBar с back.
+- Добавить роут `ARViewRoute` в `app` + навигацию `ROUTE_AR_VIEW` (`AppNavigation`), прокинуть `workItemId` как аргумент.
+
+**Acceptance:**
+- Экран AR открывается из навигации, отображает пустой черный SurfaceView без крэшей.
+- Логируются вызовы `onCreate/onResume/onPause/onDestroy` при смене состояния lifecycle.
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**

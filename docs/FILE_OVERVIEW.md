@@ -177,12 +177,16 @@ ARWeld/
 │   └── arview/                            # AR visualization
 │       ├── src/main/kotlin/com/example/arweld/feature/arview/
 │       │   ├── ui/
-│       │   │   ├── ArViewScreen.kt        # Main AR view
-│       │   │   └── AlignmentIndicatorWidget.kt # Quality indicator
+│       │   │   └── arview/
+│       │   │       ├── ARViewScreen.kt    # Compose AR view with lifecycle wiring
+│       │   │       └── AlignmentIndicatorWidget.kt # Quality indicator
 │       │   ├── viewmodel/
 │       │   │   └── ArViewViewModel.kt
+│       │   ├── arcore/
+│       │   │   ├── ARViewController.kt    # Hosts AR surface, lifecycle callbacks
+│       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
 │       │   ├── ar/
-│       │   │   ├── ArSessionManager.kt    # ARCore session
+│       │   │   ├── ArSessionManager.kt    # ARCore session (future wiring)
 │       │   │   ├── ModelLoader.kt         # Load 3D models
 │       │   │   ├── MarkerDetector.kt      # Detect markers
 │       │   │   ├── AlignmentCalculator.kt # Alignment quality
@@ -842,14 +846,14 @@ navController.navigate("new_screen/$itemId")
 - **AuthGraph routes:** `"splash"`, `"login"`
 - **MainGraph routes:** Feature-specific names like `"work_item_summary"`, `"timeline"`
 
-### Planned Routes (Future Sprints)
+### Current and Upcoming Routes
 
 ```kotlin
 // Sprint 2+
 "my_work"                        → MyWorkScreen (Assembler)
 "work_item/{workItemId}"         → WorkItemSummaryScreen (with data)
 "scan"                           → ScannerScreen
-"ar_view/{workItemId}"           → ArViewScreen
+"ar_view?workItemId={workItemId}"→ ARViewScreen (Assembler/QC AR surface)
 
 // Sprint 3+
 "qc_queue"                       → QcQueueScreen
