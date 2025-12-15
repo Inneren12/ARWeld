@@ -172,7 +172,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - `WorkRepositoryImpl` ✅ S1-13: derives WorkItemState and queues using Room + reducer
   - `ResolveWorkItemByCodeUseCaseImpl` ✅ S2-04: delegates to `WorkRepository.getWorkItemByCode` for scanner flows
   - `SyncQueueRepository` 📋 Planned
-- Seed infrastructure: `DbSeedInitializer` inserts `SeedWorkItems` into Room when the WorkItem table is empty (MVP mock data)
+- Seed infrastructure: `DbSeedInitializer` inserts `SeedWorkItems` and `SeedUsers` into Room when the tables are empty (MVP mock data)
 - File management for evidence (photos, AR screenshots)
 - Evidence storage metadata (URIs, SHA-256 hashes) aligned to `core-domain` `Evidence`
 - Offline queue management (`SyncManager`)
@@ -191,7 +191,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
     - Binds `WorkItemRepository` → `WorkItemRepositoryImpl`
     - Binds `EventRepository` → `EventRepositoryImpl`
     - Binds `EvidenceRepository` → `EvidenceRepositoryImpl` (metadata-only in S1)
-    - Binds `AuthRepository` → `AuthRepositoryImpl` (mock login + SharedPreferences cache)
+    - Binds `AuthRepository` → `AuthRepositoryImpl` (mock login backed by seeded users + SharedPreferences cache)
     - Binds `WorkRepository` (core-domain) → `WorkRepositoryImpl` (core-data)
 - **Scope:** `@Singleton` — All repositories and database are application-scoped
 - **Where to add new bindings:** Add @Binds or @Provides methods to these modules
@@ -218,6 +218,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - `EvidenceRepositoryImpl.kt`
 - `seed/` — Mock data seeds
   - `SeedWorkItems.kt`
+  - `SeedUsers.kt`
   - `DbSeedInitializer.kt`
 - `file/` — File storage management
   - `EvidenceFileManager.kt` — Save/load photos and AR screenshots

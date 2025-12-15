@@ -17,6 +17,12 @@ interface UserDao {
     @Query("SELECT * FROM users")
     suspend fun getAll(): List<UserEntity>
 
+    @Query("SELECT * FROM users WHERE role = :role AND isActive = 1 ORDER BY lastSeenAt DESC LIMIT 1")
+    suspend fun getFirstActiveByRole(role: String): UserEntity?
+
+    @Query("SELECT COUNT(*) FROM users")
+    suspend fun countAll(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(users: List<UserEntity>)
 }

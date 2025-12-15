@@ -21,7 +21,7 @@ ARWeld is an Android application that combines:
 - **Evidence enforcement** — QC inspectors cannot approve or reject work without capturing mandatory photographic and AR evidence
 - **Offline-first design** — All data stored locally in Room database; network sync is additive, not required
 - **Role-based workflows** — Tailored interfaces for Assemblers, QC Inspectors, and Supervisors
-- **Mocked role-based login** — MVP authentication lets users pick their role on the Login screen (Assembler, QC, Supervisor, Director) without a backend
+- **Mocked role-based login** — MVP authentication lets users pick their role on the Login screen (Assembler, QC, Supervisor, Director) without a backend; the local database is pre-seeded with mock Assembler/QC/Supervisor users for testing
 
 ## Personas and Workflows
 
