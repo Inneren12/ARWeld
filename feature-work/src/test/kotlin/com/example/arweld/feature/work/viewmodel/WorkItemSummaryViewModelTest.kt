@@ -1,0 +1,134 @@
+package com.example.arweld.feature.work.viewmodel
+
+import com.example.arweld.core.domain.auth.AuthRepository
+import com.example.arweld.core.domain.model.User
+import com.example.arweld.core.domain.model.WorkItem
+import com.example.arweld.core.domain.model.WorkItemType
+import com.example.arweld.core.domain.state.QcStatus
+import com.example.arweld.core.domain.state.WorkItemState
+import com.example.arweld.core.domain.state.WorkStatus
+import com.example.arweld.core.domain.work.WorkRepository
+import com.example.arweld.core.domain.work.usecase.ClaimWorkUseCase
+import com.example.arweld.core.domain.work.usecase.MarkReadyForQcUseCase
+import com.example.arweld.core.domain.work.usecase.StartWorkUseCase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class WorkItemSummaryViewModelTest {
+
+    private val dispatcher = StandardTestDispatcher()
+    private val scope = TestScope(dispatcher)
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(dispatcher)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `load by code uses canonical work item id for state and actions`() = scope.runTest {
+        val repository = RecordingWorkRepository()
+        val claimUseCase = RecordingUseCase()
+        val startUseCase = RecordingUseCase()
+        val readyForQcUseCase = RecordingUseCase()
+        val viewModel = WorkItemSummaryViewModel(
+            authRepository = FakeAuthRepository(),
+            workRepository = repository,
+            claimWorkUseCase = ClaimWorkUseCase { claimUseCase.record(it) },
+            startWorkUseCase = StartWorkUseCase { startUseCase.record(it) },
+            markReadyForQcUseCase = MarkReadyForQcUseCase { readyForQcUseCase.record(it) },
+        )
+
+        viewModel.load("CODE-123")
+        advanceUntilIdle()
+
+        val uiState = viewModel.uiState.value
+        assertNotNull(uiState.workItem)
+        assertEquals("WID-1", uiState.workItem?.id)
+        assertEquals(listOf("WID-1"), repository.stateRequests)
+
+        viewModel.onClaimWork()
+        advanceUntilIdle()
+
+        assertEquals(listOf("WID-1"), claimUseCase.invocations)
+        assertEquals(listOf("WID-1", "WID-1"), repository.stateRequests)
+
+        viewModel.onStartWork()
+        viewModel.onMarkReadyForQc()
+        advanceUntilIdle()
+
+        assertEquals(listOf("WID-1", "WID-1", "WID-1", "WID-1"), repository.stateRequests)
+        assertEquals(listOf("WID-1"), startUseCase.invocations)
+        assertEquals(listOf("WID-1"), readyForQcUseCase.invocations)
+    }
+}
+
+private class RecordingWorkRepository : WorkRepository {
+    val stateRequests = mutableListOf<String>()
+
+    override suspend fun getWorkItemByCode(code: String): WorkItem? {
+        return if (code == "CODE-123") {
+            WorkItem(
+                id = "WID-1",
+                code = code,
+                type = WorkItemType.PART,
+                description = "Test work item",
+                createdAt = 0L,
+            )
+        } else {
+            null
+        }
+    }
+
+    override suspend fun getWorkItemById(id: String): WorkItem? = null
+
+    override suspend fun getWorkItemState(workItemId: String): WorkItemState {
+        stateRequests += workItemId
+        return WorkItemState(
+            status = WorkStatus.NEW,
+            lastEvent = null,
+            currentAssigneeId = null,
+            qcStatus = QcStatus.NOT_STARTED,
+        )
+    }
+
+    override suspend fun getMyQueue(userId: String) = emptyList<WorkItemState>()
+
+    override suspend fun getQcQueue() = emptyList<WorkItemState>()
+}
+
+private class FakeAuthRepository : AuthRepository {
+    override suspend fun loginMock(role: com.example.arweld.core.domain.model.Role): User {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun currentUser(): User? = null
+
+    override suspend fun logout() {
+        // no-op
+    }
+}
+
+private class RecordingUseCase {
+    val invocations = mutableListOf<String>()
+
+    fun record(workItemId: String) {
+        invocations += workItemId
+    }
+}

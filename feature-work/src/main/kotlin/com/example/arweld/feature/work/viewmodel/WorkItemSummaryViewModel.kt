@@ -49,14 +49,17 @@ class WorkItemSummaryViewModel @Inject constructor(
     }
 
     fun load(workItemId: String) {
-        currentWorkItemId = workItemId
+        currentWorkItemId = null
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             runCatching {
                 val workItem = workRepository.getWorkItemById(workItemId)
                     ?: workRepository.getWorkItemByCode(workItemId)
                     ?: error("Work item not found")
-                val workState = workRepository.getWorkItemState(workItemId)
+                val canonicalWorkItemId = workItem.id
+                currentWorkItemId = canonicalWorkItemId
+
+                val workState = workRepository.getWorkItemState(canonicalWorkItemId)
                 val currentUser = authRepository.currentUser()
 
                 LoadedPayload(
