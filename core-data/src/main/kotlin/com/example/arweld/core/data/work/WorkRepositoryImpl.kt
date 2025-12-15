@@ -25,6 +25,10 @@ class WorkRepositoryImpl @Inject constructor(
         return workItemDao.getByCode(code)?.toDomain()
     }
 
+    override suspend fun getWorkItemById(id: String): WorkItem? {
+        return workItemDao.getById(id)?.toDomain()
+    }
+
     override suspend fun getWorkItemState(workItemId: String): WorkItemState {
         val events = eventDao.getByWorkItemId(workItemId).map { it.toDomain() }
         return reduce(events)

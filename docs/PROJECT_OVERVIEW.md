@@ -183,7 +183,7 @@ The MVP (Minimum Viable Product) delivers a **pilot-ready system in 6 sprints (~
 - Role-based authentication (local users)
 - Barcode/QR scanning with camera
 - Assembler workflow: scan → claim → start → mark ready for QC
-- WorkItemSummary screen stub (S1-20) ready to show detail/state/evidence in later sprints
+- WorkItemSummary shows computed state with assembler actions (claim/start/mark ready for QC)
 - Timeline screen stub (S1-21) reachable from Home for future event history
 - AR v1: marker-based alignment, basic overlay visualization
 - Unit tests for core reducers and role policies

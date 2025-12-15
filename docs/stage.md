@@ -1080,6 +1080,16 @@ Test state transitions:
 - Навигация: `ROUTE_ASSEMBLER_QUEUE` в `AppNavigation`, роут-обертка `AssemblerQueueRoute` прокидывает callbacks `onBack`, `onRefresh`, `onWorkItemClick` → `WorkItemSummary`.
 - Домашний экран содержит кнопку перехода в очередь Ассемблера; документация синхронизирована (`MODULES.md`, `FILE_OVERVIEW.md`, `stage.md`).
 
+### S2-11 — WorkItemSummary: computed state + role actions ✅
+
+**Goal:** Показать рассчитанное состояние WorkItem и доступные действия на экране WorkItemSummary с учетом роли.
+
+**Acceptance:**
+- WorkItemSummaryViewModel загружает WorkItem и WorkItemState через WorkRepository, подтягивает текущего пользователя из AuthRepository.
+- UI выводит id/code/type и текущий статус WorkStatus/QcStatus.
+- Для роли ASSEMBLER отображаются кнопки "Claim work" (NEW/REWORK_REQUIRED) и "Start work"/"Mark ready for QC" (IN_PROGRESS); действия вызывают use cases и после успеха перезагружают состояние.
+- Навигация принимает `workItemId` из ScanCode или AssemblerQueue; документация обновлена (`docs/PROJECT_OVERVIEW.md`, `docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**

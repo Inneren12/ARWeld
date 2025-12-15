@@ -19,14 +19,18 @@ fun WorkItemSummaryRoute(
     val state by viewModel.uiState.collectAsState()
 
     LaunchedEffect(workItemId) {
-        viewModel.initialize(workItemId)
+        if (workItemId == null) {
+            viewModel.onMissingWorkItem()
+        } else {
+            viewModel.load(workItemId)
+        }
     }
 
     WorkItemSummaryScreen(
         state = state,
-        onClaimWork = { viewModel.claimWork() },
-        onStartWork = { viewModel.startWork() },
-        onMarkReadyForQc = { viewModel.markReadyForQc() },
+        onClaimWork = { viewModel.onClaimWork() },
+        onStartWork = { viewModel.onStartWork() },
+        onMarkReadyForQc = { viewModel.onMarkReadyForQc() },
         onRefresh = { viewModel.refresh() },
         onBack = { navController.popBackStack() }
     )
