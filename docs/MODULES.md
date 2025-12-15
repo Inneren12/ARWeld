@@ -488,21 +488,17 @@ Supervisor workflows: dashboard, WorkItem list/filters, detail view with timelin
 **Status:** 🚧 In progress (Sprint 2 foundation; hardened in Sprint 6)
 
 **Description:**
-Augmented reality visualization for alignment and inspection. Sprint 2 introduces the baseline `ARViewScreen` with lifecycle-aware hosting for the AR surface; later sprints add ARCore session wiring, overlays, and evidence capture.
+Augmented reality visualization for alignment and inspection. Sprint 2 introduces the baseline `ARViewScreen` with lifecycle-aware hosting for the AR surface and an ARCore-backed session lifecycle; later sprints add overlays and evidence capture.
 
 **Key Responsibilities:**
 - Host AR rendering surface and lifecycle hooks via `ARViewScreen` + `ARViewController`
-- Load 3D models from assets or remote storage
-- Render AR overlay using ARCore + Sceneform/Filament
-- Alignment methods:
-  - Marker-based (ArUco/AprilTag detection)
-  - Manual 3-point alignment
-- Track alignment quality in real-time
-- Display quality indicator (green/yellow/red)
-- Capture AR screenshot with metadata (markers, tracking state, alignment quality)
-- Log AR_ALIGNMENT_SET event as part of QC evidence chain
-- Multi-marker refinement (Sprint 6)
-- Performance optimizations (Sprint 6): culling, caching, FPS monitoring
+- Manage ARCore Session creation/resume/pause through `ARCoreSessionManager` (Pixel 9 target)
+- Surface ARCore availability errors to the UI overlay for quick troubleshooting
+- Load and render 3D models (planned)
+- Alignment methods (planned): marker-based and manual 3-point alignment
+- Track alignment quality and display indicator (planned)
+- Capture AR screenshots with metadata (planned)
+- Log AR alignment events as QC evidence (planned)
 
 **Dependencies:**
 - `core:domain` (Evidence, EvidenceMetadata)
@@ -510,22 +506,17 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 
 **Key Files/Packages:**
 - `ui/arview/`
-  - `ARViewScreen.kt` — Compose screen hosting AR surface + lifecycle observer
-  - `AlignmentIndicatorWidget.kt` — Quality indicator overlay
+  - `ARViewScreen.kt` — Compose screen hosting AR surface + lifecycle observer and error overlay
 - `arcore/`
-  - `ARViewController.kt` — Provides AR rendering surface and lifecycle callbacks
+  - `ARViewController.kt` — Provides AR rendering surface and forwards lifecycle callbacks
+  - `ARCoreSessionManager.kt` — Lazily creates/configures ARCore Session and handles resume/pause/destroy
   - `ARViewLifecycleHost.kt` — Bridges Android lifecycle events to the AR controller
-- `viewmodel/`
-  - `ArViewViewModel.kt`
-- `ar/`
-  - `ArSessionManager.kt` — ARCore session lifecycle (future wiring)
-  - `ModelLoader.kt` — Load and parse 3D models (glTF, OBJ)
-  - `MarkerDetector.kt` — Detect ArUco/AprilTag markers
-  - `AlignmentCalculator.kt` — Compute alignment quality score
-  - `ScreenshotCapture.kt` — Capture ARCore frame buffer
-- `rendering/`
-  - `SceneRenderer.kt` — Render 3D model overlay
-  - `ModelCache.kt` — Cache parsed models in memory
+
+**Planned Additions:** (kept from earlier roadmap)
+- Alignment indicator overlay
+- Model loading/rendering pipeline with SceneRenderer/ModelCache
+- Marker detection and alignment calculator
+- AR screenshot capture flow
 
 **Notes:**
 - ARCore requires device support; gracefully handle non-AR devices (show error or fallback)
