@@ -10,6 +10,12 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `app/src/main/kotlin/com/example/arweld/ui/work/WorkItemSummaryRoute.kt` — NavHost wrapper that invokes the feature stub (currently called with `workItemId = null`).
 - `core-domain/src/test/kotlin/com/example/arweld/core/domain/state/WorkItemReducerHappyPathTest.kt` — Reducer unit tests covering happy path and fail→rework→ready→pass rework flow.
 
+### Seed data (Sprint 2)
+
+- Seed definitions: `core-data/src/main/kotlin/com/example/arweld/core/data/seed/SeedWorkItems.kt` — mock `WorkItemEntity` records with stable ids/codes (`ARWELD-W-00X`).
+- Initializer: `core-data/src/main/kotlin/com/example/arweld/core/data/seed/DbSeedInitializer.kt` — inserts seeds when the `work_items` table is empty.
+- Trigger: `app/src/main/kotlin/com/example/arweld/ArWeldApplication.kt` — launches `seedIfEmpty()` on app start (IO scope) so scanning a known code resolves to a WorkItem immediately.
+
 ---
 
 ## Project Structure
