@@ -183,6 +183,10 @@ ARWeld/
 │       │   │   ├── ARViewController.kt    # Hosts AR surface, forwards lifecycle callbacks
 │       │   │   ├── ARCoreSessionManager.kt # Creates/configures ARCore Session; handles resume/pause/destroy
 │       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
+│       │   └── render/
+│       │       ├── ModelLoader.kt         # Abstraction for loading GLB assets from src/main/assets
+│       │       └── AndroidFilamentModelLoader.kt # Filament-based implementation returning LoadedModel
+│       ├── src/main/assets/models/test_node.glb # Sprint test node model packaged in APK
 │       └── build.gradle.kts
 │
 │       ARCore session lifecycle wiring:

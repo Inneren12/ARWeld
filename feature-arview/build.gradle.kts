@@ -59,6 +59,9 @@ dependencies {
 
     // ARCore
     implementation(libs.google.ar.core)
+    implementation(libs.filament.android)
+    implementation(libs.filament.gltfio.android)
+    implementation(libs.filament.utils.android)
 
     // Testing
     testImplementation(libs.junit)
