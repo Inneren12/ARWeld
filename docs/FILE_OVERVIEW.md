@@ -734,6 +734,7 @@ object Routes {
 
     // Main Graph
     const val ROUTE_HOME = "home"
+    const val ROUTE_ASSEMBLER_QUEUE = "assembler_queue"
     const val ROUTE_WORK_ITEM_SUMMARY = "work_item_summary"
     const val ROUTE_TIMELINE = "timeline"
 }
@@ -751,7 +752,7 @@ object Routes {
 
 **Home Screen (feature-home module):**
 - `feature-home/src/main/kotlin/com/example/arweld/feature/home/ui/HomeScreen.kt`
-  - Accepts `onNavigateToWorkSummary` and `onNavigateToTimeline` callbacks
+  - Accepts `onNavigateToWorkSummary`, `onNavigateToTimeline`, `onNavigateToAssemblerQueue`, and `onNavigateToScan` callbacks
   - Called from `HomeRoute` wrapper in `AppNavigation.kt`
   - Does not directly depend on navigation library
 
@@ -760,6 +761,10 @@ object Routes {
   - Stub implementation for S1-03
 - `feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/TimelineScreen.kt`
   - Stub implementation for S1-21 showing centered `Text("Timeline stub")`
+- `feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/AssemblerQueueScreen.kt`
+  - S2-07 queue screen grouped by IN_PROGRESS/READY_FOR_QC/REWORK_REQUIRED; uses `AssemblerQueueViewModel`
+  - ViewModel: `feature-work/src/main/kotlin/com/example/arweld/feature/work/viewmodel/AssemblerQueueViewModel.kt` injects `AuthRepository` + `WorkRepository.getMyQueue(userId)`
+  - Navigation wrapper: `app/src/main/kotlin/com/example/arweld/ui/work/AssemblerQueueRoute.kt` via `ROUTE_ASSEMBLER_QUEUE`
 
 ### Navigation Flow
 
