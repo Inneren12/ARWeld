@@ -27,6 +27,7 @@ class ARViewController(
     }
     private val sessionManager = ARCoreSessionManager(context)
     private val modelLoader: ModelLoader = AndroidFilamentModelLoader(context)
+    private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
     private var testNodeModel: LoadedModel? = null
 
     private val _errorMessage = MutableStateFlow<String?>(null)
@@ -45,11 +46,13 @@ class ARViewController(
             viewportHeight = surfaceView.height,
         )
         _errorMessage.value = error
+        sceneRenderer.onResume()
     }
 
     fun onPause() {
         Log.d(TAG, "ARViewController onPause")
         sessionManager.onPause()
+        sceneRenderer.onPause()
     }
 
     fun onDestroy() {
@@ -58,6 +61,7 @@ class ARViewController(
             modelLoader.destroyModel(it)
             testNodeModel = null
         }
+        sceneRenderer.destroy()
         sessionManager.onDestroy()
     }
 
@@ -70,6 +74,7 @@ class ARViewController(
         return try {
             val loadedModel = modelLoader.loadGlbFromAssets(TEST_NODE_ASSET_PATH)
             testNodeModel = loadedModel
+            sceneRenderer.setTestModel(loadedModel)
             loadedModel
         } catch (error: Exception) {
             Log.e(TAG, "Failed to load test node model", error)

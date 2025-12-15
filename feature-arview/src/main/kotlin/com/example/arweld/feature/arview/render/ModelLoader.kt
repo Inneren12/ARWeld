@@ -8,6 +8,11 @@ import com.google.android.filament.gltfio.FilamentAsset
  */
 interface ModelLoader {
     /**
+     * Shared Filament [Engine] instance used to create renderer resources.
+     */
+    val engine: Engine
+
+    /**
      * Loads a GLB file from the Android assets directory.
      *
      * @param assetPath Path relative to `src/main/assets`.

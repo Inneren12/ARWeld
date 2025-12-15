@@ -509,6 +509,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `ARViewScreen.kt` — Compose screen hosting AR surface + lifecycle observer and error overlay
 - `arcore/`
   - `ARViewController.kt` — Provides AR rendering surface and forwards lifecycle callbacks
+  - `ARSceneRenderer.kt` — ARCore → Filament bridge; renders fixed-pose test model (S2-15)
   - `ARCoreSessionManager.kt` — Lazily creates/configures ARCore Session and handles resume/pause/destroy
   - `ARViewLifecycleHost.kt` — Bridges Android lifecycle events to the AR controller
 - `render/`
