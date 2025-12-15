@@ -9,17 +9,23 @@ import com.example.arweld.core.data.db.dao.SyncQueueDao
 import com.example.arweld.core.data.db.dao.UserDao
 import com.example.arweld.core.data.db.dao.WorkItemDao
 import com.example.arweld.core.data.auth.AuthRepositoryImpl
+import com.example.arweld.core.data.work.ClaimWorkUseCaseImpl
+import com.example.arweld.core.data.work.MarkReadyForQcUseCaseImpl
+import com.example.arweld.core.data.work.ResolveWorkItemByCodeUseCaseImpl
+import com.example.arweld.core.data.work.StartWorkUseCaseImpl
+import com.example.arweld.core.data.work.WorkRepositoryImpl
 import com.example.arweld.core.data.repository.EventRepositoryImpl
 import com.example.arweld.core.data.repository.EvidenceRepositoryImpl
 import com.example.arweld.core.data.repository.WorkItemRepository
 import com.example.arweld.core.data.repository.WorkItemRepositoryImpl
-import com.example.arweld.core.data.work.ResolveWorkItemByCodeUseCaseImpl
-import com.example.arweld.core.data.work.WorkRepositoryImpl
 import com.example.arweld.core.domain.auth.AuthRepository
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.evidence.EvidenceRepository
 import com.example.arweld.core.domain.work.ResolveWorkItemByCodeUseCase
 import com.example.arweld.core.domain.work.WorkRepository
+import com.example.arweld.core.domain.work.usecase.ClaimWorkUseCase
+import com.example.arweld.core.domain.work.usecase.MarkReadyForQcUseCase
+import com.example.arweld.core.domain.work.usecase.StartWorkUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -120,4 +126,22 @@ abstract class RepositoryModule {
     abstract fun bindResolveWorkItemByCodeUseCase(
         impl: ResolveWorkItemByCodeUseCaseImpl
     ): ResolveWorkItemByCodeUseCase
+
+    @Binds
+    @Singleton
+    abstract fun bindClaimWorkUseCase(
+        impl: ClaimWorkUseCaseImpl
+    ): ClaimWorkUseCase
+
+    @Binds
+    @Singleton
+    abstract fun bindStartWorkUseCase(
+        impl: StartWorkUseCaseImpl
+    ): StartWorkUseCase
+
+    @Binds
+    @Singleton
+    abstract fun bindMarkReadyForQcUseCase(
+        impl: MarkReadyForQcUseCaseImpl
+    ): MarkReadyForQcUseCase
 }

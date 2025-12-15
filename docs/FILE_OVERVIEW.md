@@ -213,6 +213,8 @@ ARWeld/
 - **Navigation into scanner** is declared in `app/src/main/kotlin/com/example/arweld/navigation/Routes.kt` (`ROUTE_SCAN_CODE`) and `AppNavigation.kt`, with the wrapper composable in `app/src/main/kotlin/com/example/arweld/ui/scanner/ScanCodeRoute.kt`. The Assembler home tile triggers this route via `app/src/main/kotlin/com/example/arweld/ui/home/HomeRoute.kt`.
 - **ResolveWorkItemByCode use case** lives in `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/ResolveWorkItemByCodeUseCase.kt` with data implementation in `core-data/src/main/kotlin/com/example/arweld/core/data/work/ResolveWorkItemByCodeUseCaseImpl.kt`.
 - **Invocation:** `ScanCodeViewModel` (`app/src/main/kotlin/com/example/arweld/ui/scanner/ScanCodeViewModel.kt`) calls the use case when "Continue" is tapped on `ScanCodeScreen` and `ScanCodeRoute` navigates to `workItemSummaryRoute(workItemId)` on success.
+- **Assembler action use cases** live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/usecase/` (`ClaimWorkUseCase`, `StartWorkUseCase`, `MarkReadyForQcUseCase`) with data implementations in `core-data/src/main/kotlin/com/example/arweld/core/data/work/WorkActionUseCases.kt` that append domain `Event`s.
+- **Invocation:** `AssemblerQueueViewModel` (`feature-work/.../viewmodel/AssemblerQueueViewModel.kt`) triggers `ClaimWorkUseCase`, while `WorkItemSummaryViewModel` (`feature-work/.../viewmodel/WorkItemSummaryViewModel.kt`) triggers `ClaimWorkUseCase`, `StartWorkUseCase`, and `MarkReadyForQcUseCase` before refreshing derived state for the UI screens.
 
 **WorkItem models:**
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/domain/work/` (`WorkItemType.kt`, `WorkItem.kt`).
