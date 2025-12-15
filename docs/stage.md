@@ -1171,6 +1171,7 @@ class ClaimWorkUseCase(
 - Event instantly reflects in queue (via Flow/LiveData)
 - WorkItem disappears from "In Progress" when marked ready for QC
 - Timeline shows who claimed, when started, when marked ready
+- AssemblerQueue exposes a "Claim work" button (NEW/REWORK_REQUIRED) and WorkItemSummary exposes "Start work" + "Mark ready for QC" actions that invoke these use cases and refresh state
 
 ### 2.3 WorkItemSummary (shared)
 

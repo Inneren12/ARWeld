@@ -112,6 +112,7 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
   - `EventRepository` — Domain-facing interface for appending events (single/batch) and querying timelines by WorkItem
   - `AuthRepository` — Domain-facing authentication/session contract with `loginMock(role)`, `currentUser()`, and `logout()`
 - Use case interfaces (implementations may live in core:data or feature modules)
+- Assembler actions: `ClaimWorkUseCase`, `StartWorkUseCase`, `MarkReadyForQcUseCase` to emit domain events for queue actions
   - `ResolveWorkItemByCodeUseCase` (S2-04) — resolves scanned codes to `WorkItem`
 
 **Dependencies:**
@@ -171,6 +172,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - `AuthRepositoryImpl` ✅ S1-16: mock login with in-memory + SharedPreferences caching
   - `WorkRepositoryImpl` ✅ S1-13: derives WorkItemState and queues using Room + reducer
   - `ResolveWorkItemByCodeUseCaseImpl` ✅ S2-04: delegates to `WorkRepository.getWorkItemByCode` for scanner flows
+  - `ClaimWorkUseCaseImpl`, `StartWorkUseCaseImpl`, `MarkReadyForQcUseCaseImpl` ✅ S2-08/S2-09/S2-10: append `WORK_CLAIMED`/`WORK_STARTED`/`WORK_READY_FOR_QC` events with current actor/device metadata
   - `SyncQueueRepository` 📋 Planned
 - Seed infrastructure: `DbSeedInitializer` inserts `SeedWorkItems` and `SeedUsers` into Room when the tables are empty (MVP mock data)
 - File management for evidence (photos, AR screenshots)

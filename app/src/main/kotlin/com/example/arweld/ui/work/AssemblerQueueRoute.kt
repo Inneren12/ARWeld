@@ -21,6 +21,7 @@ fun AssemblerQueueRoute(
         onWorkItemClick = { workItemId ->
             navController.navigate(workItemSummaryRoute(workItemId))
         },
+        onClaimWorkItem = { workItemId -> viewModel.claimWork(workItemId) },
         onRefresh = { viewModel.refresh() },
         onBack = { navController.popBackStack() }
     )

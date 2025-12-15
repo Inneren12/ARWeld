@@ -7,6 +7,7 @@ import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.state.WorkItemState
 import com.example.arweld.core.domain.state.WorkStatus
 import com.example.arweld.core.domain.work.WorkRepository
+import com.example.arweld.core.domain.work.usecase.ClaimWorkUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,7 @@ data class AssemblerQueueUiState(
 class AssemblerQueueViewModel @Inject constructor(
     private val workRepository: WorkRepository,
     private val authRepository: AuthRepository,
+    private val claimWorkUseCase: ClaimWorkUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AssemblerQueueUiState(isLoading = true))
@@ -57,6 +59,22 @@ class AssemblerQueueViewModel @Inject constructor(
                 _uiState.value = AssemblerQueueUiState(
                     isLoading = false,
                     error = throwable.message ?: "Unable to load queue",
+                )
+            }
+        }
+    }
+
+    fun claimWork(workItemId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            runCatching {
+                claimWorkUseCase(workItemId)
+            }.onSuccess {
+                refresh()
+            }.onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = throwable.message ?: "Unable to claim work",
                 )
             }
         }

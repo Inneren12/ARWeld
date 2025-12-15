@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -26,12 +27,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.arweld.core.domain.state.WorkItemState
+import com.example.arweld.core.domain.state.WorkStatus
 import com.example.arweld.feature.work.viewmodel.AssemblerQueueUiState
 
 @Composable
 fun AssemblerQueueScreen(
     state: AssemblerQueueUiState,
     onWorkItemClick: (String) -> Unit,
+    onClaimWorkItem: (String) -> Unit,
     onRefresh: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -111,7 +114,11 @@ fun AssemblerQueueScreen(
 
                     item { SectionHeader(title = "Rework required") }
                     items(state.reworkRequired) { workItem ->
-                        WorkItemCard(state = workItem, onWorkItemClick = onWorkItemClick)
+                        WorkItemCard(
+                            state = workItem,
+                            onWorkItemClick = onWorkItemClick,
+                            onClaimWorkItem = onClaimWorkItem,
+                        )
                     }
                     if (state.reworkRequired.isEmpty()) {
                         item { EmptySection(text = "No items in rework") }
@@ -132,8 +139,13 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun WorkItemCard(state: WorkItemState, onWorkItemClick: (String) -> Unit) {
+private fun WorkItemCard(
+    state: WorkItemState,
+    onWorkItemClick: (String) -> Unit,
+    onClaimWorkItem: ((String) -> Unit)? = null,
+) {
     val workItemId = state.lastEvent?.workItemId ?: "Unknown"
+    val isClaimable = state.status == WorkStatus.NEW || state.status == WorkStatus.REWORK_REQUIRED
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -145,6 +157,12 @@ private fun WorkItemCard(state: WorkItemState, onWorkItemClick: (String) -> Unit
             Text(text = "Status: ${state.status}", style = MaterialTheme.typography.bodyMedium)
             state.qcStatus?.let { qc ->
                 Text(text = "QC: $qc", style = MaterialTheme.typography.bodySmall)
+            }
+            if (isClaimable && onClaimWorkItem != null) {
+                Spacer(modifier = Modifier.padding(vertical = 8.dp))
+                Button(onClick = { onClaimWorkItem(workItemId) }) {
+                    Text(text = "Claim work")
+                }
             }
         }
     }
