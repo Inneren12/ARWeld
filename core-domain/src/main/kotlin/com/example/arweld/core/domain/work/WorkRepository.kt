@@ -12,6 +12,8 @@ import com.example.arweld.core.domain.state.WorkItemState
 interface WorkRepository {
     suspend fun getWorkItemByCode(code: String): WorkItem?
 
+    suspend fun getWorkItemById(id: String): WorkItem?
+
     suspend fun getWorkItemState(workItemId: String): WorkItemState
 
     suspend fun getMyQueue(userId: String): List<WorkItemState>

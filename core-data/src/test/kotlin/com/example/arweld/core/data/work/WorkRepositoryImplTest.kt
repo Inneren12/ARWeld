@@ -109,4 +109,26 @@ class WorkRepositoryImplTest {
         assertNotNull(state.lastEvent)
         assertEquals("e4", state.lastEvent?.id)
     }
+
+    @Test
+    fun getWorkItemById_returnsPersistedItem() = runBlocking {
+        val workItemId = "work-2"
+        val entity = WorkItemEntity(
+            id = workItemId,
+            projectId = "project-2",
+            zoneId = "zone-1",
+            type = "ASSEMBLY",
+            code = "CODE-456",
+            description = "Another item",
+            nodeId = "node-123",
+            createdAt = 123L,
+        )
+        workItemDao.insert(entity)
+
+        val workItem = repository.getWorkItemById(workItemId)
+
+        assertNotNull(workItem)
+        assertEquals(workItemId, workItem?.id)
+        assertEquals("CODE-456", workItem?.code)
+    }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.arweld.core.domain.model.Role
+import com.example.arweld.core.domain.model.WorkItem
 import com.example.arweld.core.domain.state.WorkItemState
 import com.example.arweld.core.domain.state.WorkStatus
 import com.example.arweld.feature.work.viewmodel.WorkItemSummaryUiState
@@ -90,8 +93,9 @@ fun WorkItemSummaryScreen(
 
             else -> {
                 WorkItemSummaryContent(
-                    workItemId = state.workItemId.orEmpty(),
-                    workItemState = state.workItemState,
+                    workItem = state.workItem,
+                    workItemState = state.workState,
+                    currentRole = state.currentUser?.role,
                     actionInProgress = state.actionInProgress,
                     onClaimWork = onClaimWork,
                     onStartWork = onStartWork,
@@ -106,8 +110,9 @@ fun WorkItemSummaryScreen(
 
 @Composable
 private fun WorkItemSummaryContent(
-    workItemId: String,
+    workItem: WorkItem?,
     workItemState: WorkItemState?,
+    currentRole: Role?,
     actionInProgress: Boolean,
     onClaimWork: () -> Unit,
     onStartWork: () -> Unit,
@@ -121,39 +126,86 @@ private fun WorkItemSummaryContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(text = "ID: $workItemId", style = MaterialTheme.typography.titleLarge)
-        Text(
-            text = "Status: ${workItemState?.status ?: "Unknown"}",
-            style = MaterialTheme.typography.bodyLarge
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = workItem?.description ?: "Work item",
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                Spacer(modifier = Modifier.padding(2.dp))
+                Text(
+                    text = "ID: ${workItem?.id ?: "Unknown"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                workItem?.code?.takeIf { it.isNotEmpty() }?.let { code ->
+                    Text(text = "Code: $code", style = MaterialTheme.typography.bodyMedium)
+                }
+                workItem?.type?.let { type ->
+                    Text(text = "Type: $type", style = MaterialTheme.typography.bodyMedium)
+                }
+                Spacer(modifier = Modifier.padding(4.dp))
+                Text(
+                    text = "Status: ${workItemState?.status ?: "Unknown"}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                workItemState?.qcStatus?.let { qc ->
+                    Text(text = "QC: $qc", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
+        ActionList(
+            status = workItemState?.status,
+            currentRole = currentRole,
+            actionInProgress = actionInProgress,
+            onClaimWork = onClaimWork,
+            onStartWork = onStartWork,
+            onMarkReadyForQc = onMarkReadyForQc,
         )
-        workItemState?.qcStatus?.let { qc ->
-            Text(text = "QC: $qc", style = MaterialTheme.typography.bodyMedium)
-        }
-
-        val status = workItemState?.status
-        if (status == WorkStatus.NEW || status == WorkStatus.REWORK_REQUIRED) {
-            ActionButton(text = "Claim work", enabled = !actionInProgress, onClick = onClaimWork)
-        }
-
-        if (status == WorkStatus.IN_PROGRESS) {
-            ActionButton(text = "Start work", enabled = !actionInProgress, onClick = onStartWork)
-            ActionButton(
-                text = "Mark ready for QC",
-                enabled = !actionInProgress,
-                onClick = onMarkReadyForQc
-            )
-        }
-
-        if (status == WorkStatus.READY_FOR_QC) {
-            Text(
-                text = "Waiting for quality control",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
 
         Spacer(modifier = Modifier.weight(1f, fill = true))
         ActionButton(text = "Refresh", enabled = !actionInProgress, onClick = onRefresh)
+    }
+}
+
+@Composable
+private fun ActionList(
+    status: WorkStatus?,
+    currentRole: Role?,
+    actionInProgress: Boolean,
+    onClaimWork: () -> Unit,
+    onStartWork: () -> Unit,
+    onMarkReadyForQc: () -> Unit,
+) {
+    val isAssembler = currentRole == Role.ASSEMBLER
+    val canClaim = isAssembler && (status == WorkStatus.NEW || status == WorkStatus.REWORK_REQUIRED)
+    val canStart = isAssembler && status == WorkStatus.IN_PROGRESS
+    val canMarkReady = isAssembler && status == WorkStatus.IN_PROGRESS
+
+    if (canClaim) {
+        ActionButton(text = "Claim work", enabled = !actionInProgress, onClick = onClaimWork)
+    }
+
+    if (canStart) {
+        ActionButton(text = "Start work", enabled = !actionInProgress, onClick = onStartWork)
+    }
+
+    if (canMarkReady) {
+        ActionButton(
+            text = "Mark ready for QC",
+            enabled = !actionInProgress,
+            onClick = onMarkReadyForQc
+        )
+    }
+
+    if (!canClaim && !canStart && !canMarkReady) {
+        Text(
+            text = "No available actions for this role or status",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

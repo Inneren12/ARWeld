@@ -2,6 +2,9 @@ package com.example.arweld.feature.work.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.arweld.core.domain.auth.AuthRepository
+import com.example.arweld.core.domain.model.User
+import com.example.arweld.core.domain.model.WorkItem
 import com.example.arweld.core.domain.state.WorkItemState
 import com.example.arweld.core.domain.work.WorkRepository
 import com.example.arweld.core.domain.work.usecase.ClaimWorkUseCase
@@ -15,15 +18,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class WorkItemSummaryUiState(
-    val workItemId: String? = null,
     val isLoading: Boolean = false,
     val actionInProgress: Boolean = false,
-    val workItemState: WorkItemState? = null,
+    val workItem: WorkItem? = null,
+    val workState: WorkItemState? = null,
+    val currentUser: User? = null,
     val error: String? = null,
 )
 
 @HiltViewModel
 class WorkItemSummaryViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
     private val workRepository: WorkRepository,
     private val claimWorkUseCase: ClaimWorkUseCase,
     private val startWorkUseCase: StartWorkUseCase,
@@ -33,38 +38,39 @@ class WorkItemSummaryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(WorkItemSummaryUiState(isLoading = true))
     val uiState: StateFlow<WorkItemSummaryUiState> = _uiState.asStateFlow()
 
-    fun initialize(workItemId: String?) {
-        if (workItemId == null) {
-            _uiState.value = WorkItemSummaryUiState(
-                isLoading = false,
-                error = "Work item not found",
-            )
-            return
-        }
+    private var currentWorkItemId: String? = null
 
-        if (_uiState.value.workItemId == workItemId && !_uiState.value.isLoading) {
-            return
-        }
-
-        _uiState.value = _uiState.value.copy(
-            workItemId = workItemId,
-            isLoading = true,
-            error = null,
+    fun onMissingWorkItem() {
+        currentWorkItemId = null
+        _uiState.value = WorkItemSummaryUiState(
+            isLoading = false,
+            error = "Work item not found",
         )
-        refresh()
     }
 
-    fun refresh() {
-        val workItemId = _uiState.value.workItemId ?: return
+    fun load(workItemId: String) {
+        currentWorkItemId = workItemId
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             runCatching {
-                workRepository.getWorkItemState(workItemId)
-            }.onSuccess { state ->
+                val workItem = workRepository.getWorkItemById(workItemId)
+                    ?: workRepository.getWorkItemByCode(workItemId)
+                    ?: error("Work item not found")
+                val workState = workRepository.getWorkItemState(workItemId)
+                val currentUser = authRepository.currentUser()
+
+                LoadedPayload(
+                    workItem = workItem,
+                    workState = workState,
+                    currentUser = currentUser,
+                )
+            }.onSuccess { payload ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     actionInProgress = false,
-                    workItemState = state,
+                    workItem = payload.workItem,
+                    workState = payload.workState,
+                    currentUser = payload.currentUser,
                 )
             }.onFailure { throwable ->
                 _uiState.value = _uiState.value.copy(
@@ -76,26 +82,30 @@ class WorkItemSummaryViewModel @Inject constructor(
         }
     }
 
-    fun claimWork() {
+    fun onClaimWork() {
         performAction { workItemId -> claimWorkUseCase(workItemId) }
     }
 
-    fun startWork() {
+    fun onStartWork() {
         performAction { workItemId -> startWorkUseCase(workItemId) }
     }
 
-    fun markReadyForQc() {
+    fun onMarkReadyForQc() {
         performAction { workItemId -> markReadyForQcUseCase(workItemId) }
     }
 
+    fun refresh() {
+        currentWorkItemId?.let { load(it) }
+    }
+
     private fun performAction(block: suspend (String) -> Unit) {
-        val workItemId = _uiState.value.workItemId ?: return
+        val workItemId = currentWorkItemId ?: _uiState.value.workItem?.id ?: return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = true, error = null)
             runCatching {
                 block(workItemId)
             }.onSuccess {
-                refresh()
+                load(workItemId)
             }.onFailure { throwable ->
                 _uiState.value = _uiState.value.copy(
                     actionInProgress = false,
@@ -104,4 +114,10 @@ class WorkItemSummaryViewModel @Inject constructor(
             }
         }
     }
+
+    private data class LoadedPayload(
+        val workItem: WorkItem?,
+        val workState: WorkItemState,
+        val currentUser: User?,
+    )
 }

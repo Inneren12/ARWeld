@@ -326,18 +326,18 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
 - `core:data` (WorkItemRepository, EventRepository)
 - `core:auth` (get current Assembler)
 
-**Navigation (S1-20/S1-21/S2-07):**
-- WorkItemSummary stub is reachable from Home via `ROUTE_WORK_ITEM_SUMMARY`
+**Navigation (S1-20/S1-21/S2-07/S2-11):**
+- WorkItemSummary shows computed state + assembler actions (claim/start/ready for QC) and is reachable via `ROUTE_WORK_ITEM_SUMMARY` from ScanCode or AssemblerQueue
 - Timeline stub composable lives in `feature-work` and is wired to `ROUTE_TIMELINE`
 - AssemblerQueueScreen lists the current user's queue grouped by IN_PROGRESS/READY_FOR_QC/REWORK_REQUIRED and is reachable via `ROUTE_ASSEMBLER_QUEUE`
 
 **Key Files/Packages:**
 - `ui/` — Screens
-  - `WorkItemSummaryScreen.kt` — ✅ S1-20 stub showing `Text("WorkItemSummary stub: id=$workItemId")`
+  - `WorkItemSummaryScreen.kt` — Shows WorkItem id/code/type, derived state, and role-aware assembler actions
   - `TimelineScreen.kt` — ✅ S1-21 stub showing `Text("Timeline stub")`
   - `AssemblerQueueScreen.kt` — 🚧 S2-07 grouped queue view with clickable items
 - `viewmodel/` — `AssemblerQueueViewModel.kt` derives grouped lists from `WorkRepository.getMyQueue`
-- `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` wires navigation to the feature stub
+- `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` forwards `workItemId` into the Hilt ViewModel and renders feature UI
   - `ui/work/AssemblerQueueRoute.kt` wires Hilt VM + navigation to WorkItemSummary
 
 **Notes:**
