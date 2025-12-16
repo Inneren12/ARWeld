@@ -9,16 +9,17 @@ import android.view.View
 import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.core.content.getSystemService
+import com.example.arweld.core.domain.spatial.AlignmentPoint
+import com.example.arweld.core.domain.spatial.AlignmentSample
 import com.example.arweld.core.domain.spatial.CameraIntrinsics
 import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Vector3
-import com.example.arweld.core.domain.spatial.AlignmentPoint
-import com.example.arweld.core.domain.spatial.AlignmentSample
 import com.example.arweld.feature.arview.marker.DetectedMarker
 import com.example.arweld.feature.arview.marker.MarkerDetector
 import com.example.arweld.feature.arview.marker.StubMarkerDetector
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
 import com.example.arweld.feature.arview.alignment.RigidTransformSolver
+import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.feature.arview.pose.MarkerPoseEstimator
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
@@ -46,6 +47,8 @@ import kotlinx.coroutines.launch
  */
 class ARViewController(
     context: Context,
+    private val alignmentEventLogger: AlignmentEventLogger,
+    private val workItemId: String?,
 ) {
 
     private val surfaceView: SurfaceView = SurfaceView(context).apply {
@@ -209,15 +212,19 @@ class ARViewController(
     private fun maybeAlignModel(markerWorldPoses: Map<Int, Pose3D>) {
         if (markerAligned()) return
 
-        val worldZonePose = markerWorldPoses.entries.firstNotNullOfOrNull { (markerId, pose) ->
+        val alignmentResult = markerWorldPoses.entries.firstNotNullOfOrNull { (markerId, pose) ->
             zoneAligner.computeWorldZoneTransform(
                 markerPoseWorld = pose,
                 markerId = markerId,
-            )
+            )?.let { markerId to it }
         }
 
-        if (worldZonePose != null && modelAligned.compareAndSet(false, true)) {
+        if (alignmentResult != null && modelAligned.compareAndSet(false, true)) {
+            val (markerId, worldZonePose) = alignmentResult
             sceneRenderer.setModelRootPose(worldZonePose)
+            detectorScope.launch {
+                alignmentEventLogger.logMarkerAlignment(workItemId, markerId, worldZonePose)
+            }
         }
     }
 
@@ -257,6 +264,13 @@ class ARViewController(
                 sample = AlignmentSample(emptyList()),
                 statusMessage = "Manual alignment applied",
             )
+            detectorScope.launch {
+                alignmentEventLogger.logManualAlignment(
+                    workItemId = workItemId,
+                    numPoints = sample.points.size,
+                    transform = solvedPose,
+                )
+            }
         } else {
             manualAlignmentPoints.clear()
             _manualAlignmentState.value = ManualAlignmentState(

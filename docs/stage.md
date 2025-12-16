@@ -1193,6 +1193,17 @@ Test state transitions:
 - `ARViewScreen` отображает индикатор с цветами: зелёный — стабильное совмещение, жёлтый — ограниченное, красный — ненадёжное.
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-21 — (опц) сохранять AR_ALIGNMENT_SET event при успешной привязке
+
+**Goal:** После успешной привязки модели (по маркеру или ручному 3-point решению) записывать событие `AR_ALIGNMENT_SET` в event log.
+
+**Acceptance:**
+- EventType `AR_ALIGNMENT_SET` проброшен через domain/data мапперы и использован для записи в EventRepository.
+- Успешное совмещение по маркеру вызывает логгер, который пишет событие с payload (метод=marker, markerId, поза в мире).
+- Успешное ручное совмещение (3 точки) пишет событие с payload (метод=manual_3pt, число точек, поза в мире).
+- В payload присутствует позиция/ориентация модели в мире; пропуск логирования не приводит к крэшу, если нет авторизованного пользователя.
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**

@@ -199,6 +199,10 @@ ARWeld/
 │       │   │   ├── ARCoreSessionManager.kt # Creates/configures ARCore Session; handles resume/pause/destroy
 │       │   │   ├── ArCoreMappers.kt       # Maps ARCore Pose/intrinsics → domain Pose3D/CameraIntrinsics for pose estimation
 │       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
+│       │   ├── alignment/
+│       │   │   ├── ArAlignmentPayload.kt  # Serialized payload for AR_ALIGNMENT_SET event (method, marker/manual metadata, pose summary)
+│       │   │   ├── AlignmentEventLogger.kt # Uses EventRepository/AuthRepository to append AR alignment events on success
+│       │   │   └── ManualAlignmentState.kt # UI-facing manual alignment progress holder
 │       │   ├── pose/
 │       │   │   └── MarkerPoseEstimator.kt # Computes T_world_marker using planar PnP (homography) + camera intrinsics (S2-17)
 │       │   ├── tracking/
@@ -216,6 +220,7 @@ ARWeld/
 │       - `ArCoreMappers` adapts `camera.imageIntrinsics` into domain `CameraIntrinsics` and ARCore `Pose` into `Pose3D` for pose estimation.
 │       - Marker pose estimation lives in `pose/MarkerPoseEstimator.kt`, composing `T_world_camera` from ARCore with PnP-derived `T_camera_marker`.
 │       - Tracking quality indicator: `ARViewController` evaluates camera tracking state, recent marker detections, and feature point counts to emit `TrackingStatus` consumed by `ARViewScreen` overlay.
+│       - AR alignment events: `ARViewController` logs `AR_ALIGNMENT_SET` via `AlignmentEventLogger` after marker or manual transforms succeed (payload defined in `alignment/ArAlignmentPayload.kt`).
 │
 ├── docs/                                  # Documentation
 │   ├── stage.md                           # Sprint roadmap (this!)
