@@ -20,6 +20,7 @@ import com.google.ar.core.Anchor
 import com.google.ar.core.Frame
 import com.google.ar.core.Pose
 import com.google.ar.core.TrackingState
+import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * Bridges ARCore session updates with a Filament renderer to draw models at
@@ -45,6 +46,8 @@ class ARSceneRenderer(
     private var anchor: Anchor? = null
     private var modelRootPose: Pose3D? = null
     private var frameListener: ((Frame) -> Unit)? = null
+    private var hitTestResultListener: ((Pose3D) -> Unit)? = null
+    private val tapQueue = ConcurrentLinkedQueue<Pair<Float, Float>>()
 
     private var rendering = false
     private val choreographer = Choreographer.getInstance()
@@ -65,6 +68,10 @@ class ARSceneRenderer(
 
     fun setFrameListener(listener: ((Frame) -> Unit)?) {
         frameListener = listener
+    }
+
+    fun setHitTestResultListener(listener: ((Pose3D) -> Unit)?) {
+        hitTestResultListener = listener
     }
 
     fun onResume() {
@@ -126,6 +133,7 @@ class ARSceneRenderer(
             val frame = session.update()
             notifyFrameListeners(frame)
             ensureAnchor(frame)
+            processQueuedHitTests(frame)
             updateCamera(frame)
             updateModelTransform()
             renderer.render(swapChain, view)
@@ -134,11 +142,31 @@ class ARSceneRenderer(
         }
     }
 
+    fun queueHitTest(x: Float, y: Float) {
+        tapQueue.add(x to y)
+    }
+
     private fun notifyFrameListeners(frame: Frame) {
         try {
             frameListener?.invoke(frame)
         } catch (error: Exception) {
             Log.w(TAG, "Frame listener failed", error)
+        }
+    }
+
+    private fun processQueuedHitTests(frame: Frame) {
+        val listener = hitTestResultListener ?: return
+        var tap = tapQueue.poll()
+        while (tap != null) {
+            try {
+                val pose = frame.hitTest(tap.first, tap.second).firstOrNull()?.hitPose
+                if (pose != null) {
+                    listener(pose.toPose3D())
+                }
+            } catch (error: Exception) {
+                Log.w(TAG, "HitTest failed", error)
+            }
+            tap = tapQueue.poll()
         }
     }
 

@@ -6,13 +6,19 @@ import android.util.Log
 import android.view.Surface
 import android.view.SurfaceView
 import android.view.View
+import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.core.content.getSystemService
 import com.example.arweld.core.domain.spatial.CameraIntrinsics
 import com.example.arweld.core.domain.spatial.Pose3D
+import com.example.arweld.core.domain.spatial.Vector3
+import com.example.arweld.core.domain.spatial.AlignmentPoint
+import com.example.arweld.core.domain.spatial.AlignmentSample
 import com.example.arweld.feature.arview.marker.DetectedMarker
 import com.example.arweld.feature.arview.marker.MarkerDetector
 import com.example.arweld.feature.arview.marker.StubMarkerDetector
+import com.example.arweld.feature.arview.alignment.ManualAlignmentState
+import com.example.arweld.feature.arview.alignment.RigidTransformSolver
 import com.example.arweld.feature.arview.pose.MarkerPoseEstimator
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
@@ -48,11 +54,13 @@ class ARViewController(
     private val markerPoseEstimator = MarkerPoseEstimator()
     private val zoneRegistry = ZoneRegistry()
     private val zoneAligner = ZoneAligner(zoneRegistry)
+    private val rigidTransformSolver = RigidTransformSolver()
     private val detectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isDetectingMarkers = AtomicBoolean(false)
     private val modelAligned = AtomicBoolean(false)
     private var testNodeModel: LoadedModel? = null
     private val cachedIntrinsics = AtomicReference<CameraIntrinsics?>()
+    private val manualAlignmentPoints = mutableListOf<AlignmentPoint>()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
@@ -60,10 +68,21 @@ class ARViewController(
     val detectedMarkers: StateFlow<List<DetectedMarker>> = _detectedMarkers
     private val _markerWorldPoses = MutableStateFlow<Map<Int, Pose3D>>(emptyMap())
     val markerWorldPoses: StateFlow<Map<Int, Pose3D>> = _markerWorldPoses
+    private val _manualAlignmentState = MutableStateFlow(ManualAlignmentState())
+    val manualAlignmentState: StateFlow<ManualAlignmentState> = _manualAlignmentState
 
     fun onCreate() {
         Log.d(TAG, "ARViewController onCreate")
         sceneRenderer.setFrameListener(::onFrame)
+        sceneRenderer.setHitTestResultListener(::onHitTestResult)
+        surfaceView.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_UP) {
+                sceneRenderer.queueHitTest(event.x, event.y)
+                true
+            } else {
+                false
+            }
+        }
     }
 
     fun onResume() {
@@ -154,6 +173,16 @@ class ARViewController(
         }
     }
 
+    fun startManualAlignment() {
+        manualAlignmentPoints.clear()
+        modelAligned.set(false)
+        _manualAlignmentState.value = ManualAlignmentState(
+            isActive = true,
+            sample = AlignmentSample(emptyList()),
+            statusMessage = "Tap 3 reference points to align manually",
+        )
+    }
+
     private fun maybeAlignModel(markerWorldPoses: Map<Int, Pose3D>) {
         if (markerAligned()) return
 
@@ -171,9 +200,59 @@ class ARViewController(
 
     private fun markerAligned(): Boolean = modelAligned.get()
 
+    private fun onHitTestResult(worldPose: Pose3D) {
+        if (!_manualAlignmentState.value.isActive) return
+        val nextIndex = manualAlignmentPoints.size
+        if (nextIndex >= MODEL_REFERENCE_POINTS.size) return
+        val alignmentPoint = AlignmentPoint(
+            worldPoint = worldPose.position,
+            modelPoint = MODEL_REFERENCE_POINTS[nextIndex],
+        )
+        manualAlignmentPoints.add(alignmentPoint)
+        val sample = AlignmentSample(points = manualAlignmentPoints.toList())
+        _manualAlignmentState.value = ManualAlignmentState(
+            isActive = true,
+            sample = sample,
+            statusMessage = "Collected ${sample.points.size}/${MODEL_REFERENCE_POINTS.size} reference points",
+        )
+
+        if (sample.points.size >= REQUIRED_POINTS) {
+            solveManualAlignment(sample)
+        }
+    }
+
+    private fun solveManualAlignment(sample: AlignmentSample) {
+        val modelPoints = sample.points.map { it.modelPoint }
+        val worldPoints = sample.points.map { it.worldPoint }
+        val solvedPose = rigidTransformSolver.solveRigidTransform(modelPoints, worldPoints)
+        if (solvedPose != null) {
+            sceneRenderer.setModelRootPose(solvedPose)
+            modelAligned.set(true)
+            manualAlignmentPoints.clear()
+            _manualAlignmentState.value = ManualAlignmentState(
+                isActive = false,
+                sample = AlignmentSample(emptyList()),
+                statusMessage = "Manual alignment applied",
+            )
+        } else {
+            manualAlignmentPoints.clear()
+            _manualAlignmentState.value = ManualAlignmentState(
+                isActive = false,
+                sample = AlignmentSample(emptyList()),
+                statusMessage = "Failed to solve manual alignment",
+            )
+        }
+    }
+
     companion object {
         private const val TAG = "ARViewController"
         private const val TEST_NODE_ASSET_PATH = "models/test_node.glb"
         private const val DEFAULT_MARKER_SIZE_METERS = 0.12f
+        private const val REQUIRED_POINTS = 3
+        private val MODEL_REFERENCE_POINTS = listOf(
+            Vector3(0.0, 0.0, 0.0),
+            Vector3(0.2, 0.0, 0.0),
+            Vector3(0.0, 0.2, 0.0),
+        )
     }
 }

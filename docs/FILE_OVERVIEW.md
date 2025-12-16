@@ -20,6 +20,8 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - Frame wiring: `ARSceneRenderer` forwards each ARCore `Frame` to `ARViewController`, which invokes `MarkerDetector.detectMarkers(frame)` off the UI thread and exposes the latest results via `ARViewController.detectedMarkers` for downstream pose estimation/alignment consumers.
 - Marker→zone transforms: `core-domain/src/main/kotlin/com/example/arweld/core/domain/spatial/ZoneTransform.kt` defines `markerId` + `T_marker_zone` (`Pose3D`), with a hardcoded registry at `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/zone/ZoneRegistry.kt` (S2-18).
 - Zone/world computation: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/zone/ZoneAligner.kt` multiplies `T_world_marker * T_marker_zone` to produce `T_world_zone`, which `ARViewController` applies to `ARSceneRenderer` so the model root aligns to the marker once detected.
+- Manual fallback alignment: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARViewController.kt` enters a manual mode via the UI button, queues hitTests from taps through `ARSceneRenderer.queueHitTest`, collects `AlignmentPoint`s, and solves `T_world_model` with `alignment/RigidTransformSolver.kt` before updating the renderer.
+- Alignment correspondences live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/spatial/AlignmentSample.kt` (`AlignmentPoint` pairs of world/model points) and are surfaced to the UI via `alignment/ManualAlignmentState.kt`.
 - Test GLB asset packaged at `feature-arview/src/main/assets/models/test_node.glb`.
 
 ### Seed data (Sprint 2)

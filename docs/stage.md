@@ -1172,6 +1172,17 @@ Test state transitions:
 - При обнаружении маркера AR модель переключается с фиксированной позы на позу `T_world_zone`, «прилипая» к маркеру (без дерганья; пересчёт допускается при повторном появлении маркера).
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-19 — manual 3-point align fallback (tap hitTest + solve transform) ✅
+
+**Goal:** Обеспечить ручное совмещение модели, когда маркеры недоступны: пользователь нажимает на 3 опорные точки в AR, hitTest возвращает мировые координаты, далее решается `T_world_zone`/`T_world_model` через rigid transform и применяется к модели.
+
+**Acceptance Criteria:**
+- Есть доменные структуры соответствия (`AlignmentPoint`, `AlignmentSample`) для хранения пар мир/модель.
+- В `feature-arview` реализован режим manual align: кнопка включает сбор тапов, каждый тап выполняет ARCore hitTest и сохраняет мировую точку, сопоставляя её с жёстко заданными опорными точками модели.
+- Реализован решатель rigid transform (Kabsch/Horn/Umeyama) как функция `solveRigidTransform(modelPoints, worldPoints): Pose3D` с юнит-тестом на синтетических данных.
+- После 3 тапов модель смещается/вращается в соответствии с найденной трансформацией; состояние сбрасывается после успешного применения.
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**
