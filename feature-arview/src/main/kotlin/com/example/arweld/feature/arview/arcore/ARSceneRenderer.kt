@@ -41,6 +41,7 @@ class ARSceneRenderer(
     private var testModel: LoadedModel? = null
     private var testModelAttached = false
     private var anchor: Anchor? = null
+    private var frameListener: ((Frame) -> Unit)? = null
 
     private var rendering = false
     private val choreographer = Choreographer.getInstance()
@@ -57,6 +58,10 @@ class ARSceneRenderer(
         Utils.init()
         surfaceView.holder.addCallback(this)
         addDirectionalLight()
+    }
+
+    fun setFrameListener(listener: ((Frame) -> Unit)?) {
+        frameListener = listener
     }
 
     fun onResume() {
@@ -112,12 +117,21 @@ class ARSceneRenderer(
         val session = sessionManager.session ?: return
         try {
             val frame = session.update()
+            notifyFrameListeners(frame)
             ensureAnchor(frame)
             updateCamera(frame)
             updateModelTransform()
             renderer.render(swapChain, view)
         } catch (error: Exception) {
             Log.w(TAG, "Failed to render AR frame", error)
+        }
+    }
+
+    private fun notifyFrameListeners(frame: Frame) {
+        try {
+            frameListener?.invoke(frame)
+        } catch (error: Exception) {
+            Log.w(TAG, "Frame listener failed", error)
         }
     }
 

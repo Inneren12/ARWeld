@@ -494,6 +494,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - Host AR rendering surface and lifecycle hooks via `ARViewScreen` + `ARViewController`
 - Manage ARCore Session creation/resume/pause through `ARCoreSessionManager` (Pixel 9 target)
 - Surface ARCore availability errors to the UI overlay for quick troubleshooting
+- Run marker detection pipeline (pluggable) to return markerId + four ordered corners per frame (S2-16 stub in place)
 - Load GLB assets from `src/main/assets/models` via `render/AndroidFilamentModelLoader.kt` using Filament gltfio
 - Alignment methods (planned): marker-based and manual 3-point alignment
 - Track alignment quality and display indicator (planned)
@@ -512,6 +513,9 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `ARSceneRenderer.kt` — ARCore → Filament bridge; renders fixed-pose test model (S2-15)
   - `ARCoreSessionManager.kt` — Lazily creates/configures ARCore Session and handles resume/pause/destroy
   - `ARViewLifecycleHost.kt` — Bridges Android lifecycle events to the AR controller
+- `marker/`
+  - `MarkerDetector.kt` — Interface + `DetectedMarker` result with ordered corners; operates on ARCore frames
+  - `StubMarkerDetector.kt` — Placeholder implementation returning no detections (S2-16)
 - `render/`
   - `ModelLoader.kt`, `AndroidFilamentModelLoader.kt` — GLB loader returning Filament assets; entrypoint for `models/test_node.glb`
 

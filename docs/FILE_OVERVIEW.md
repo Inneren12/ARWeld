@@ -16,6 +16,8 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - Filament renderer bridge: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARSceneRenderer.kt` renders a fixed-pose GLB once tracking is active (S2-15).
 - GLB loader: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/render/AndroidFilamentModelLoader.kt` (implements `ModelLoader.loadGlbFromAssets`).
 - Fixed AR test model render entry: `ARViewController.loadTestNodeModel()` attaches the test node to the scene via `ARSceneRenderer`.
+- Marker detection pipeline: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/marker/MarkerDetector.kt` defines the API + `DetectedMarker` result (id + four ordered corners). `StubMarkerDetector` implements a no-op detector.
+- Frame wiring: `ARSceneRenderer` forwards each ARCore `Frame` to `ARViewController`, which invokes `MarkerDetector.detectMarkers(frame)` off the UI thread and exposes the latest results via `ARViewController.detectedMarkers` for downstream pose estimation/alignment consumers.
 - Test GLB asset packaged at `feature-arview/src/main/assets/models/test_node.glb`.
 
 ### Seed data (Sprint 2)

@@ -8,11 +8,21 @@ import android.view.SurfaceView
 import android.view.View
 import android.view.WindowManager
 import androidx.core.content.getSystemService
+import com.example.arweld.feature.arview.marker.DetectedMarker
+import com.example.arweld.feature.arview.marker.MarkerDetector
+import com.example.arweld.feature.arview.marker.StubMarkerDetector
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.render.ModelLoader
+import com.google.ar.core.Frame
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Placeholder controller for AR rendering surface.
@@ -28,13 +38,19 @@ class ARViewController(
     private val sessionManager = ARCoreSessionManager(context)
     private val modelLoader: ModelLoader = AndroidFilamentModelLoader(context)
     private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
+    private val markerDetector: MarkerDetector = StubMarkerDetector()
+    private val detectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val isDetectingMarkers = AtomicBoolean(false)
     private var testNodeModel: LoadedModel? = null
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
+    private val _detectedMarkers = MutableStateFlow<List<DetectedMarker>>(emptyList())
+    val detectedMarkers: StateFlow<List<DetectedMarker>> = _detectedMarkers
 
     fun onCreate() {
         Log.d(TAG, "ARViewController onCreate")
+        sceneRenderer.setFrameListener(::onFrame)
     }
 
     fun onResume() {
@@ -61,8 +77,10 @@ class ARViewController(
             modelLoader.destroyModel(it)
             testNodeModel = null
         }
+        sceneRenderer.setFrameListener(null)
         sceneRenderer.destroy()
         sessionManager.onDestroy()
+        detectorScope.cancel()
     }
 
     fun getView(): View = surfaceView
@@ -88,6 +106,20 @@ class ARViewController(
         val defaultRotation = windowManager?.defaultDisplay?.rotation
         val contextRotation = surfaceView.display?.rotation
         return (contextRotation ?: defaultRotation ?: Surface.ROTATION_0)
+    }
+
+    private fun onFrame(frame: Frame) {
+        if (!isDetectingMarkers.compareAndSet(false, true)) return
+        detectorScope.launch {
+            try {
+                val markers = markerDetector.detectMarkers(frame)
+                _detectedMarkers.value = markers
+            } catch (error: Exception) {
+                Log.w(TAG, "Marker detection failed", error)
+            } finally {
+                isDetectingMarkers.set(false)
+            }
+        }
     }
 
     companion object {
