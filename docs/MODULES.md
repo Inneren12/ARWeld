@@ -498,7 +498,8 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - Retrieve camera intrinsics from `Camera.imageIntrinsics` and adapt them into domain `CameraIntrinsics`
 - Load GLB assets from `src/main/assets/models` via `render/AndroidFilamentModelLoader.kt` using Filament gltfio
 - Estimate marker pose in world coordinates using PnP/homography (`pose/MarkerPoseEstimator.kt`), composing with the tracked camera pose from ARCore (S2-17)
-- Alignment methods (planned): marker-based and manual 3-point alignment
+- Marker-based zone alignment: compute `T_world_zone = T_world_marker * T_marker_zone` via `ZoneAligner` and apply it to the model root when a known marker is seen (S2-18)
+- Alignment methods (planned): manual 3-point alignment
 - Track alignment quality and display indicator (planned)
 - Capture AR screenshots with metadata (planned)
 - Log AR alignment events as QC evidence (planned)
@@ -512,7 +513,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `ARViewScreen.kt` — Compose screen hosting AR surface + lifecycle observer and error overlay
 - `arcore/`
   - `ARViewController.kt` — Provides AR rendering surface and forwards lifecycle callbacks
-  - `ARSceneRenderer.kt` — ARCore → Filament bridge; renders fixed-pose test model (S2-15)
+  - `ARSceneRenderer.kt` — ARCore → Filament bridge; renders the test model using either a fixed pose (pre-alignment) or the computed zone/world pose once marker alignment succeeds
   - `ARCoreSessionManager.kt` — Lazily creates/configures ARCore Session and handles resume/pause/destroy
   - `ARViewLifecycleHost.kt` — Bridges Android lifecycle events to the AR controller
   - `ArCoreMappers.kt` — Converts ARCore `Pose`/`CameraIntrinsics` into domain spatial types for pose estimation
@@ -521,6 +522,9 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `StubMarkerDetector.kt` — Placeholder implementation returning no detections (S2-16)
 - `pose/`
   - `MarkerPoseEstimator.kt` — Computes T_world_marker via planar PnP (homography) using camera intrinsics and AR camera pose
+- `zone/`
+  - `ZoneRegistry.kt` — Hardcoded marker → `ZoneTransform` mapping for marker-based zone alignment (S2-18)
+  - `ZoneAligner.kt` — Computes `T_world_zone` from detected marker poses and registry lookups and hands it to the renderer
 - `render/`
   - `ModelLoader.kt`, `AndroidFilamentModelLoader.kt` — GLB loader returning Filament assets; entrypoint for `models/test_node.glb`
 

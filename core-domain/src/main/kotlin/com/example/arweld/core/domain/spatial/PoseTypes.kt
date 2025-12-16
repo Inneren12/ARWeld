@@ -131,6 +131,11 @@ data class Pose3D(
     val position: Vector3,
     val rotation: Quaternion,
 ) {
+    /**
+     * Compose two poses to express [child] in the parent's coordinate system.
+     */
+    operator fun times(child: Pose3D): Pose3D = compose(child)
+
     fun compose(child: Pose3D): Pose3D {
         val rotatedChild = rotation.rotate(child.position)
         val newPosition = position + rotatedChild

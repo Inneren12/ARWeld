@@ -1162,6 +1162,16 @@ Test state transitions:
 - Юнит-тест/стаб-сценарий с синтетическими данными выдаёт разумную позу (translation/rotation совпадают с заданной позой маркера).
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-18 — align by marker: вычислить T_world_zone и применить к модели
+
+**Goal:** Получить `T_world_zone` из известного `T_marker_zone` и позы маркера, затем применить трансформацию к корню AR модели для совмещения с физическим узлом.
+
+**Acceptance Criteria:**
+- Доменные типы содержат `ZoneTransform` с `markerId` и `T_marker_zone` (Pose3D).
+- В `feature-arview` существует реестр marker→zone (hardcoded для тестового маркера) и функция `computeWorldZoneTransform` вычисляет `T_world_zone = T_world_marker * T_marker_zone`.
+- При обнаружении маркера AR модель переключается с фиксированной позы на позу `T_world_zone`, «прилипая» к маркеру (без дерганья; пересчёт допускается при повторном появлении маркера).
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**
