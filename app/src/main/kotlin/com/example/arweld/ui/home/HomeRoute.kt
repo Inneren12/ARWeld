@@ -13,6 +13,7 @@ import androidx.navigation.NavHostController
 import com.example.arweld.feature.home.ui.HomeScreen
 import com.example.arweld.navigation.ROUTE_ASSEMBLER_QUEUE
 import com.example.arweld.navigation.ROUTE_LOGIN
+import com.example.arweld.navigation.ROUTE_QC_QUEUE
 import com.example.arweld.navigation.ROUTE_SCAN_CODE
 import com.example.arweld.navigation.ROUTE_TIMELINE
 import com.example.arweld.navigation.ROUTE_WORK_ITEM_SUMMARY
@@ -35,6 +36,7 @@ fun HomeRoute(
             onNavigateToWorkSummary = { navController.navigate(ROUTE_WORK_ITEM_SUMMARY) },
             onNavigateToTimeline = { navController.navigate(ROUTE_TIMELINE) },
             onNavigateToAssemblerQueue = { navController.navigate(ROUTE_ASSEMBLER_QUEUE) },
+            onNavigateToQcQueue = { navController.navigate(ROUTE_QC_QUEUE) },
             onNavigateToScan = { navController.navigate(ROUTE_SCAN_CODE) },
         )
     }

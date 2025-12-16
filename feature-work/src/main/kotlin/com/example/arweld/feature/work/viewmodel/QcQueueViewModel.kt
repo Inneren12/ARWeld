@@ -31,10 +31,6 @@ class QcQueueViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(QcQueueUiState(isLoading = true))
     val uiState: StateFlow<QcQueueUiState> = _uiState.asStateFlow()
 
-    init {
-        viewModelScope.launch { loadQcQueue() }
-    }
-
     suspend fun loadQcQueue() {
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
         runCatching {

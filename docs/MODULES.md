@@ -336,10 +336,14 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
   - `WorkItemSummaryScreen.kt` — Shows WorkItem id/code/type, derived state, and role-aware assembler actions
   - `TimelineScreen.kt` — ✅ S1-21 stub showing `Text("Timeline stub")`
   - `AssemblerQueueScreen.kt` — 🚧 S2-07 grouped queue view with clickable items
+  - `QcQueueScreen.kt` — 🚧 S3-02 list of READY_FOR_QC/QC_IN_PROGRESS items with navigation to QC start
+  - `QcStartScreen.kt` — 🚧 S3-02 placeholder entry for QC inspection flow (navigated from queue)
 - `viewmodel/` — `AssemblerQueueViewModel.kt` derives grouped lists from `WorkRepository.getMyQueue`
   - `QcQueueViewModel.kt` — Sprint 3 view model that loads READY_FOR_QC/QC_IN_PROGRESS items from `WorkRepository.getQcQueue()`
 - `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` forwards `workItemId` into the Hilt ViewModel and renders feature UI
   - `ui/work/AssemblerQueueRoute.kt` wires Hilt VM + navigation to WorkItemSummary
+  - `ui/work/QcQueueRoute.kt` wires Hilt VM + navigation into QC start flow
+  - `ui/work/QcStartRoute.kt` renders the QC start placeholder with back navigation
 
 **Notes:**
 - "feature:work" may also be called "feature:assembler"

@@ -122,6 +122,8 @@ ARWeld/
 │   │   ├── src/main/kotlin/com/example/arweld/feature/work/
 │   │   │   ├── ui/
 │   │   │   │   ├── AssemblerQueueScreen.kt  # Assembler queue grouped by status
+│   │   │   │   ├── QcQueueScreen.kt        # QC queue list (READY_FOR_QC/QC_IN_PROGRESS)
+│   │   │   │   ├── QcStartScreen.kt        # QC inspection entry placeholder
 │   │   │   │   ├── WorkItemSummaryScreen.kt # WorkItem detail
 │   │   │   │   └── TimelineScreen.kt        # Placeholder timeline view
 │   │   │   └── viewmodel/
@@ -865,7 +867,7 @@ navController.navigate("new_screen/$itemId")
 
 ### Route Naming Convention
 
-- **Lowercase with underscores:** `"home"`, `"my_work"`, `"qc_inspection/{workItemId}"`
+- **Lowercase with underscores:** `"home"`, `"my_work"`, `"qc_start?workItemId={workItemId}"`
 - **Path parameters:** `{workItemId}`, `{userId}`
 - **AuthGraph routes:** `"splash"`, `"login"`
 - **MainGraph routes:** Feature-specific names like `"work_item_summary"`, `"timeline"`
@@ -881,7 +883,7 @@ navController.navigate("new_screen/$itemId")
 
 // Sprint 3+
 "qc_queue"                       → QcQueueScreen
-"qc_inspection/{workItemId}"     → QcInspectionScreen
+"qc_start?workItemId={workItemId}"→ QcStartScreen (QC inspection entry)
 
 // Sprint 4+
 "supervisor_dashboard"           → SupervisorDashboardScreen

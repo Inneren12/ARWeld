@@ -28,6 +28,7 @@ fun HomeScreen(
     onNavigateToWorkSummary: () -> Unit = {},
     onNavigateToTimeline: () -> Unit = {},
     onNavigateToAssemblerQueue: () -> Unit = {},
+    onNavigateToQcQueue: () -> Unit = {},
     onNavigateToScan: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -54,6 +55,7 @@ fun HomeScreen(
                     onNavigateToWorkSummary = onNavigateToWorkSummary,
                     onNavigateToTimeline = onNavigateToTimeline,
                     onNavigateToAssemblerQueue = onNavigateToAssemblerQueue,
+                    onNavigateToQcQueue = onNavigateToQcQueue,
                     onNavigateToScan = onNavigateToScan
                 )
             }
@@ -80,6 +82,7 @@ private fun HomeContent(
     onNavigateToWorkSummary: () -> Unit,
     onNavigateToTimeline: () -> Unit,
     onNavigateToAssemblerQueue: () -> Unit,
+    onNavigateToQcQueue: () -> Unit,
     onNavigateToScan: () -> Unit
 ) {
     Column(
@@ -148,6 +151,13 @@ private fun HomeContent(
             modifier = Modifier.fillMaxWidth(0.7f)
         ) {
             Text("Assembler Queue")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onNavigateToQcQueue,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("QC Queue")
         }
         Spacer(modifier = Modifier.height(12.dp))
         Button(
