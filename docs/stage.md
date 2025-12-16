@@ -1370,6 +1370,8 @@ Event(
 
 ### 3.1 QC Queue (feature:qc)
 
+**S3-01:** Add `QcQueueViewModel` (feature-work) that exposes `loadQcQueue()` calling `WorkRepository.getQcQueue()` to surface READY_FOR_QC/QC_IN_PROGRESS WorkItems for the QC queue UI.
+
 **QC Queue Screen:**
 - Lists all WorkItems with status READY_FOR_QC
 - Sorted by waiting time (earliest WORK_READY_FOR_QC event first)
