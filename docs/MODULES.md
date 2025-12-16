@@ -311,7 +311,7 @@ Home screen with greeting and role-specific navigation tiles powered by domain `
 
 ### feature:work
 
-**Status:** 🚧 Sprint 2 (S2-07 Assembler queue wiring, plus S1-20/21 stubs)
+**Status:** 🚧 Sprint 3 (Assembler queue + QC queue + QC start entry)
 
 **Description:**
 Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC. Sprint 2 introduces the AssemblerQueue screen grouped by status.
@@ -337,14 +337,15 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
   - `TimelineScreen.kt` — ✅ S1-21 stub showing `Text("Timeline stub")`
   - `AssemblerQueueScreen.kt` — 🚧 S2-07 grouped queue view with clickable items
   - `QcQueueScreen.kt` — 🚧 S3-02 list of READY_FOR_QC/QC_IN_PROGRESS items with navigation to QC start
-  - `QcStartScreen.kt` — 🚧 S3-02 placeholder entry for QC inspection flow (navigated from queue)
+  - `QcStartScreen.kt` — 🚧 S3-05 entry screen for QC inspection showing work info + navigation to AR/back to queue
 - `viewmodel/` — `AssemblerQueueViewModel.kt` derives grouped lists from `WorkRepository.getMyQueue`
   - `QcQueueViewModel.kt` — Sprint 3 view model that loads READY_FOR_QC/QC_IN_PROGRESS items from `WorkRepository.getQcQueue()`
     and sorts them by time spent in READY_FOR_QC (oldest first by default)
+  - `QcStartViewModel.kt` — Calls `StartQcInspectionUseCase` once and exposes minimal WorkItem details (id/code/zone) for the start screen
 - `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` forwards `workItemId` into the Hilt ViewModel and renders feature UI
   - `ui/work/AssemblerQueueRoute.kt` wires Hilt VM + navigation to WorkItemSummary
   - `ui/work/QcQueueRoute.kt` wires Hilt VM + navigation into QC start flow
-  - `ui/work/QcStartRoute.kt` renders the QC start placeholder with back navigation
+  - `ui/work/QcStartRoute.kt` injects `QcStartViewModel`, triggers `StartQcInspectionUseCase`, and surfaces AR/back navigation
 
 **Notes:**
 - "feature:work" may also be called "feature:assembler"

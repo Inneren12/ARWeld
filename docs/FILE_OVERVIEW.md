@@ -123,13 +123,14 @@ ARWeld/
 │   │   │   ├── ui/
 │   │   │   │   ├── AssemblerQueueScreen.kt  # Assembler queue grouped by status
 │   │   │   │   ├── QcQueueScreen.kt        # QC queue list (READY_FOR_QC/QC_IN_PROGRESS)
-│   │   │   │   ├── QcStartScreen.kt        # QC inspection entry placeholder
+│   │   │   │   ├── QcStartScreen.kt        # QC inspection entry showing WorkItem details + AR/back buttons
 │   │   │   │   ├── WorkItemSummaryScreen.kt # WorkItem detail
 │   │   │   │   └── TimelineScreen.kt        # Placeholder timeline view
 │   │   │   └── viewmodel/
 │   │   │       ├── AssemblerQueueViewModel.kt # Groups MyQueue by status for assembler
 │   │   │       ├── WorkItemSummaryViewModel.kt # Loads detail + assembler actions
-│   │   │       └── QcQueueViewModel.kt        # Sprint 3 QC queue loader (READY_FOR_QC/QC_IN_PROGRESS)
+│   │   │       ├── QcQueueViewModel.kt        # Sprint 3 QC queue loader (READY_FOR_QC/QC_IN_PROGRESS)
+│   │   │       └── QcStartViewModel.kt        # Calls StartQcInspectionUseCase + exposes minimal WorkItem info
 │   │   │   # Queue ordering uses `readyForQcSince` computed in `core-domain/.../state/WorkItemState.kt` from the last
 │   │   │   # WORK_READY_FOR_QC event
 │   │   └── build.gradle.kts
