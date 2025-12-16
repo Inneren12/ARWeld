@@ -189,11 +189,14 @@ ARWeld/
 │       │   ├── ui/
 │       │   │   └── arview/
 │       │   │       └── ARViewScreen.kt    # Compose AR view with lifecycle wiring + error overlay
- │       │   ├── arcore/
- │       │   │   ├── ARViewController.kt    # Hosts AR surface, forwards lifecycle callbacks
- │       │   │   ├── ARSceneRenderer.kt     # ARCore → Filament bridge for fixed test model pose (S2-15)
- │       │   │   ├── ARCoreSessionManager.kt # Creates/configures ARCore Session; handles resume/pause/destroy
- │       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
+│       │   ├── arcore/
+│       │   │   ├── ARViewController.kt    # Hosts AR surface, forwards lifecycle callbacks
+│       │   │   ├── ARSceneRenderer.kt     # ARCore → Filament bridge for fixed test model pose (S2-15)
+│       │   │   ├── ARCoreSessionManager.kt # Creates/configures ARCore Session; handles resume/pause/destroy
+│       │   │   ├── ArCoreMappers.kt       # Maps ARCore Pose/intrinsics → domain Pose3D/CameraIntrinsics for pose estimation
+│       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
+│       │   ├── pose/
+│       │   │   └── MarkerPoseEstimator.kt # Computes T_world_marker using planar PnP (homography) + camera intrinsics (S2-17)
 │       │   └── render/
 │       │       ├── ModelLoader.kt         # Abstraction for loading GLB assets from src/main/assets
 │       │       └── AndroidFilamentModelLoader.kt # Filament-based implementation returning LoadedModel
@@ -204,6 +207,8 @@ ARWeld/
 │       - `ARViewLifecycleHost` observes lifecycle events and calls `ARViewController.onResume/onPause/onDestroy`.
 │       - `ARViewController` lazily initializes `ARCoreSessionManager` and forwards display rotation + surface size.
 │       - `ARCoreSessionManager` creates/configures `Session` on first resume (world tracking, horizontal plane finding) and handles pause/destroy with error logging surfaced to the Compose overlay.
+│       - `ArCoreMappers` adapts `camera.imageIntrinsics` into domain `CameraIntrinsics` and ARCore `Pose` into `Pose3D` for pose estimation.
+│       - Marker pose estimation lives in `pose/MarkerPoseEstimator.kt`, composing `T_world_camera` from ARCore with PnP-derived `T_camera_marker`.
 │
 ├── docs/                                  # Documentation
 │   ├── stage.md                           # Sprint roadmap (this!)
@@ -1095,6 +1100,7 @@ androidTestImplementation(libs.androidx.junit)
 | Reducer logic | `core/domain/reducer/` |
 | QC evidence policies | `core/domain/policy/` |
 | AR rendering | `feature/arview/ar/` and `rendering/` |
+| Pose + CameraIntrinsics domain types | `core-domain/src/main/kotlin/com/example/arweld/core/domain/spatial/PoseTypes.kt` |
 | Export logic | `feature/supervisor/export/` |
 
 ### "How do I...?"

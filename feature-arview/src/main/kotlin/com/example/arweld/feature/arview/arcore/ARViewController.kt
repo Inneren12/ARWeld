@@ -8,14 +8,18 @@ import android.view.SurfaceView
 import android.view.View
 import android.view.WindowManager
 import androidx.core.content.getSystemService
+import com.example.arweld.core.domain.spatial.CameraIntrinsics
+import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.feature.arview.marker.DetectedMarker
 import com.example.arweld.feature.arview.marker.MarkerDetector
 import com.example.arweld.feature.arview.marker.StubMarkerDetector
+import com.example.arweld.feature.arview.pose.MarkerPoseEstimator
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.render.ModelLoader
 import com.google.ar.core.Frame
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -39,14 +43,18 @@ class ARViewController(
     private val modelLoader: ModelLoader = AndroidFilamentModelLoader(context)
     private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
     private val markerDetector: MarkerDetector = StubMarkerDetector()
+    private val markerPoseEstimator = MarkerPoseEstimator()
     private val detectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isDetectingMarkers = AtomicBoolean(false)
     private var testNodeModel: LoadedModel? = null
+    private val cachedIntrinsics = AtomicReference<CameraIntrinsics?>()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
     private val _detectedMarkers = MutableStateFlow<List<DetectedMarker>>(emptyList())
     val detectedMarkers: StateFlow<List<DetectedMarker>> = _detectedMarkers
+    private val _markerWorldPoses = MutableStateFlow<Map<Int, Pose3D>>(emptyMap())
+    val markerWorldPoses: StateFlow<Map<Int, Pose3D>> = _markerWorldPoses
 
     fun onCreate() {
         Log.d(TAG, "ARViewController onCreate")
@@ -110,10 +118,28 @@ class ARViewController(
 
     private fun onFrame(frame: Frame) {
         if (!isDetectingMarkers.compareAndSet(false, true)) return
+        val cameraIntrinsics = cachedIntrinsics.get() ?: frame.camera.toCameraIntrinsics()?.also {
+            cachedIntrinsics.set(it)
+        }
+        val cameraPoseWorld = frame.camera.pose.toPose3D()
         detectorScope.launch {
             try {
                 val markers = markerDetector.detectMarkers(frame)
                 _detectedMarkers.value = markers
+                val intrinsics = cameraIntrinsics
+                if (intrinsics != null) {
+                    val worldPoses = markers.mapNotNull { marker ->
+                        markerPoseEstimator.estimateMarkerPose(
+                            intrinsics = intrinsics,
+                            marker = marker,
+                            markerSizeMeters = DEFAULT_MARKER_SIZE_METERS,
+                            cameraPoseWorld = cameraPoseWorld,
+                        )?.let { pose ->
+                            marker.id to pose
+                        }
+                    }.toMap()
+                    _markerWorldPoses.value = worldPoses
+                }
             } catch (error: Exception) {
                 Log.w(TAG, "Marker detection failed", error)
             } finally {
@@ -125,5 +151,6 @@ class ARViewController(
     companion object {
         private const val TAG = "ARViewController"
         private const val TEST_NODE_ASSET_PATH = "models/test_node.glb"
+        private const val DEFAULT_MARKER_SIZE_METERS = 0.12f
     }
 }

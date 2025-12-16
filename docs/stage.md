@@ -1151,6 +1151,17 @@ Test state transitions:
 - Последние детекции доступны для пайплайна совмещения/pose estimation (StateFlow/хранилище состояния в контроллере AR).
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-17 — оценка позы маркера → мир (PnP + intrinsics)
+
+**Goal:** Рассчитать T_world_marker по четырём углам маркера в изображении, известной 3D-геометрии маркера и параметрам камеры из ARCore.
+
+**Acceptance Criteria:**
+- Есть доменные типы позы/интринсик (`Pose3D`, `CameraIntrinsics`) с понятными обозначениями T_world_camera и T_world_marker.
+- Функция `estimateMarkerPose(intrinsics, marker, markerSizeMeters, cameraPoseWorld)` (S2-17) собирает 2D↔3D точки, решает PnP (через гомографию для плоского маркера) и возвращает T_world_marker = T_world_camera * T_camera_marker.
+- AR пайплайн извлекает `camera.imageIntrinsics` из ARCore, кэширует их и вызывает `estimateMarkerPose` для найденных маркеров, публикуя результат в состоянии/StateFlow.
+- Юнит-тест/стаб-сценарий с синтетическими данными выдаёт разумную позу (translation/rotation совпадают с заданной позой маркера).
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**
