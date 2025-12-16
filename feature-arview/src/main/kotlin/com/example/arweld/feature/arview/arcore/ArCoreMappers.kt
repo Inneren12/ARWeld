@@ -39,3 +39,19 @@ internal fun Pose.toPose3D(): Pose3D {
         ).normalized(),
     )
 }
+
+internal fun Pose3D.toArCorePose(): Pose {
+    return Pose(
+        floatArrayOf(
+            position.x.toFloat(),
+            position.y.toFloat(),
+            position.z.toFloat(),
+        ),
+        floatArrayOf(
+            rotation.x.toFloat(),
+            rotation.y.toFloat(),
+            rotation.z.toFloat(),
+            rotation.w.toFloat(),
+        ),
+    )
+}

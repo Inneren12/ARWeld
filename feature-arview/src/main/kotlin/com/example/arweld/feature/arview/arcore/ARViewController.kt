@@ -17,6 +17,8 @@ import com.example.arweld.feature.arview.pose.MarkerPoseEstimator
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.render.ModelLoader
+import com.example.arweld.feature.arview.zone.ZoneAligner
+import com.example.arweld.feature.arview.zone.ZoneRegistry
 import com.google.ar.core.Frame
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -44,8 +46,11 @@ class ARViewController(
     private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
     private val markerDetector: MarkerDetector = StubMarkerDetector()
     private val markerPoseEstimator = MarkerPoseEstimator()
+    private val zoneRegistry = ZoneRegistry()
+    private val zoneAligner = ZoneAligner(zoneRegistry)
     private val detectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isDetectingMarkers = AtomicBoolean(false)
+    private val modelAligned = AtomicBoolean(false)
     private var testNodeModel: LoadedModel? = null
     private val cachedIntrinsics = AtomicReference<CameraIntrinsics?>()
 
@@ -139,6 +144,7 @@ class ARViewController(
                         }
                     }.toMap()
                     _markerWorldPoses.value = worldPoses
+                    maybeAlignModel(worldPoses)
                 }
             } catch (error: Exception) {
                 Log.w(TAG, "Marker detection failed", error)
@@ -147,6 +153,23 @@ class ARViewController(
             }
         }
     }
+
+    private fun maybeAlignModel(markerWorldPoses: Map<Int, Pose3D>) {
+        if (markerAligned()) return
+
+        val worldZonePose = markerWorldPoses.entries.firstNotNullOfOrNull { (markerId, pose) ->
+            zoneAligner.computeWorldZoneTransform(
+                markerPoseWorld = pose,
+                markerId = markerId,
+            )
+        }
+
+        if (worldZonePose != null && modelAligned.compareAndSet(false, true)) {
+            sceneRenderer.setModelRootPose(worldZonePose)
+        }
+    }
+
+    private fun markerAligned(): Boolean = modelAligned.get()
 
     companion object {
         private const val TAG = "ARViewController"

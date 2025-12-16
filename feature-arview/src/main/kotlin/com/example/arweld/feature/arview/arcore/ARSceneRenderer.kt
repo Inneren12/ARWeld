@@ -5,7 +5,9 @@ import android.util.Log
 import android.view.Choreographer
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.feature.arview.render.LoadedModel
+import com.example.arweld.feature.arview.arcore.toArCorePose
 import com.google.android.filament.Engine
 import com.google.android.filament.LightManager
 import com.google.android.filament.Renderer
@@ -41,6 +43,7 @@ class ARSceneRenderer(
     private var testModel: LoadedModel? = null
     private var testModelAttached = false
     private var anchor: Anchor? = null
+    private var modelRootPose: Pose3D? = null
     private var frameListener: ((Frame) -> Unit)? = null
 
     private var rendering = false
@@ -93,6 +96,10 @@ class ARSceneRenderer(
             scene.addEntities(model.entities)
             testModelAttached = true
         }
+    }
+
+    fun setModelRootPose(pose: Pose3D) {
+        modelRootPose = pose
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -159,13 +166,18 @@ class ARSceneRenderer(
 
     private fun updateModelTransform() {
         val model = testModel ?: return
-        val targetAnchor = anchor ?: return
         val transformManager = model.engine.transformManager
         val instance = transformManager.getInstance(model.asset.root)
         if (instance == 0) return
 
         val modelMatrix = FloatArray(16)
-        targetAnchor.pose.toMatrix(modelMatrix, 0)
+        val rootPose = modelRootPose
+        if (rootPose != null) {
+            rootPose.toArCorePose().toMatrix(modelMatrix, 0)
+        } else {
+            val targetAnchor = anchor ?: return
+            targetAnchor.pose.toMatrix(modelMatrix, 0)
+        }
         Matrix.scaleM(modelMatrix, 0, MODEL_SCALE, MODEL_SCALE, MODEL_SCALE)
         transformManager.setTransform(instance, modelMatrix)
     }

@@ -13,11 +13,13 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 ### AR view and rendering (feature-arview)
 
 - AR view controller + lifecycle bridge: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARViewController.kt` wires `SurfaceView` hosting to `ARViewLifecycleHost` and ARCore session events.
-- Filament renderer bridge: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARSceneRenderer.kt` renders a fixed-pose GLB once tracking is active (S2-15).
+- Filament renderer bridge: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARSceneRenderer.kt` renders the GLB using either a fallback anchor or the computed `T_world_zone` once marker alignment is available (S2-18).
 - GLB loader: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/render/AndroidFilamentModelLoader.kt` (implements `ModelLoader.loadGlbFromAssets`).
 - Fixed AR test model render entry: `ARViewController.loadTestNodeModel()` attaches the test node to the scene via `ARSceneRenderer`.
 - Marker detection pipeline: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/marker/MarkerDetector.kt` defines the API + `DetectedMarker` result (id + four ordered corners). `StubMarkerDetector` implements a no-op detector.
 - Frame wiring: `ARSceneRenderer` forwards each ARCore `Frame` to `ARViewController`, which invokes `MarkerDetector.detectMarkers(frame)` off the UI thread and exposes the latest results via `ARViewController.detectedMarkers` for downstream pose estimation/alignment consumers.
+- Marker→zone transforms: `core-domain/src/main/kotlin/com/example/arweld/core/domain/spatial/ZoneTransform.kt` defines `markerId` + `T_marker_zone` (`Pose3D`), with a hardcoded registry at `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/zone/ZoneRegistry.kt` (S2-18).
+- Zone/world computation: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/zone/ZoneAligner.kt` multiplies `T_world_marker * T_marker_zone` to produce `T_world_zone`, which `ARViewController` applies to `ARSceneRenderer` so the model root aligns to the marker once detected.
 - Test GLB asset packaged at `feature-arview/src/main/assets/models/test_node.glb`.
 
 ### Seed data (Sprint 2)
