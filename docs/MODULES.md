@@ -499,7 +499,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - Load GLB assets from `src/main/assets/models` via `render/AndroidFilamentModelLoader.kt` using Filament gltfio
 - Estimate marker pose in world coordinates using PnP/homography (`pose/MarkerPoseEstimator.kt`), composing with the tracked camera pose from ARCore (S2-17)
 - Marker-based zone alignment: compute `T_world_zone = T_world_marker * T_marker_zone` via `ZoneAligner` and apply it to the model root when a known marker is seen (S2-18)
-- Alignment methods (planned): manual 3-point alignment
+- Manual fallback alignment: collect 3 hitTest world points from user taps, pair them with hardcoded model landmarks, and solve `T_world_model` via `RigidTransformSolver` (S2-19)
 - Track alignment quality and display indicator (planned)
 - Capture AR screenshots with metadata (planned)
 - Log AR alignment events as QC evidence (planned)
@@ -517,6 +517,9 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `ARCoreSessionManager.kt` — Lazily creates/configures ARCore Session and handles resume/pause/destroy
   - `ARViewLifecycleHost.kt` — Bridges Android lifecycle events to the AR controller
   - `ArCoreMappers.kt` — Converts ARCore `Pose`/`CameraIntrinsics` into domain spatial types for pose estimation
+- `alignment/`
+  - `RigidTransformSolver.kt` — Quaternion-based solver (Horn method) to recover `T_world_model` from 3D-3D correspondences
+  - `ManualAlignmentState.kt` — UI-facing state for tap collection progress and status messages
 - `marker/`
   - `MarkerDetector.kt` — Interface + `DetectedMarker` result with ordered corners; operates on ARCore frames
   - `StubMarkerDetector.kt` — Placeholder implementation returning no detections (S2-16)
