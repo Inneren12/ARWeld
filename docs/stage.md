@@ -1431,6 +1431,8 @@ class StartQcInspectionUseCase(
    - Checklist (Sprint 3.5)
    - Pass/Fail buttons (initially disabled)
 
+**Implementation note:** `StartQcInspectionUseCase` appends a `QC_STARTED` event populated with the current QC inspector, `TimeProvider.nowMillis()`, and `DeviceInfoProvider.deviceId` so the event log remains the source of truth.
+
 ### 3.3 Evidence Capture
 
 **Photo Capture:**

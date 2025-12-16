@@ -417,7 +417,7 @@ QC inspector workflows: queue, start inspection, capture evidence, checklist, pa
   - `QcQueueViewModel.kt`
   - `QcInspectionViewModel.kt`
 - `usecase/`
-  - `StartQcInspectionUseCase.kt`
+  - `StartQcInspectionUseCase.kt` — emits `QC_STARTED` with actor/device/timestamp via `AuthRepository`, `TimeProvider`, and `DeviceInfoProvider`
   - `CapturePhotoEvidenceUseCase.kt`
   - `PassQcUseCase.kt`
   - `FailQcUseCase.kt`
