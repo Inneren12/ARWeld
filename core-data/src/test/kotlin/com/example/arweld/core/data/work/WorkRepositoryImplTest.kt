@@ -111,6 +111,56 @@ class WorkRepositoryImplTest {
     }
 
     @Test
+    fun getWorkItemState_setsReadyForQcSinceWhenReadyOrInProgress() = runBlocking {
+        val workItemId = "work-ready"
+        val entity = WorkItemEntity(
+            id = workItemId,
+            projectId = "project-1",
+            zoneId = null,
+            type = "PART",
+            code = "CODE-789",
+            description = "Ready item",
+            nodeId = null,
+            createdAt = 0L,
+        )
+        workItemDao.insert(entity)
+
+        val events = listOf(
+            EventEntity(
+                id = "e1",
+                workItemId = workItemId,
+                type = "WORK_READY_FOR_QC",
+                timestamp = 5L,
+                actorId = "assembler-1",
+                actorRole = "ASSEMBLER",
+                deviceId = "device-1",
+                payloadJson = null,
+            ),
+        )
+        eventDao.insertAll(events)
+
+        val readyState = repository.getWorkItemState(workItemId)
+        assertEquals(WorkStatus.READY_FOR_QC, readyState.status)
+        assertEquals(5L, readyState.readyForQcSince)
+
+        val inProgressEvents = events + EventEntity(
+            id = "e2",
+            workItemId = workItemId,
+            type = "QC_STARTED",
+            timestamp = 10L,
+            actorId = "qc-1",
+            actorRole = "QC",
+            deviceId = "device-1",
+            payloadJson = null,
+        )
+        eventDao.insertAll(listOf(inProgressEvents.last()))
+
+        val inProgressState = repository.getWorkItemState(workItemId)
+        assertEquals(WorkStatus.QC_IN_PROGRESS, inProgressState.status)
+        assertEquals(5L, inProgressState.readyForQcSince)
+    }
+
+    @Test
     fun getWorkItemById_returnsPersistedItem() = runBlocking {
         val workItemId = "work-2"
         val entity = WorkItemEntity(

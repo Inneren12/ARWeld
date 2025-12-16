@@ -10,10 +10,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+enum class QcQueueSort {
+    BY_AGE,
+    BY_ZONE,
+}
+
 data class QcQueueItemUiModel(
     val id: String,
     val code: String,
     val zone: String?,
+    val readyForQcSince: Long?,
     val waitingTimeMinutes: Long? = null,
 )
 
@@ -21,6 +27,7 @@ data class QcQueueUiState(
     val isLoading: Boolean = false,
     val items: List<QcQueueItemUiModel> = emptyList(),
     val errorMessage: String? = null,
+    val sortMode: QcQueueSort = QcQueueSort.BY_AGE,
 )
 
 @HiltViewModel
@@ -38,30 +45,50 @@ class QcQueueViewModel @Inject constructor(
             queue.mapNotNull { state ->
                 val workItemId = state.lastEvent?.workItemId ?: return@mapNotNull null
                 val workItem = workRepository.getWorkItemById(workItemId) ?: return@mapNotNull null
+                val readyForQcSince = state.readyForQcSince
+                val waitingTimeMinutes = readyForQcSince?.let { readySince ->
+                    val deltaMillis = System.currentTimeMillis() - readySince
+                    (deltaMillis.coerceAtLeast(0) / 60_000)
+                }
 
                 QcQueueItemUiModel(
                     id = workItem.id,
                     code = workItem.code,
                     zone = workItem.zone,
-                    waitingTimeMinutes = null,
+                    readyForQcSince = readyForQcSince,
+                    waitingTimeMinutes = waitingTimeMinutes,
                 )
             }
+                .sortedWith(
+                    when (_uiState.value.sortMode) {
+                        QcQueueSort.BY_AGE -> compareBy<QcQueueItemUiModel> { it.readyForQcSince ?: Long.MAX_VALUE }
+                            .thenBy { it.code }
+                        QcQueueSort.BY_ZONE -> compareBy<QcQueueItemUiModel> { it.zone ?: "" }
+                            .thenBy { it.readyForQcSince ?: Long.MAX_VALUE }
+                    },
+                )
         }.onSuccess { items ->
             _uiState.value = QcQueueUiState(
                 isLoading = false,
                 items = items,
                 errorMessage = null,
+                sortMode = _uiState.value.sortMode,
             )
         }.onFailure { throwable ->
             _uiState.value = QcQueueUiState(
                 isLoading = false,
                 items = emptyList(),
                 errorMessage = throwable.message ?: "Unable to load QC queue",
+                sortMode = _uiState.value.sortMode,
             )
         }
     }
 
     fun refresh() {
         viewModelScope.launch { loadQcQueue() }
+    }
+
+    fun updateSortMode(sortMode: QcQueueSort) {
+        _uiState.value = _uiState.value.copy(sortMode = sortMode)
     }
 }

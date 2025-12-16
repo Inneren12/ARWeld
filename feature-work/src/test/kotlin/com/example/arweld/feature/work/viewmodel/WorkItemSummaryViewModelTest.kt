@@ -105,6 +105,7 @@ private class RecordingWorkRepository : WorkRepository {
             lastEvent = null,
             currentAssigneeId = null,
             qcStatus = QcStatus.NOT_STARTED,
+            readyForQcSince = null,
         )
     }
 

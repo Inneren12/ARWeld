@@ -1378,6 +1378,8 @@ Event(
 - "Начать проверку" button navigates to `QcStartScreen` for the selected WorkItem.
 - Add `ROUTE_QC_QUEUE` + `ROUTE_QC_START` to `AppNavigation` and surface a Home entry point for QC inspectors.
 
+**S3-03:** Сортировка по времени в READY_FOR_QC (по умолчанию по возрасту).
+
 **QC Queue Screen:**
 - Lists all WorkItems with status READY_FOR_QC
 - Sorted by waiting time (earliest WORK_READY_FOR_QC event first)
