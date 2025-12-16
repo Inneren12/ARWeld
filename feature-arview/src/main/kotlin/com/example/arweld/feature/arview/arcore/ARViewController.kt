@@ -23,11 +23,15 @@ import com.example.arweld.feature.arview.pose.MarkerPoseEstimator
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.render.ModelLoader
+import com.example.arweld.feature.arview.tracking.TrackingQuality
+import com.example.arweld.feature.arview.tracking.TrackingStatus
 import com.example.arweld.feature.arview.zone.ZoneAligner
 import com.example.arweld.feature.arview.zone.ZoneRegistry
 import com.google.ar.core.Frame
+import com.google.ar.core.TrackingState
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -61,6 +65,8 @@ class ARViewController(
     private var testNodeModel: LoadedModel? = null
     private val cachedIntrinsics = AtomicReference<CameraIntrinsics?>()
     private val manualAlignmentPoints = mutableListOf<AlignmentPoint>()
+    private val lastMarkerTimestampNs = AtomicReference<Long>(0L)
+    private var lastQualityChangeNs: Long = 0L
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
@@ -70,6 +76,13 @@ class ARViewController(
     val markerWorldPoses: StateFlow<Map<Int, Pose3D>> = _markerWorldPoses
     private val _manualAlignmentState = MutableStateFlow(ManualAlignmentState())
     val manualAlignmentState: StateFlow<ManualAlignmentState> = _manualAlignmentState
+    private val _trackingStatus = MutableStateFlow(
+        TrackingStatus(
+            quality = TrackingQuality.POOR,
+            reason = "Initializing tracking",
+        ),
+    )
+    val trackingStatus: StateFlow<TrackingStatus> = _trackingStatus
 
     fun onCreate() {
         Log.d(TAG, "ARViewController onCreate")
@@ -145,6 +158,9 @@ class ARViewController(
         val cameraIntrinsics = cachedIntrinsics.get() ?: frame.camera.toCameraIntrinsics()?.also {
             cachedIntrinsics.set(it)
         }
+        val featurePointCount = computeFeaturePointCount(frame)
+        val trackingState = frame.camera.trackingState
+        val frameTimestampNs = frame.timestamp
         val cameraPoseWorld = frame.camera.pose.toPose3D()
         detectorScope.launch {
             try {
@@ -164,7 +180,14 @@ class ARViewController(
                     }.toMap()
                     _markerWorldPoses.value = worldPoses
                     maybeAlignModel(worldPoses)
+                    updateMarkerTimestampIfNeeded(worldPoses.isNotEmpty(), frameTimestampNs)
                 }
+                updateTrackingStatus(
+                    trackingState = trackingState,
+                    featurePoints = featurePointCount,
+                    hasMarker = markers.isNotEmpty(),
+                    frameTimestampNs = frameTimestampNs,
+                )
             } catch (error: Exception) {
                 Log.w(TAG, "Marker detection failed", error)
             } finally {
@@ -254,5 +277,71 @@ class ARViewController(
             Vector3(0.2, 0.0, 0.0),
             Vector3(0.0, 0.2, 0.0),
         )
+        private val QUALITY_HOLD_DURATION_NS = TimeUnit.MILLISECONDS.toNanos(500)
+        private val RECENT_MARKER_TIMEOUT_NS = TimeUnit.SECONDS.toNanos(2)
+        private const val MIN_FEATURE_POINTS_WARNING = 40
+    }
+
+    private fun computeFeaturePointCount(frame: Frame): Int {
+        return try {
+            val pointCloud = frame.acquirePointCloud()
+            val count = pointCloud.points.limit() / 4
+            pointCloud.release()
+            count
+        } catch (error: Exception) {
+            Log.w(TAG, "Failed to read point cloud", error)
+            0
+        }
+    }
+
+    private fun updateMarkerTimestampIfNeeded(hasMarker: Boolean, frameTimestampNs: Long) {
+        if (hasMarker) {
+            lastMarkerTimestampNs.set(frameTimestampNs)
+        }
+    }
+
+    private fun updateTrackingStatus(
+        trackingState: TrackingState,
+        featurePoints: Int,
+        hasMarker: Boolean,
+        frameTimestampNs: Long,
+    ) {
+        val recentMarkerSeen = hasMarker ||
+            frameTimestampNs - lastMarkerTimestampNs.get() <= RECENT_MARKER_TIMEOUT_NS
+
+        val desiredStatus = when {
+            trackingState != TrackingState.TRACKING -> TrackingStatus(
+                quality = TrackingQuality.POOR,
+                reason = "Camera tracking ${trackingState.name.lowercase()}",
+            )
+            recentMarkerSeen -> TrackingStatus(
+                quality = TrackingQuality.GOOD,
+                reason = "Marker lock stable",
+            )
+            featurePoints >= MIN_FEATURE_POINTS_WARNING -> TrackingStatus(
+                quality = TrackingQuality.WARNING,
+                reason = "Tracking but marker not visible",
+            )
+            else -> TrackingStatus(
+                quality = TrackingQuality.POOR,
+                reason = "Insufficient features for stable tracking",
+            )
+        }
+
+        val currentStatus = _trackingStatus.value
+        if (desiredStatus.quality == currentStatus.quality) {
+            if (desiredStatus.reason != currentStatus.reason) {
+                _trackingStatus.value = desiredStatus
+            }
+            return
+        }
+
+        val now = System.nanoTime()
+        if (now - lastQualityChangeNs < QUALITY_HOLD_DURATION_NS) {
+            return
+        }
+
+        lastQualityChangeNs = now
+        _trackingStatus.value = desiredStatus
     }
 }

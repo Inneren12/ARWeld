@@ -1183,6 +1183,16 @@ Test state transitions:
 - После 3 тапов модель смещается/вращается в соответствии с найденной трансформацией; состояние сбрасывается после успешного применения.
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-20 — UI: индикатор tracking quality (зел/жел/красн)
+
+**Goal:** Показать компактный индикатор качества трекинга в AR UI, который меняет цвет (зелёный/жёлтый/красный) в зависимости от надёжности совмещения.
+
+**Acceptance:**
+- В `feature-arview` есть `TrackingQuality`/`TrackingStatus`, вычисляемые из состояния ARCore (camera tracking state) + эвристик (последние маркеры, количество feature points).
+- `ARViewController` публикует `TrackingStatus` в UI.
+- `ARViewScreen` отображает индикатор с цветами: зелёный — стабильное совмещение, жёлтый — ограниченное, красный — ненадёжное.
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**
