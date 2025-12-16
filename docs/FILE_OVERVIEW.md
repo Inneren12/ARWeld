@@ -121,15 +121,13 @@ ARWeld/
 │   ├── work/                              # Assembler workflows (or "assembler")
 │   │   ├── src/main/kotlin/com/example/arweld/feature/work/
 │   │   │   ├── ui/
-│   │   │   │   ├── MyWorkScreen.kt        # Assembler queue
-│   │   │   │   └── WorkItemSummaryScreen.kt # WorkItem detail
-│   │   │   ├── viewmodel/
-│   │   │   │   ├── MyWorkViewModel.kt
-│   │   │   │   └── WorkItemSummaryViewModel.kt
-│   │   │   └── usecase/
-│   │   │       ├── ClaimWorkUseCase.kt
-│   │   │       ├── StartWorkUseCase.kt
-│   │   │       └── MarkReadyForQcUseCase.kt
+│   │   │   │   ├── AssemblerQueueScreen.kt  # Assembler queue grouped by status
+│   │   │   │   ├── WorkItemSummaryScreen.kt # WorkItem detail
+│   │   │   │   └── TimelineScreen.kt        # Placeholder timeline view
+│   │   │   └── viewmodel/
+│   │   │       ├── AssemblerQueueViewModel.kt # Groups MyQueue by status for assembler
+│   │   │       ├── WorkItemSummaryViewModel.kt # Loads detail + assembler actions
+│   │   │       └── QcQueueViewModel.kt        # Sprint 3 QC queue loader (READY_FOR_QC/QC_IN_PROGRESS)
 │   │   └── build.gradle.kts
 │   │
 │   ├── scanner/                           # Barcode/QR scanning

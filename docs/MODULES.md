@@ -337,6 +337,7 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
   - `TimelineScreen.kt` — ✅ S1-21 stub showing `Text("Timeline stub")`
   - `AssemblerQueueScreen.kt` — 🚧 S2-07 grouped queue view with clickable items
 - `viewmodel/` — `AssemblerQueueViewModel.kt` derives grouped lists from `WorkRepository.getMyQueue`
+  - `QcQueueViewModel.kt` — Sprint 3 view model that loads READY_FOR_QC/QC_IN_PROGRESS items from `WorkRepository.getQcQueue()`
 - `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` forwards `workItemId` into the Hilt ViewModel and renders feature UI
   - `ui/work/AssemblerQueueRoute.kt` wires Hilt VM + navigation to WorkItemSummary
 
