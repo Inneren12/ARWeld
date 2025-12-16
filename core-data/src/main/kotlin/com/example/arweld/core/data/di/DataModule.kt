@@ -9,6 +9,8 @@ import com.example.arweld.core.data.db.dao.SyncQueueDao
 import com.example.arweld.core.data.db.dao.UserDao
 import com.example.arweld.core.data.db.dao.WorkItemDao
 import com.example.arweld.core.data.auth.AuthRepositoryImpl
+import com.example.arweld.core.data.system.AndroidDeviceInfoProvider
+import com.example.arweld.core.data.system.DefaultTimeProvider
 import com.example.arweld.core.data.work.ClaimWorkUseCaseImpl
 import com.example.arweld.core.data.work.MarkReadyForQcUseCaseImpl
 import com.example.arweld.core.data.work.ResolveWorkItemByCodeUseCaseImpl
@@ -21,10 +23,13 @@ import com.example.arweld.core.data.repository.WorkItemRepositoryImpl
 import com.example.arweld.core.domain.auth.AuthRepository
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.evidence.EvidenceRepository
+import com.example.arweld.core.domain.system.DeviceInfoProvider
+import com.example.arweld.core.domain.system.TimeProvider
 import com.example.arweld.core.domain.work.ResolveWorkItemByCodeUseCase
 import com.example.arweld.core.domain.work.WorkRepository
 import com.example.arweld.core.domain.work.usecase.ClaimWorkUseCase
 import com.example.arweld.core.domain.work.usecase.MarkReadyForQcUseCase
+import com.example.arweld.core.domain.work.usecase.StartQcInspectionUseCase
 import com.example.arweld.core.domain.work.usecase.StartWorkUseCase
 import dagger.Binds
 import dagger.Module
@@ -81,6 +86,30 @@ object DataModule {
     @Singleton
     fun provideSyncQueueDao(database: AppDatabase): SyncQueueDao {
         return database.syncQueueDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideTimeProvider(): TimeProvider = DefaultTimeProvider()
+
+    @Provides
+    @Singleton
+    fun provideDeviceInfoProvider(): DeviceInfoProvider = AndroidDeviceInfoProvider()
+
+    @Provides
+    @Singleton
+    fun provideStartQcInspectionUseCase(
+        eventRepository: EventRepository,
+        authRepository: AuthRepository,
+        timeProvider: TimeProvider,
+        deviceInfoProvider: DeviceInfoProvider,
+    ): StartQcInspectionUseCase {
+        return StartQcInspectionUseCase(
+            eventRepository = eventRepository,
+            authRepository = authRepository,
+            timeProvider = timeProvider,
+            deviceInfoProvider = deviceInfoProvider,
+        )
     }
 }
 

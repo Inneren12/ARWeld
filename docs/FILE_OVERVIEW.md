@@ -162,6 +162,8 @@ ARWeld/
 │   │   │   │   ├── CapturePhotoEvidenceUseCase.kt
 │   │   │   │   ├── PassQcUseCase.kt
 │   │   │   │   └── FailQcUseCase.kt
+│   │   │   │   # `StartQcInspectionUseCase` builds a `QC_STARTED` event using the current QC user, `TimeProvider.nowMillis()`,
+│   │   │   │   # and `DeviceInfoProvider.deviceId`; Android implementations live in `core-data/.../system/`.
 │   │   │   └── camera/
 │   │   │       └── PhotoCaptureManager.kt
 │   │   └── build.gradle.kts
