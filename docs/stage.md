@@ -1141,6 +1141,16 @@ Test state transitions:
 - Очистка ресурсов при закрытии AR-экрана не приводит к утечкам или крэшу Filament/ARCore.
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-16 — pipeline детекции маркеров: markerId + 4 угла кадра ✅
+
+**Goal:** Добавить расширяемый пайплайн, который для каждого AR кадра возвращает список маркеров с id и 4 углами в пикселях (порядок: top-left, top-right, bottom-right, bottom-left).
+
+**Acceptance Criteria:**
+- Интерфейс `MarkerDetector.detectMarkers(frame)` и модель результата `DetectedMarker` существуют (id + 4 угла) и задокументированы.
+- Реализация может быть заглушкой, но AR цикл вызывает `detectMarkers` на новых кадрах без крэшей; выполнение вынесено с UI-потока.
+- Последние детекции доступны для пайплайна совмещения/pose estimation (StateFlow/хранилище состояния в контроллере AR).
+- Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**
