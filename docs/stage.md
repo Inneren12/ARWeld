@@ -1372,6 +1372,12 @@ Event(
 
 **S3-01:** Add `QcQueueViewModel` (feature-work) that exposes `loadQcQueue()` calling `WorkRepository.getQcQueue()` to surface READY_FOR_QC/QC_IN_PROGRESS WorkItems for the QC queue UI.
 
+**S3-02:** Implement `QcQueueScreen` (feature-work) and navigation into QC start.
+- Compose UI showing WorkItem code/id, zone, and waiting time placeholder, backed by `QcQueueViewModel` state.
+- Loading/error/empty handling with retry.
+- "Начать проверку" button navigates to `QcStartScreen` for the selected WorkItem.
+- Add `ROUTE_QC_QUEUE` + `ROUTE_QC_START` to `AppNavigation` and surface a Home entry point for QC inspectors.
+
 **QC Queue Screen:**
 - Lists all WorkItems with status READY_FOR_QC
 - Sorted by waiting time (earliest WORK_READY_FOR_QC event first)
