@@ -34,21 +34,39 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.arweld.feature.arview.R
+import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.feature.arview.arcore.ARViewController
 import com.example.arweld.feature.arview.arcore.ARViewLifecycleHost
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
 import com.example.arweld.feature.arview.tracking.TrackingQuality
 import com.example.arweld.feature.arview.tracking.TrackingStatus
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 
 @Composable
 fun ARViewScreen(
     modifier: Modifier = Modifier,
+    workItemId: String? = null,
     onBack: () -> Unit,
     infoOverlay: @Composable () -> Unit = {},
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
-    val controller = remember { ARViewController(context) }
+    val alignmentEventLogger = remember(context) {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            AlignmentEventLoggerEntryPoint::class.java,
+        ).alignmentEventLogger()
+    }
+    val controller = remember(alignmentEventLogger, workItemId, context) {
+        ARViewController(
+            context = context,
+            alignmentEventLogger = alignmentEventLogger,
+            workItemId = workItemId,
+        )
+    }
     val errorMessage = controller.errorMessage.collectAsState()
     val manualState by controller.manualAlignmentState.collectAsState()
     val trackingStatus by controller.trackingStatus.collectAsState()
@@ -107,6 +125,12 @@ fun ARViewScreen(
             infoOverlay()
         }
     }
+}
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+internal interface AlignmentEventLoggerEntryPoint {
+    fun alignmentEventLogger(): AlignmentEventLogger
 }
 
 @Composable

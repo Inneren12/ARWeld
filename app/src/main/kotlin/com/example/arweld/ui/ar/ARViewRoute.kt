@@ -10,6 +10,7 @@ fun ARViewRoute(
     workItemId: String?,
 ) {
     ARViewScreen(
+        workItemId = workItemId,
         onBack = { navController.popBackStack() },
     ) {
         // Placeholder for overlay content (tracking/debug info)

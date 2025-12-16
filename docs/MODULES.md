@@ -502,7 +502,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - Manual fallback alignment: collect 3 hitTest world points from user taps, pair them with hardcoded model landmarks, and solve `T_world_model` via `RigidTransformSolver` (S2-19)
 - Track AR tracking quality (camera state + marker recency + feature points) and expose `TrackingStatus` to UI overlays
 - Capture AR screenshots with metadata (planned)
-- Log AR alignment events as QC evidence (planned)
+- Emit AR alignment audit events (`AR_ALIGNMENT_SET`) after marker or manual alignment succeeds (S2-21)
 
 **Dependencies:**
 - `core:domain` (Evidence, EvidenceMetadata)
@@ -518,6 +518,8 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `ARViewLifecycleHost.kt` — Bridges Android lifecycle events to the AR controller
   - `ArCoreMappers.kt` — Converts ARCore `Pose`/`CameraIntrinsics` into domain spatial types for pose estimation
 - `alignment/`
+  - `ArAlignmentPayload.kt` — JSON payload schema for AR alignment events (method, marker, point count, pose summary)
+  - `AlignmentEventLogger.kt` — Builds and appends `AR_ALIGNMENT_SET` events via `EventRepository`
   - `RigidTransformSolver.kt` — Quaternion-based solver (Horn method) to recover `T_world_model` from 3D-3D correspondences
   - `ManualAlignmentState.kt` — UI-facing state for tap collection progress and status messages
 - `marker/`
