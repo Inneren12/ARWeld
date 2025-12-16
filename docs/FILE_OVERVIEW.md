@@ -192,15 +192,17 @@ ARWeld/
 │       ├── src/main/kotlin/com/example/arweld/feature/arview/
 │       │   ├── ui/
 │       │   │   └── arview/
-│       │   │       └── ARViewScreen.kt    # Compose AR view with lifecycle wiring + error overlay
+│       │   │       └── ARViewScreen.kt    # Compose AR view with lifecycle wiring, tracking quality indicator, manual alignment controls, and error overlay
 │       │   ├── arcore/
-│       │   │   ├── ARViewController.kt    # Hosts AR surface, forwards lifecycle callbacks
+│       │   │   ├── ARViewController.kt    # Hosts AR surface, forwards lifecycle callbacks, computes TrackingStatus from camera state/markers/feature points
 │       │   │   ├── ARSceneRenderer.kt     # ARCore → Filament bridge for fixed test model pose (S2-15)
 │       │   │   ├── ARCoreSessionManager.kt # Creates/configures ARCore Session; handles resume/pause/destroy
 │       │   │   ├── ArCoreMappers.kt       # Maps ARCore Pose/intrinsics → domain Pose3D/CameraIntrinsics for pose estimation
 │       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
 │       │   ├── pose/
 │       │   │   └── MarkerPoseEstimator.kt # Computes T_world_marker using planar PnP (homography) + camera intrinsics (S2-17)
+│       │   ├── tracking/
+│       │   │   └── TrackingQuality.kt     # UI-facing `TrackingQuality` enum + `TrackingStatus` reason text
 │       │   └── render/
 │       │       ├── ModelLoader.kt         # Abstraction for loading GLB assets from src/main/assets
 │       │       └── AndroidFilamentModelLoader.kt # Filament-based implementation returning LoadedModel
@@ -213,6 +215,7 @@ ARWeld/
 │       - `ARCoreSessionManager` creates/configures `Session` on first resume (world tracking, horizontal plane finding) and handles pause/destroy with error logging surfaced to the Compose overlay.
 │       - `ArCoreMappers` adapts `camera.imageIntrinsics` into domain `CameraIntrinsics` and ARCore `Pose` into `Pose3D` for pose estimation.
 │       - Marker pose estimation lives in `pose/MarkerPoseEstimator.kt`, composing `T_world_camera` from ARCore with PnP-derived `T_camera_marker`.
+│       - Tracking quality indicator: `ARViewController` evaluates camera tracking state, recent marker detections, and feature point counts to emit `TrackingStatus` consumed by `ARViewScreen` overlay.
 │
 ├── docs/                                  # Documentation
 │   ├── stage.md                           # Sprint roadmap (this!)

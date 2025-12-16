@@ -2,35 +2,43 @@ package com.example.arweld.feature.arview.ui.arview
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.getValue
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.arweld.feature.arview.R
 import com.example.arweld.feature.arview.arcore.ARViewController
 import com.example.arweld.feature.arview.arcore.ARViewLifecycleHost
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
+import com.example.arweld.feature.arview.tracking.TrackingQuality
+import com.example.arweld.feature.arview.tracking.TrackingStatus
 
 @Composable
 fun ARViewScreen(
@@ -43,6 +51,7 @@ fun ARViewScreen(
     val controller = remember { ARViewController(context) }
     val errorMessage = controller.errorMessage.collectAsState()
     val manualState by controller.manualAlignmentState.collectAsState()
+    val trackingStatus by controller.trackingStatus.collectAsState()
 
     LaunchedEffect(controller) {
         controller.loadTestNodeModel()
@@ -89,6 +98,12 @@ fun ARViewScreen(
                 onStartManualAlignment = { controller.startManualAlignment() },
                 modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
             )
+            TrackingIndicator(
+                status = trackingStatus,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp),
+            )
             infoOverlay()
         }
     }
@@ -112,6 +127,52 @@ private fun ManualAlignmentOverlay(
         state.statusMessage?.let {
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun TrackingIndicator(
+    status: TrackingStatus,
+    modifier: Modifier = Modifier,
+) {
+    val indicatorColor = when (status.quality) {
+        TrackingQuality.GOOD -> Color(0xFF4CAF50)
+        TrackingQuality.WARNING -> Color(0xFFFFC107)
+        TrackingQuality.POOR -> Color(0xFFF44336)
+    }
+
+    val label = when (status.quality) {
+        TrackingQuality.GOOD -> stringResource(id = R.string.tracking_ok)
+        TrackingQuality.WARNING -> stringResource(id = R.string.tracking_unstable)
+        TrackingQuality.POOR -> stringResource(id = R.string.tracking_poor)
+    }
+
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f),
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 2.dp,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    modifier = Modifier.size(14.dp),
+                    color = indicatorColor,
+                    shape = RoundedCornerShape(7.dp),
+                    content = {},
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = label, style = MaterialTheme.typography.labelLarge)
+            }
+            status.reason?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

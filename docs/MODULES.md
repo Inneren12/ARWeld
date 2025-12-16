@@ -500,7 +500,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - Estimate marker pose in world coordinates using PnP/homography (`pose/MarkerPoseEstimator.kt`), composing with the tracked camera pose from ARCore (S2-17)
 - Marker-based zone alignment: compute `T_world_zone = T_world_marker * T_marker_zone` via `ZoneAligner` and apply it to the model root when a known marker is seen (S2-18)
 - Manual fallback alignment: collect 3 hitTest world points from user taps, pair them with hardcoded model landmarks, and solve `T_world_model` via `RigidTransformSolver` (S2-19)
-- Track alignment quality and display indicator (planned)
+- Track AR tracking quality (camera state + marker recency + feature points) and expose `TrackingStatus` to UI overlays
 - Capture AR screenshots with metadata (planned)
 - Log AR alignment events as QC evidence (planned)
 
@@ -510,7 +510,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 
 **Key Files/Packages:**
 - `ui/arview/`
-  - `ARViewScreen.kt` — Compose screen hosting AR surface + lifecycle observer and error overlay
+  - `ARViewScreen.kt` — Compose screen hosting AR surface + lifecycle observer, tracking quality indicator, and error overlay
 - `arcore/`
   - `ARViewController.kt` — Provides AR rendering surface and forwards lifecycle callbacks
   - `ARSceneRenderer.kt` — ARCore → Filament bridge; renders the test model using either a fixed pose (pre-alignment) or the computed zone/world pose once marker alignment succeeds
@@ -525,6 +525,8 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `StubMarkerDetector.kt` — Placeholder implementation returning no detections (S2-16)
 - `pose/`
   - `MarkerPoseEstimator.kt` — Computes T_world_marker via planar PnP (homography) using camera intrinsics and AR camera pose
+- `tracking/`
+  - `TrackingQuality.kt` — Defines `TrackingQuality` + `TrackingStatus` surfaced from AR controller heuristics
 - `zone/`
   - `ZoneRegistry.kt` — Hardcoded marker → `ZoneTransform` mapping for marker-based zone alignment (S2-18)
   - `ZoneAligner.kt` — Computes `T_world_zone` from detected marker poses and registry lookups and hands it to the renderer
@@ -532,7 +534,6 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `ModelLoader.kt`, `AndroidFilamentModelLoader.kt` — GLB loader returning Filament assets; entrypoint for `models/test_node.glb`
 
 **Planned Additions:** (kept from earlier roadmap)
-- Alignment indicator overlay
 - Model rendering pipeline with SceneRenderer/ModelCache
 - Marker detection and alignment calculator
 - AR screenshot capture flow
