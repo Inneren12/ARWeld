@@ -340,6 +340,7 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
   - `QcStartScreen.kt` — 🚧 S3-02 placeholder entry for QC inspection flow (navigated from queue)
 - `viewmodel/` — `AssemblerQueueViewModel.kt` derives grouped lists from `WorkRepository.getMyQueue`
   - `QcQueueViewModel.kt` — Sprint 3 view model that loads READY_FOR_QC/QC_IN_PROGRESS items from `WorkRepository.getQcQueue()`
+    and sorts them by time spent in READY_FOR_QC (oldest first by default)
 - `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` forwards `workItemId` into the Hilt ViewModel and renders feature UI
   - `ui/work/AssemblerQueueRoute.kt` wires Hilt VM + navigation to WorkItemSummary
   - `ui/work/QcQueueRoute.kt` wires Hilt VM + navigation into QC start flow

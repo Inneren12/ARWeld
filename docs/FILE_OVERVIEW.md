@@ -130,6 +130,8 @@ ARWeld/
 │   │   │       ├── AssemblerQueueViewModel.kt # Groups MyQueue by status for assembler
 │   │   │       ├── WorkItemSummaryViewModel.kt # Loads detail + assembler actions
 │   │   │       └── QcQueueViewModel.kt        # Sprint 3 QC queue loader (READY_FOR_QC/QC_IN_PROGRESS)
+│   │   │   # Queue ordering uses `readyForQcSince` computed in `core-domain/.../state/WorkItemState.kt` from the last
+│   │   │   # WORK_READY_FOR_QC event
 │   │   └── build.gradle.kts
 │   │
 │   ├── scanner/                           # Barcode/QR scanning

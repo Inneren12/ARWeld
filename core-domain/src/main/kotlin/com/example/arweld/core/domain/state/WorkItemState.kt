@@ -11,6 +11,7 @@ data class WorkItemState(
     val lastEvent: Event?,
     val currentAssigneeId: String?,
     val qcStatus: QcStatus?,
+    val readyForQcSince: Long?,
 )
 
 /**
@@ -40,6 +41,7 @@ private val initialState = WorkItemState(
     lastEvent = null,
     currentAssigneeId = null,
     qcStatus = QcStatus.NOT_STARTED,
+    readyForQcSince = null,
 )
 
 /**
@@ -59,36 +61,43 @@ fun reduce(events: List<Event>): WorkItemState {
             EventType.WORK_CLAIMED -> state.copy(
                 status = WorkStatus.IN_PROGRESS,
                 currentAssigneeId = event.actorId,
+                readyForQcSince = null,
             )
 
             EventType.WORK_STARTED -> state.copy(
                 status = WorkStatus.IN_PROGRESS,
                 currentAssigneeId = state.currentAssigneeId ?: event.actorId,
+                readyForQcSince = null,
             )
 
             EventType.WORK_READY_FOR_QC -> state.copy(
                 status = WorkStatus.READY_FOR_QC,
                 qcStatus = QcStatus.NOT_STARTED,
+                readyForQcSince = event.timestamp,
             )
 
             EventType.QC_STARTED -> state.copy(
                 status = WorkStatus.QC_IN_PROGRESS,
                 qcStatus = QcStatus.IN_PROGRESS,
+                readyForQcSince = state.readyForQcSince,
             )
 
             EventType.QC_PASSED -> state.copy(
                 status = WorkStatus.APPROVED,
                 qcStatus = QcStatus.PASSED,
+                readyForQcSince = null,
             )
 
             EventType.QC_FAILED_REWORK -> state.copy(
                 status = WorkStatus.REWORK_REQUIRED,
                 qcStatus = QcStatus.REWORK_REQUIRED,
+                readyForQcSince = null,
             )
 
             EventType.REWORK_STARTED -> state.copy(
                 status = WorkStatus.IN_PROGRESS,
                 qcStatus = QcStatus.NOT_STARTED,
+                readyForQcSince = null,
             )
 
             EventType.AR_ALIGNMENT_SET, EventType.EVIDENCE_CAPTURED -> state
