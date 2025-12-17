@@ -1,0 +1,13 @@
+R_DEF: Internal format may change without notice
+local
+drawable ic_arrow_back
+string ar_view_title
+string back
+string capture_ar_screenshot
+string capture_ar_screenshot_error
+string capture_ar_screenshot_success
+string manual_align_button
+string manual_align_progress
+string tracking_ok
+string tracking_poor
+string tracking_unstable

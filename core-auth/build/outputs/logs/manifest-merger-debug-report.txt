@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from C:\B\ARWeld1\core-auth\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest3932610319998006309.xml:2:13-83
+INJECTED from C:\B\ARWeld1\core-auth\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest3932610319998006309.xml:2:13-83
+	package
+		INJECTED from C:\B\ARWeld1\core-auth\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest3932610319998006309.xml
+	xmlns:android
+		ADDED from C:\B\ARWeld1\core-auth\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest3932610319998006309.xml:2:23-81
+uses-sdk
+INJECTED from C:\B\ARWeld1\core-auth\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest3932610319998006309.xml reason: use-sdk injection requested
+INJECTED from C:\B\ARWeld1\core-auth\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest3932610319998006309.xml
+INJECTED from C:\B\ARWeld1\core-auth\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest3932610319998006309.xml
+	android:targetSdkVersion
+		INJECTED from C:\B\ARWeld1\core-auth\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest3932610319998006309.xml
+	android:minSdkVersion
+		INJECTED from C:\B\ARWeld1\core-auth\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest3932610319998006309.xml

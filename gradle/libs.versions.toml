@@ -21,7 +21,7 @@ truth = "1.4.4"
 camerax = "1.3.4"
 mlkitBarcode = "17.2.0"
 arcore = "1.45.0"
-filament = "1.54.2"
+filament = "1.54.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
