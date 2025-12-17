@@ -49,6 +49,7 @@ The Android application module. Entry point for the app, hosts navigation, and w
 - Navigation host setup (Compose Navigation) ✅ Implemented in S1-03
 - Dependency injection configuration via Hilt
 - Auth screens (Splash, Login) ✅ Implemented in S1-03; Login uses AuthRepository.loginMock via LoginViewModel for role-based mock sign-in with four role buttons (Assembler/QC/Supervisor/Director)
+- Provide Android-only infrastructure implementations such as CameraX photo capture bound to feature interfaces
 - Global app configuration (theme, error handling, analytics)
 
 **Dependencies:**
@@ -78,6 +79,8 @@ The Android application module. Entry point for the app, hosts navigation, and w
 - `MainActivity.kt` — Single-activity architecture with @AndroidEntryPoint and NavHost
 - `navigation/AppNavigation.kt` — ✅ Navigation graph and routes
 - `navigation/Routes.kt` — ✅ Route constants
+- `camera/CameraXPhotoCaptureService.kt` — CameraX-based implementation that writes photos to `filesDir/evidence/photos`
+- `di/CameraModule.kt` — Binds `PhotoCaptureService` to the CameraX implementation for injection
 - `ui/auth/SplashScreen.kt` — ✅ Splash screen
 - `ui/auth/LoginScreen.kt` — ✅ Login screen with role buttons
 - `ui/auth/LoginViewModel.kt` — ✅ Injects AuthRepository.loginMock for mock role sign-in
@@ -342,6 +345,7 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
   - `QcQueueViewModel.kt` — Sprint 3 view model that loads READY_FOR_QC/QC_IN_PROGRESS items from `WorkRepository.getQcQueue()`
     and sorts them by time spent in READY_FOR_QC (oldest first by default)
   - `QcStartViewModel.kt` — Calls `StartQcInspectionUseCase` once and exposes minimal WorkItem details (id/code/zone) for the start screen
+- `camera/PhotoCaptureService.kt` — Interface for capturing photos that returns a saved `Uri` and file size; implemented in the app module via CameraX
 - `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` forwards `workItemId` into the Hilt ViewModel and renders feature UI
   - `ui/work/AssemblerQueueRoute.kt` wires Hilt VM + navigation to WorkItemSummary
   - `ui/work/QcQueueRoute.kt` wires Hilt VM + navigation into QC start flow
