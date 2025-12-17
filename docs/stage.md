@@ -1540,50 +1540,7 @@ data class ArScreenshotMetadata(
 
 **S3-11 — QcEvidencePolicy v1 (core-domain):** `check(workItemId, events, evidenceList)` finds the latest `QC_STARTED` for the WorkItem and requires **at least one AR screenshot** and **at least one photo** captured **after** that timestamp. Returns `QcEvidencePolicyResult.Ok` or `Failed(reasons)` with UI-friendly messages.
 
-**Pass/Fail Use Cases:**
-
-```kotlin
-class PassQcUseCase(
-    private val eventRepository: EventRepository,
-    private val evidenceRepository: EvidenceRepository,
-    private val authRepository: AuthRepository
-) {
-    suspend operator fun invoke(
-        workItemId: String,
-        notes: String,
-        checklist: Map<String, Boolean>
-    ) {
-        // 1. Validate policy
-        val events = eventRepository.getByWorkItem(workItemId)
-        val evidence = evidenceRepository.getByWorkItem(workItemId)
-
-        val validation = QcEvidencePolicy().check(
-            workItemId = workItemId,
-            events = events,
-            evidenceList = evidence,
-        )
-        if (validation is QcEvidencePolicyResult.Failed) {
-            throw InsufficientEvidenceException(validation.reasons)
-        }
-
-        // 2. Create PASS event
-        val inspector = authRepository.getCurrentUser()
-        val event = Event(
-            id = generateId(),
-            workItemId = workItemId,
-            type = EventType.QC_PASSED,
-            actorId = inspector.id,
-            deviceId = getDeviceId(),
-            timestamp = Clock.System.now(),
-            payload = mapOf(
-                "notes" to notes,
-                "checklist" to checklist
-            )
-        )
-        eventRepository.insert(event)
-    }
-}
-```
+**S3-12 — Pass/Fail use cases enforce QcEvidencePolicy:** `PassQcUseCase` and `FailQcUseCase` now load the work-item timeline via `EventRepository.getEventsForWorkItem`, gather evidence for each event via `EvidenceRepository.getEvidenceForEvent`, and call `QcEvidencePolicy.check(...)`. When validation fails they throw `QcEvidencePolicyException(reasons)` without appending QC events; when validation passes they append `QC_PASSED` or `QC_FAILED_REWORK` with caller-provided payload JSON plus actor/device/timestamp metadata.
 
 **UI Enforcement:**
 - Pass/Fail buttons disabled until policy satisfied
