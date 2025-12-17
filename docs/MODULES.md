@@ -171,7 +171,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
 - Repository implementations:
   - `WorkItemRepository` ✅ Implemented
   - `EventRepository` ✅ Implemented (Room-backed with centralized EventEntity ↔ Event mappers)
-  - `EvidenceRepository` ✅ Implements photo saving (SHA-256 hashing + metadata persistence)
+  - `EvidenceRepository` ✅ Implements photo saving (SHA-256 hashing + metadata persistence) and AR screenshot saving with hashed files + serialized alignment metadata
   - `AuthRepositoryImpl` ✅ S1-16: mock login with in-memory + SharedPreferences caching
   - `WorkRepositoryImpl` ✅ S1-13: derives WorkItemState and queues using Room + reducer
   - `ResolveWorkItemByCodeUseCaseImpl` ✅ S2-04: delegates to `WorkRepository.getWorkItemByCode` for scanner flows

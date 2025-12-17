@@ -13,6 +13,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
 
+    // Android stubs for Uri
+    compileOnly("com.google.android:android:4.1.1.4")
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.truth)

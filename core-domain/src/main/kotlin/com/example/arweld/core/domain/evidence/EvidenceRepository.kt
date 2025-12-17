@@ -1,6 +1,8 @@
 package com.example.arweld.core.domain.evidence
 
+import android.net.Uri
 import java.io.File
+import kotlinx.serialization.Serializable
 
 /**
  * Domain-facing repository for capturing and retrieving evidence metadata.
@@ -18,6 +20,15 @@ interface EvidenceRepository {
     suspend fun savePhoto(eventId: String, file: File): Evidence
 
     /**
+     * Persist an AR screenshot evidence file and return the stored metadata.
+     */
+    suspend fun saveArScreenshot(
+        eventId: String,
+        uri: Uri,
+        meta: ArScreenshotMeta,
+    ): Evidence
+
+    /**
      * Persist multiple evidence records in a batch.
      */
     suspend fun saveAll(evidenceList: List<Evidence>)
@@ -27,3 +38,11 @@ interface EvidenceRepository {
      */
     suspend fun getEvidenceForEvent(eventId: String): List<Evidence>
 }
+
+@Serializable
+data class ArScreenshotMeta(
+    val markerIds: List<Int>,
+    val trackingState: String,
+    val alignmentQualityScore: Float,
+    val distanceToMarker: Float?,
+)

@@ -592,6 +592,20 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - The AR UI can trigger screenshot capture without crashing.
 - Docs list the API and implementation location.
 
+### **S3-10: EvidenceRepository.saveArScreenshot** ✅ COMPLETED
+
+**Goal:** Persist AR screenshot evidence with alignment/tracking metadata and hashing.
+
+**What Was Implemented:**
+- Added `ArScreenshotMeta` and `saveArScreenshot(eventId, uri, meta)` to the domain `EvidenceRepository` contract for AR screenshots.
+- Implemented hashing + metadata persistence in `EvidenceRepositoryImpl` with `kind = AR_SCREENSHOT`, JSON-serialized meta (markerIds, tracking state, alignment quality, distance), and timestamping.
+- Documentation updated (`MODULES.md`, `FILE_OVERVIEW.md`, this file) to describe AR screenshot storage.
+
+**Acceptance Criteria:**
+- `saveArScreenshot` computes SHA-256 for the provided `Uri`'s file, stores an `Evidence` record with `kind=AR_SCREENSHOT`, and includes the provided AR metadata in `metaJson`.
+- QC flows can invoke the method after AR screenshot capture.
+- Documentation reflects the new API and metadata fields.
+
 ### **S1-16: AuthRepository (mock login)** ✅ COMPLETED
 
 **Goal:** Provide a mock authentication flow that returns role-based users and caches the active session for the app lifetime.
