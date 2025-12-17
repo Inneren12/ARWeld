@@ -31,6 +31,38 @@ Before diving into sprints, understand these foundational rules that apply acros
 
 ---
 
+## S-CORE: Structural Model Core
+
+**Purpose:** Ввести ядро структурной модели стального каркаса как единый источник данных для AR и QC, независимый от Android.
+
+- **S-CORE-0: Этап 0 — ядро v0.1 (Core Sprint 0)**
+  - добавить модуль `:core-structural` (Kotlin/JVM, без Android)
+  - модели: ProfileType/ProfileSpec, Node, Member, Connection, StructuralModel
+  - справочник профилей (W/HSS/C/L/PL) + парсер маркировок (W310x39, HSS 6x6x3/8, PL 10x250)
+  - формат `model.json` (units=mm, nodes/members/connections)
+  - StructuralModelCore.loadModelFromJson(json) + validate (базовая валидация ссылок и профилей)
+
+- **S-CORE-1: 3D-геометрия Members (Core Sprint 1)**
+  - generateMemberMeshes() для W/HSS/C/L/PL (примитивный extrude по NodeStart/NodeEnd)
+  - exportForAR(): выдавать список элементов (id, transform, габариты) для AR-рендера
+
+- **S-CORE-2: Mode A — Cloud 3D source**
+  - клиентский ModelRepository: fetch + cache model.json
+  - интеграция с ARView: вместо статических GLB использовать данные из StructuralModelCore
+  - привязка WorkItem/Node к конкретной части модели
+
+- **S-CORE-3: Mode B — 2D→3D (строгий 2D-лейаут)**
+  - определить формат 2D-input (собственный строгий JSON-лейаут)
+  - парсер 2D→StructuralModel (оси/узлы/линии/марки профилей)
+  - unify: итог те же model.json и тот же Core/AR-пайплайн
+
+**Сплинты и параллельность:**
+- S-CORE-0 можно вести параллельно с S3–S4 основного приложения (QC/Supervisor)
+- S-CORE-1/2 идут параллельно с S5–S6 (export/offline/AR-hardening)
+- S-CORE-3 — отдельный эпик после стабилизации Mode A (после S6)
+
+---
+
 ## Sprint 1 (Weeks 1–2): Data and Roles Foundation
 
 **Result:** App has users/roles, local Room storage for WorkItem, Events, Evidence, timeline for a single WorkItem derived from events, and basic navigation by role.
