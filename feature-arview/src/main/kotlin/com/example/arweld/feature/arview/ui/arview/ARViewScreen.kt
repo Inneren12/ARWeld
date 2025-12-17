@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +34,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import android.widget.Toast
 import com.example.arweld.feature.arview.R
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.feature.arview.arcore.ARViewController
@@ -44,6 +46,7 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.launch
 
 @Composable
 fun ARViewScreen(
@@ -60,6 +63,7 @@ fun ARViewScreen(
             AlignmentEventLoggerEntryPoint::class.java,
         ).alignmentEventLogger()
     }
+    val scope = rememberCoroutineScope()
     val controller = remember(alignmentEventLogger, workItemId, context) {
         ARViewController(
             context = context,
@@ -116,12 +120,30 @@ fun ARViewScreen(
                 onStartManualAlignment = { controller.startManualAlignment() },
                 modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
             )
-            TrackingIndicator(
-                status = trackingStatus,
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(16.dp),
-            )
+                horizontalAlignment = Alignment.End,
+            ) {
+                TrackingIndicator(
+                    status = trackingStatus,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                ScreenshotButton(
+                    onCapture = {
+                        scope.launch {
+                            val message = try {
+                                val uri = controller.captureArScreenshot()
+                                context.getString(R.string.capture_ar_screenshot_success, uri.lastPathSegment)
+                            } catch (error: Exception) {
+                                context.getString(R.string.capture_ar_screenshot_error)
+                            }
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                )
+            }
             infoOverlay()
         }
     }
@@ -198,5 +220,15 @@ private fun TrackingIndicator(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ScreenshotButton(
+    onCapture: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Button(onClick = onCapture, modifier = modifier) {
+        Text(text = stringResource(id = R.string.capture_ar_screenshot))
     }
 }

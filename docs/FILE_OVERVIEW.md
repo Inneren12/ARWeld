@@ -23,6 +23,7 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - Manual fallback alignment: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARViewController.kt` enters a manual mode via the UI button, queues hitTests from taps through `ARSceneRenderer.queueHitTest`, collects `AlignmentPoint`s, and solves `T_world_model` with `alignment/RigidTransformSolver.kt` before updating the renderer.
 - Alignment correspondences live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/spatial/AlignmentSample.kt` (`AlignmentPoint` pairs of world/model points) and are surfaced to the UI via `alignment/ManualAlignmentState.kt`.
 - Test GLB asset packaged at `feature-arview/src/main/assets/models/test_node.glb`.
+- AR screenshots: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ArScreenshotService.kt` defines the API, implemented by `ARViewController.captureArScreenshot()` using PixelCopy to save PNGs under `filesDir/evidence/ar_screenshots` and return a `Uri`.
 
 ### Seed data (Sprint 2)
 

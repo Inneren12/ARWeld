@@ -512,7 +512,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - Marker-based zone alignment: compute `T_world_zone = T_world_marker * T_marker_zone` via `ZoneAligner` and apply it to the model root when a known marker is seen (S2-18)
 - Manual fallback alignment: collect 3 hitTest world points from user taps, pair them with hardcoded model landmarks, and solve `T_world_model` via `RigidTransformSolver` (S2-19)
 - Track AR tracking quality (camera state + marker recency + feature points) and expose `TrackingStatus` to UI overlays
-- Capture AR screenshots with metadata (planned)
+- Capture AR screenshots via `ArScreenshotService.captureArScreenshot()` using PixelCopy into evidence storage
 - Emit AR alignment audit events (`AR_ALIGNMENT_SET`) after marker or manual alignment succeeds (S2-21)
 
 **Dependencies:**
@@ -527,6 +527,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `ARSceneRenderer.kt` — ARCore → Filament bridge; renders the test model using either a fixed pose (pre-alignment) or the computed zone/world pose once marker alignment succeeds
   - `ARCoreSessionManager.kt` — Lazily creates/configures ARCore Session and handles resume/pause/destroy
   - `ARViewLifecycleHost.kt` — Bridges Android lifecycle events to the AR controller
+  - `ArScreenshotService.kt` — Interface for AR screenshot capture (SurfaceView PixelCopy → evidence folder)
   - `ArCoreMappers.kt` — Converts ARCore `Pose`/`CameraIntrinsics` into domain spatial types for pose estimation
 - `alignment/`
   - `ArAlignmentPayload.kt` — JSON payload schema for AR alignment events (method, marker, point count, pose summary)

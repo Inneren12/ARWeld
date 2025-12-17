@@ -1,14 +1,20 @@
 package com.example.arweld.feature.arview.arcore
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.MotionEvent
+import android.view.PixelCopy
 import android.view.Surface
 import android.view.SurfaceView
 import android.view.View
-import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.core.content.getSystemService
+import androidx.core.net.toUri
 import com.example.arweld.core.domain.spatial.AlignmentPoint
 import com.example.arweld.core.domain.spatial.AlignmentSample
 import com.example.arweld.core.domain.spatial.CameraIntrinsics
@@ -30,9 +36,6 @@ import com.example.arweld.feature.arview.zone.ZoneAligner
 import com.example.arweld.feature.arview.zone.ZoneRegistry
 import com.google.ar.core.Frame
 import com.google.ar.core.TrackingState
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,6 +43,15 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Placeholder controller for AR rendering surface.
@@ -49,7 +61,7 @@ class ARViewController(
     context: Context,
     private val alignmentEventLogger: AlignmentEventLogger,
     private val workItemId: String?,
-) {
+) : ArScreenshotService {
 
     private val surfaceView: SurfaceView = SurfaceView(context).apply {
         setBackgroundColor(Color.BLACK)
@@ -86,6 +98,7 @@ class ARViewController(
         ),
     )
     val trackingStatus: StateFlow<TrackingStatus> = _trackingStatus
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     fun onCreate() {
         Log.d(TAG, "ARViewController onCreate")
@@ -279,6 +292,46 @@ class ARViewController(
                 statusMessage = "Failed to solve manual alignment",
             )
         }
+    }
+
+    override suspend fun captureArScreenshot(): Uri {
+        val bitmap = copySurfaceBitmap()
+        val outputFile = saveBitmap(bitmap)
+        return outputFile.toUri()
+    }
+
+    private suspend fun copySurfaceBitmap(): Bitmap {
+        val width = surfaceView.width
+        val height = surfaceView.height
+        check(width > 0 && height > 0) { "SurfaceView not ready for screenshot" }
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+
+        return withContext(Dispatchers.Main) {
+            suspendCancellableCoroutine { continuation ->
+                PixelCopy.request(surfaceView, bitmap, { result ->
+                    if (!continuation.isActive) return@request
+                    if (result == PixelCopy.SUCCESS) {
+                        continuation.resume(bitmap)
+                    } else {
+                        continuation.resumeWithException(
+                            IllegalStateException("PixelCopy failed with code $result"),
+                        )
+                    }
+                }, mainHandler)
+            }
+        }
+    }
+
+    private suspend fun saveBitmap(bitmap: Bitmap): File = withContext(Dispatchers.IO) {
+        val directory = File(surfaceView.context.filesDir, "evidence/ar_screenshots")
+        if (!directory.exists()) {
+            directory.mkdirs()
+        }
+        val file = File(directory, "ar_screenshot_${System.currentTimeMillis()}.png")
+        FileOutputStream(file).use { outputStream ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+        }
+        file
     }
 
     companion object {
