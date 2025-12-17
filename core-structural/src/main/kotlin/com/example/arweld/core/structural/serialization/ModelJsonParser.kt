@@ -8,6 +8,7 @@ import com.example.arweld.core.structural.model.OrientationMeta
 import com.example.arweld.core.structural.model.Plate
 import com.example.arweld.core.structural.model.StructuralModel
 import com.example.arweld.core.structural.profiles.ProfileCatalog
+import com.example.arweld.core.structural.profiles.ProfileStandard
 import com.example.arweld.core.structural.profiles.parse.parseProfileString
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -76,7 +77,9 @@ fun StructuralModelDto.toDomain(profileCatalog: ProfileCatalog): StructuralModel
     val nodesDomain = nodes.map { Node(it.id, it.x, it.y, it.z) }
     val membersDomain = members.map { member ->
         val parsed = parseProfileString(member.profileDesignation)
-        val catalogDesignation = profileCatalog.findByDesignation(parsed.designation)?.designation
+        val catalogDesignation = profileCatalog
+            .findByDesignation(parsed.designation, parsed.standardHint ?: ProfileStandard.CSA)
+            ?.designation
         Member(
             id = member.id,
             kind = member.kind,
