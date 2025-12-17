@@ -251,6 +251,12 @@ ARWeld/
 - **Assembler action use cases** live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/usecase/` (`ClaimWorkUseCase`, `StartWorkUseCase`, `MarkReadyForQcUseCase`) with data implementations in `core-data/src/main/kotlin/com/example/arweld/core/data/work/WorkActionUseCases.kt` that append domain `Event`s.
 - **Invocation:** `AssemblerQueueViewModel` (`feature-work/.../viewmodel/AssemblerQueueViewModel.kt`) triggers `ClaimWorkUseCase`, while `WorkItemSummaryViewModel` (`feature-work/.../viewmodel/WorkItemSummaryViewModel.kt`) triggers `ClaimWorkUseCase`, `StartWorkUseCase`, and `MarkReadyForQcUseCase` before refreshing derived state for the UI screens.
 
+### Photo capture infrastructure (S3-06)
+- **Interface:** `feature-work/src/main/kotlin/com/example/arweld/feature/work/camera/PhotoCaptureService.kt` returns `PhotoCaptureResult` with the saved `Uri` and file size.
+- **Implementation:** `app/src/main/kotlin/com/example/arweld/camera/CameraXPhotoCaptureService.kt` uses CameraX still capture, writing JPEGs to `filesDir/evidence/photos/` (app-private storage).
+- **DI binding:** `app/src/main/kotlin/com/example/arweld/di/CameraModule.kt` binds the interface to the CameraX implementation for injection into UI or use cases.
+- **Permissions:** Callers must request `Manifest.permission.CAMERA` (see `ScannerPreview` pattern) before invoking the service; the implementation validates permission before capturing.
+
 **WorkItem models:**
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/domain/work/` (`WorkItemType.kt`, `WorkItem.kt`).
 - Extend WorkItem schema here first (e.g., project/zone fields); map database entities in `core-data` to these domain types.
@@ -259,8 +265,8 @@ ARWeld/
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/evidence/` (`EvidenceKind.kt`, `Evidence.kt`).
 - To add a new evidence type (e.g., sensor log), extend `EvidenceKind` and update downstream clients (policies, storage, UI).
 - `metaJson` stores flexible metadata (camera params, AR alignment, units). `createdAt` uses milliseconds since epoch.
-- EvidenceRepository currently handles **metadata only** (Room persistence of URIs/checksums); actual photo/AR/video file I/O
-  lives in the file layer and will be wired in a later sprint.
+- EvidenceRepository currently handles **metadata only** (Room persistence of URIs/checksums); photo capture is provided by
+  `PhotoCaptureService` (CameraX) which saves files to `filesDir/evidence/photos/`. Future AR/video capture will follow the same pattern.
 
 ## Repositories and derived state
 - **WorkRepository (domain interface):** `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/WorkRepository.kt`

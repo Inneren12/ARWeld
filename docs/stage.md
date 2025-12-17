@@ -1440,8 +1440,10 @@ class StartQcInspectionUseCase(
 ### 3.3 Evidence Capture
 
 **Photo Capture:**
+- **S3-06:** PhotoCaptureService implemented with CameraX still capture, returning the saved `Uri` + file size and writing JPEGs
+to `files/evidence/photos/`.
 - CameraX photo capture
-- Save to app-specific storage: `files/evidence/photos/{workItemId}/{timestamp}.jpg`
+- Save to app-specific storage: `files/evidence/photos/{timestamp}.jpg` (workItemId scoping can be added when the capture flow knows the item)
 - Compute SHA-256 hash
 - Create Evidence entity:
 
