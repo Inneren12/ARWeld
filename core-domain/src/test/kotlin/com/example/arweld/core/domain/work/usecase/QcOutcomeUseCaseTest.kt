@@ -92,7 +92,15 @@ class QcOutcomeUseCaseTest {
 
         assertThrows(QcEvidencePolicyException::class.java) {
             runBlocking {
-                useCase(workItemId, payloadJson = """{"notes":"missing evidence"}""")
+                useCase(
+                    FailQcInput(
+                        workItemId = workItemId,
+                        checklist = sampleChecklist(),
+                        reasons = listOf("missing evidence"),
+                        priority = 1,
+                        comment = "missing evidence",
+                    ),
+                )
             }
         }
 
@@ -180,13 +188,41 @@ class QcOutcomeUseCaseTest {
             qcEvidencePolicy = qcEvidencePolicy,
         )
 
-        useCase(workItemId, payloadJson = """{"severity":"MAJOR"}""")
+        useCase(
+            FailQcInput(
+                workItemId = workItemId,
+                checklist = sampleChecklist(),
+                reasons = listOf("fasteners loose", "marking missing"),
+                priority = 2,
+                comment = "fix before ship",
+            ),
+        )
 
         val events = eventRepository.getEventsForWorkItem(workItemId)
         assertEquals(2, events.size)
         val qcFailed = events.last()
         assertEquals(EventType.QC_FAILED_REWORK, qcFailed.type)
-        assertEquals("""{"severity":"MAJOR"}""", qcFailed.payloadJson)
+        val payload = Json.parseToJsonElement(qcFailed.payloadJson!!).jsonObject
+        val checklist = payload.getValue("checklist").jsonObject
+        val totals = checklist.getValue("totals").jsonObject
+        assertEquals(1, totals.getValue("ok").jsonPrimitive.int)
+        assertEquals(1, totals.getValue("notOk").jsonPrimitive.int)
+        assertEquals(1, totals.getValue("na").jsonPrimitive.int)
+
+        val items = checklist.getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(
+            listOf("geometry", "fasteners", "marking"),
+            items.map { it.getValue("id").jsonPrimitive.content },
+        )
+        assertEquals(
+            listOf("OK", "NOT_OK", "NA"),
+            items.map { it.getValue("state").jsonPrimitive.content },
+        )
+        val reasons = payload.getValue("reasons").jsonArray.map { it.jsonPrimitive.content }
+        assertEquals(listOf("fasteners loose", "marking missing"), reasons)
+        assertEquals(2, payload.getValue("priority").jsonPrimitive.int)
+        assertEquals("fix before ship", payload.getValue("comment").jsonPrimitive.content)
+        assertEquals(deviceInfoProvider.deviceId, qcFailed.deviceId)
     }
 
     private fun sampleChecklist(): QcChecklistResult {

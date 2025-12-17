@@ -9,10 +9,8 @@ import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
-import com.example.arweld.core.domain.work.model.QcCheckState
 import com.example.arweld.core.domain.work.model.QcChecklistResult
 import java.util.UUID
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -65,25 +63,8 @@ class PassQcUseCase(
     }
 
     private fun buildPayloadJson(input: PassQcInput): String {
-        val items = input.checklist.items
-        val totals = ChecklistTotals(
-            ok = items.count { it.state == QcCheckState.OK },
-            notOk = items.count { it.state == QcCheckState.NOT_OK },
-            na = items.count { it.state == QcCheckState.NA },
-        )
-
-        val summary = ChecklistSummary(
-            totals = totals,
-            items = items.map { item ->
-                ChecklistItemState(
-                    id = item.id,
-                    state = item.state,
-                )
-            },
-        )
-
         val payload = PassQcPayload(
-            checklist = summary,
+            checklist = buildChecklistSummary(input.checklist),
             comment = input.comment,
         )
 
@@ -91,27 +72,7 @@ class PassQcUseCase(
     }
 }
 
-@Serializable
 private data class PassQcPayload(
     val checklist: ChecklistSummary,
     val comment: String?,
-)
-
-@Serializable
-private data class ChecklistSummary(
-    val totals: ChecklistTotals,
-    val items: List<ChecklistItemState>,
-)
-
-@Serializable
-private data class ChecklistTotals(
-    val ok: Int,
-    val notOk: Int,
-    val na: Int,
-)
-
-@Serializable
-private data class ChecklistItemState(
-    val id: String,
-    val state: QcCheckState,
 )
