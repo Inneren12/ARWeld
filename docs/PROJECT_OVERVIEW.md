@@ -285,6 +285,22 @@ The MVP is considered successful if:
   - 4+ GB RAM (AR rendering)
   - 64+ GB storage (evidence files)
 
+## Architecture / Modules
+
+- `core-structural` (Kotlin/JVM, library):
+  - ответственность: ядро структурной модели стального каркаса;
+  - содержит: модели Node/Member/Connection/StructuralModel, ProfileType/ProfileSpec и каталог профилей, парсер профилей (W/HSS/C/L/PL), StructuralModelCore (loadModelFromJson + validate);
+  - не зависит от Android, может использоваться в мобильном приложении (через core-ar), в backend сервисах и в offline-утилитах.
+
+**Связи с остальными модулями:**
+- `core-ar` получает из core-structural MemberMeshes/referenceFrames для отрисовки в AR.
+- `feature-assembler` и `feature-qc` используют данные через AR для проверки узлов и геометрии.
+- Источники модели (Cloud 3D, 2D→3D, Sketch/редактор) все приводят к одному `model.json`, который читает core-structural.
+
+## Roadmap / Stages
+
+- **S-CORE: Structural Model Core** — см. подробности в `stage.md`; обеспечивает единое ядро модели, переиспользуемое между AR визуализацией, QC проверками и различными источниками данных (`model.json`).
+
 ## Next Steps
 
 **For Developers:**
