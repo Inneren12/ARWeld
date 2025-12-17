@@ -9,7 +9,18 @@ import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
+import com.example.arweld.core.domain.work.model.QcCheckState
+import com.example.arweld.core.domain.work.model.QcChecklistResult
 import java.util.UUID
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
+data class PassQcInput(
+    val workItemId: String,
+    val checklist: QcChecklistResult,
+    val comment: String?,
+)
 
 /**
  * Marks a work item as QC passed after enforcing evidence requirements.
@@ -23,16 +34,12 @@ class PassQcUseCase(
     private val qcEvidencePolicy: QcEvidencePolicy,
 ) {
 
-    /**
-     * @param payloadJson optional JSON payload containing notes, checklist, or other QC metadata.
-     */
     suspend operator fun invoke(
-        workItemId: String,
-        payloadJson: String? = null,
+        input: PassQcInput,
     ) {
-        val events = eventRepository.getEventsForWorkItem(workItemId)
+        val events = eventRepository.getEventsForWorkItem(input.workItemId)
         ensureEvidencePolicySatisfied(
-            workItemId = workItemId,
+            workItemId = input.workItemId,
             events = events,
             evidenceRepository = evidenceRepository,
             qcEvidencePolicy = qcEvidencePolicy,
@@ -41,9 +48,11 @@ class PassQcUseCase(
         val inspector = authRepository.currentUser() ?: error("User must be logged in")
         require(inspector.role == Role.QC) { "Only QC inspectors can mark pass" }
 
+        val payloadJson = buildPayloadJson(input)
+
         val event = Event(
             id = UUID.randomUUID().toString(),
-            workItemId = workItemId,
+            workItemId = input.workItemId,
             type = EventType.QC_PASSED,
             timestamp = timeProvider.nowMillis(),
             actorId = inspector.id,
@@ -54,4 +63,55 @@ class PassQcUseCase(
 
         eventRepository.appendEvent(event)
     }
+
+    private fun buildPayloadJson(input: PassQcInput): String {
+        val items = input.checklist.items
+        val totals = ChecklistTotals(
+            ok = items.count { it.state == QcCheckState.OK },
+            notOk = items.count { it.state == QcCheckState.NOT_OK },
+            na = items.count { it.state == QcCheckState.NA },
+        )
+
+        val summary = ChecklistSummary(
+            totals = totals,
+            items = items.map { item ->
+                ChecklistItemState(
+                    id = item.id,
+                    state = item.state,
+                )
+            },
+        )
+
+        val payload = PassQcPayload(
+            checklist = summary,
+            comment = input.comment,
+        )
+
+        return Json.encodeToString(payload)
+    }
 }
+
+@Serializable
+private data class PassQcPayload(
+    val checklist: ChecklistSummary,
+    val comment: String?,
+)
+
+@Serializable
+private data class ChecklistSummary(
+    val totals: ChecklistTotals,
+    val items: List<ChecklistItemState>,
+)
+
+@Serializable
+private data class ChecklistTotals(
+    val ok: Int,
+    val notOk: Int,
+    val na: Int,
+)
+
+@Serializable
+private data class ChecklistItemState(
+    val id: String,
+    val state: QcCheckState,
+)

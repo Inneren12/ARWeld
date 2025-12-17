@@ -15,6 +15,13 @@ import com.example.arweld.core.domain.policy.QcEvidencePolicy
 import com.example.arweld.core.domain.policy.QcEvidencePolicyException
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
+import com.example.arweld.core.domain.work.model.QcCheckState
+import com.example.arweld.core.domain.work.model.QcChecklistItem
+import com.example.arweld.core.domain.work.model.QcChecklistResult
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
@@ -53,7 +60,13 @@ class QcOutcomeUseCaseTest {
 
         assertThrows(QcEvidencePolicyException::class.java) {
             runBlocking {
-                useCase(workItemId, payloadJson = """{"notes":"missing evidence"}""")
+                useCase(
+                    PassQcInput(
+                        workItemId = workItemId,
+                        checklist = sampleChecklist(),
+                        comment = "missing evidence",
+                    ),
+                )
             }
         }
         val events = eventRepository.getEventsForWorkItem(workItemId)
@@ -111,13 +124,35 @@ class QcOutcomeUseCaseTest {
             qcEvidencePolicy = qcEvidencePolicy,
         )
 
-        useCase(workItemId, payloadJson = """{"notes":"all good"}""")
+        useCase(
+            PassQcInput(
+                workItemId = workItemId,
+                checklist = sampleChecklist(),
+                comment = "all good",
+            ),
+        )
 
         val events = eventRepository.getEventsForWorkItem(workItemId)
         assertEquals(2, events.size)
         val qcPassed = events.last()
         assertEquals(EventType.QC_PASSED, qcPassed.type)
-        assertEquals("""{"notes":"all good"}""", qcPassed.payloadJson)
+        val payload = Json.parseToJsonElement(qcPassed.payloadJson!!).jsonObject
+        val checklist = payload.getValue("checklist").jsonObject
+        val totals = checklist.getValue("totals").jsonObject
+        assertEquals(1, totals.getValue("ok").jsonPrimitive.int)
+        assertEquals(1, totals.getValue("notOk").jsonPrimitive.int)
+        assertEquals(1, totals.getValue("na").jsonPrimitive.int)
+
+        val items = checklist.getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(
+            listOf("geometry", "fasteners", "marking"),
+            items.map { it.getValue("id").jsonPrimitive.content },
+        )
+        assertEquals(
+            listOf("OK", "NOT_OK", "NA"),
+            items.map { it.getValue("state").jsonPrimitive.content },
+        )
+        assertEquals("all good", payload.getValue("comment").jsonPrimitive.content)
         assertEquals(deviceInfoProvider.deviceId, qcPassed.deviceId)
     }
 
@@ -152,6 +187,16 @@ class QcOutcomeUseCaseTest {
         val qcFailed = events.last()
         assertEquals(EventType.QC_FAILED_REWORK, qcFailed.type)
         assertEquals("""{"severity":"MAJOR"}""", qcFailed.payloadJson)
+    }
+
+    private fun sampleChecklist(): QcChecklistResult {
+        return QcChecklistResult(
+            items = listOf(
+                QcChecklistItem(id = "geometry", state = QcCheckState.OK),
+                QcChecklistItem(id = "fasteners", state = QcCheckState.NOT_OK),
+                QcChecklistItem(id = "marking", state = QcCheckState.NA),
+            ),
+        )
     }
 
     private fun qcStartedEvent(workItemId: String): Event {

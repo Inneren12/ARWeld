@@ -5,12 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.arweld.core.domain.model.WorkItem
 import com.example.arweld.core.domain.work.WorkRepository
 import com.example.arweld.core.domain.work.usecase.FailQcUseCase
+import com.example.arweld.core.domain.work.usecase.PassQcInput
 import com.example.arweld.core.domain.work.usecase.PassQcUseCase
 import com.example.arweld.core.domain.work.usecase.StartQcInspectionUseCase
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.evidence.EvidenceRepository
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
 import com.example.arweld.core.domain.policy.QcEvidencePolicyResult
+import com.example.arweld.core.domain.work.model.QcChecklistResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -89,7 +91,15 @@ class QcStartViewModel @Inject constructor(
     }
 
     fun onPassQc() {
-        performQcOutcome { workItemId -> passQcUseCase(workItemId) }
+        performQcOutcome { workItemId ->
+            passQcUseCase(
+                PassQcInput(
+                    workItemId = workItemId,
+                    checklist = QcChecklistResult(emptyList()),
+                    comment = null,
+                ),
+            )
+        }
     }
 
     fun onFailQc() {

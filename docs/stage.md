@@ -620,6 +620,21 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - ViewModel holds mutable checklist state with update/reset helpers and default items.
 - Documentation reflects the checklist domain and location.
 
+### **S3-16: PassQcUseCase** ✅ COMPLETED
+
+**Goal:** Enforce evidence policy and persist a QC_PASSED event that captures checklist outcomes and inspector comments.
+
+**What Was Implemented:**
+- Added `PassQcInput(workItemId, checklist: QcChecklistResult, comment)` to formalize inputs and avoid raw payload JSON callers.
+- Updated `PassQcUseCase` to load timeline events + evidence, gate with `QcEvidencePolicy`, and on success emit `QC_PASSED` with a serialized payload containing checklist totals (OK/NOT_OK/NA counts), per-item states, and the optional comment alongside actor/device/timestamp metadata.
+- Introduced domain checklist models (`QcCheckState`, `QcChecklistItem`, `QcChecklistResult`) under `core-domain/work/model` for outcome serialization.
+- Documentation refreshed (`MODULES.md`, `FILE_OVERVIEW.md`, this file) to note the new input contract and payload shape.
+
+**Acceptance Criteria:**
+- `PassQcUseCase` compiles and rejects attempts when `QcEvidencePolicy` fails.
+- Successful execution appends a `QC_PASSED` event whose payload JSON carries the checklist summary plus optional comment.
+- Documentation reflects the new input object, checklist model location, and payload structure.
+
 ### **S1-16: AuthRepository (mock login)** ✅ COMPLETED
 
 **Goal:** Provide a mock authentication flow that returns role-based users and caches the active session for the app lifetime.
