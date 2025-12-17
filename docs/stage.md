@@ -1442,6 +1442,7 @@ class StartQcInspectionUseCase(
 **Photo Capture:**
 - **S3-06:** PhotoCaptureService implemented with CameraX still capture, returning the saved `Uri` + file size and writing JPEGs
 to `files/evidence/photos/`.
+- **S3-07:** Add shared `computeSha256(file)` utility (chunked read) with 1–2 MB test to persist evidence file hashes alongside metadata.
 - CameraX photo capture
 - Save to app-specific storage: `files/evidence/photos/{timestamp}.jpg` (workItemId scoping can be added when the capture flow knows the item)
 - Compute SHA-256 hash
