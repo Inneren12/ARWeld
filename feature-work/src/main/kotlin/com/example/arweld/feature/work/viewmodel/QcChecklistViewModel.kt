@@ -9,13 +9,41 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 
-enum class QcCheckState { OK, NOT_OK, NA }
+/**
+ * Holds QC checklist selections for the current inspection.
+ */
+@HiltViewModel
+class QcChecklistViewModel @Inject constructor() : ViewModel() {
+
+    private val _checklistResult = MutableStateFlow(
+        QcChecklistResult(
+            items = defaultChecklistTemplates.map { template ->
+                template.toItem(state = ChecklistItemState.NA)
+            }
+        )
+    )
+    val checklistResult: StateFlow<QcChecklistResult> = _checklistResult.asStateFlow()
+
+    fun updateItemState(id: String, newState: ChecklistItemState) {
+        _checklistResult.value = _checklistResult.value.copy(
+            items = _checklistResult.value.items.map { item ->
+                if (item.id == id) item.copy(state = newState) else item
+            }
+        )
+    }
+}
+
+enum class ChecklistItemState {
+    OK,
+    NOT_OK,
+    NA,
+}
 
 data class QcChecklistItem(
     val id: String,
     val title: String,
+    val required: Boolean,
     val description: String?,
     val state: QcCheckState,
 )

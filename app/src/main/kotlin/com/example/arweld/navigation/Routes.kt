@@ -6,6 +6,7 @@ const val ROUTE_SCAN_CODE = "scan_code"
 const val ROUTE_ASSEMBLER_QUEUE = "assembler_queue"
 const val ROUTE_QC_QUEUE = "qc_queue"
 const val ROUTE_QC_START = "qc_start"
+const val ROUTE_QC_CHECKLIST = "qc_checklist"
 const val ROUTE_WORK_ITEM_SUMMARY = "work_item_summary"
 const val ROUTE_TIMELINE = "timeline"
 const val ROUTE_AR_VIEW = "ar_view"
@@ -20,4 +21,8 @@ fun arViewRoute(workItemId: String? = null): String {
 
 fun qcStartRoute(workItemId: String): String {
     return "$ROUTE_QC_START?workItemId=$workItemId"
+}
+
+fun qcChecklistRoute(workItemId: String): String {
+    return "$ROUTE_QC_CHECKLIST?workItemId=$workItemId"
 }

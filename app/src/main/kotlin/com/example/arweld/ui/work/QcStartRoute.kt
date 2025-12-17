@@ -10,6 +10,7 @@ import com.example.arweld.feature.work.ui.QcStartScreen
 import com.example.arweld.feature.work.viewmodel.QcStartViewModel
 import com.example.arweld.navigation.ROUTE_QC_QUEUE
 import com.example.arweld.navigation.arViewRoute
+import com.example.arweld.navigation.qcChecklistRoute
 
 @Composable
 fun QcStartRoute(
@@ -31,6 +32,7 @@ fun QcStartRoute(
         workItemId = workItemId,
         uiState = uiState,
         onNavigateToAr = { id -> navController.navigate(arViewRoute(id)) },
+        onOpenChecklist = { id -> navController.navigate(qcChecklistRoute(id)) },
         onPassQc = { viewModel.onPassQc() },
         onFailQc = { viewModel.onFailQc() },
         onBackToQueue = {
