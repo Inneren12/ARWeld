@@ -9,6 +9,7 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/WorkItemSummaryScreen.kt` — Composable that shows WorkItem id/code/type, derived `WorkItemState`, and role-aware assembler actions (claim/start/mark ready for QC).
 - `app/src/main/kotlin/com/example/arweld/ui/work/WorkItemSummaryRoute.kt` — NavHost wrapper that forwards `workItemId` arguments from ScanCode/AssemblerQueue into the Hilt ViewModel.
 - `core-domain/src/test/kotlin/com/example/arweld/core/domain/state/WorkItemReducerHappyPathTest.kt` — Reducer unit tests covering happy path and fail→rework→ready→pass rework flow.
+- `feature-work/src/main/kotlin/com/example/arweld/feature/work/viewmodel/QcChecklistViewModel.kt` — Holds `QcChecklistResult` + item-state updates for the 5-point QC checklist (geometry, completeness, fasteners, marking, cleanliness).
 
 ### AR view and rendering (feature-arview)
 

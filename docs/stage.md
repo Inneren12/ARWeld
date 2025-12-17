@@ -606,6 +606,20 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - QC flows can invoke the method after AR screenshot capture.
 - Documentation reflects the new API and metadata fields.
 
+### **S3-14: QcChecklistItem and QcChecklistResult** ✅ COMPLETED
+
+**Goal:** Add QC checklist models and a ViewModel to manage local inspection states for five standard checkpoints.
+
+**What Was Implemented:**
+- Introduced `QcCheckState` plus `QcChecklistItem`/`QcChecklistResult` data classes in `feature-work/viewmodel`.
+- Added `QcChecklistViewModel` that seeds five localized defaults (geometry, completeness, fasteners, marking, cleanliness) via strings resources and exposes `StateFlow` updates for item states and reset.
+- Created checklist title strings in `feature-work` resources for localization and documented locations in `MODULES.md` and `FILE_OVERVIEW.md`.
+
+**Acceptance Criteria:**
+- Checklist models compile and are available to QC flows.
+- ViewModel holds mutable checklist state with update/reset helpers and default items.
+- Documentation reflects the checklist domain and location.
+
 ### **S1-16: AuthRepository (mock login)** ✅ COMPLETED
 
 **Goal:** Provide a mock authentication flow that returns role-based users and caches the active session for the app lifetime.
