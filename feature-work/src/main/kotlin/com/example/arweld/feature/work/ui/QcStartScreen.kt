@@ -30,6 +30,7 @@ fun QcStartScreen(
     workItemId: String?,
     uiState: QcStartUiState,
     onNavigateToAr: (String) -> Unit,
+    onOpenChecklist: (String) -> Unit,
     onPassQc: () -> Unit,
     onFailQc: () -> Unit,
     onBackToQueue: () -> Unit,
@@ -138,6 +139,14 @@ fun QcStartScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Перейти в AR")
+                    }
+
+                    Button(
+                        enabled = resolvedId != null,
+                        onClick = { resolvedId?.let(onOpenChecklist) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Заполнить чеклист")
                     }
 
                     val buttonsEnabled = resolvedId != null && uiState.canCompleteQc && !uiState.actionInProgress

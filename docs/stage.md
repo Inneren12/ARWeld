@@ -1616,6 +1616,11 @@ mapOf(
 - FAIL can be selected even with partial checklist (QC documents what's wrong)
 - Checklist + notes + evidence package allows Assembler/Supervisor to understand rejection
 
+**S3-15 — QcChecklistScreen (feature-work):**
+- Introduce `QcChecklistViewModel` exposing `QcChecklistResult` with the S3-14 weld checklist items and `updateItemState(id, newState)` for 3-state changes (OK/NOT_OK/NA).
+- Add `QcChecklistScreen(viewModel, onContinue)` showing a lazy list of checklist rows with a 3-option selector and a bottom CTA: “Продолжить → выбор PASS/FAIL”.
+- Wire navigation so continuing from the checklist returns the inspector to the PASS/FAIL decision step (QcStart) after filling the checklist.
+
 ---
 
 ## Sprint 4 (Weeks 7–8): Supervisor Dashboard and Control

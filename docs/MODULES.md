@@ -343,15 +343,18 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
   - `AssemblerQueueScreen.kt` — 🚧 S2-07 grouped queue view with clickable items
   - `QcQueueScreen.kt` — 🚧 S3-02 list of READY_FOR_QC/QC_IN_PROGRESS items with navigation to QC start
   - `QcStartScreen.kt` — 🚧 S3-05 entry screen for QC inspection showing work info + navigation to AR/back to queue
+  - `QcChecklistScreen.kt` — 🚧 S3-15 editable checklist with 3-state toggles (OK/NOT_OK/NA) and a continue CTA toward PASS/FAIL
 - `viewmodel/` — `AssemblerQueueViewModel.kt` derives grouped lists from `WorkRepository.getMyQueue`
   - `QcQueueViewModel.kt` — Sprint 3 view model that loads READY_FOR_QC/QC_IN_PROGRESS items from `WorkRepository.getQcQueue()`
     and sorts them by time spent in READY_FOR_QC (oldest first by default)
   - `QcStartViewModel.kt` — Calls `StartQcInspectionUseCase` once and exposes minimal WorkItem details (id/code/zone) for the start screen
+  - `QcChecklistViewModel.kt` — Holds the current checklist selection (`QcChecklistResult`) and updates item state via `updateItemState(id, state)`
 - `camera/PhotoCaptureService.kt` — Interface for capturing photos that returns a saved `Uri` and file size; implemented in the app module via CameraX
 - `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` forwards `workItemId` into the Hilt ViewModel and renders feature UI
   - `ui/work/AssemblerQueueRoute.kt` wires Hilt VM + navigation to WorkItemSummary
   - `ui/work/QcQueueRoute.kt` wires Hilt VM + navigation into QC start flow
   - `ui/work/QcStartRoute.kt` injects `QcStartViewModel`, triggers `StartQcInspectionUseCase`, and surfaces AR/back navigation
+  - `ui/work/QcChecklistRoute.kt` wires the checklist screen + ViewModel and navigates back to PASS/FAIL selection
 
 **Notes:**
 - "feature:work" may also be called "feature:assembler"
