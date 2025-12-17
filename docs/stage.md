@@ -1553,6 +1553,10 @@ data class ArScreenshotMetadata(
 - Once evidence requirements met, Pass/Fail buttons enable
 - Supervisor later sees all evidence linked to QC decision
 
+**S3-13 — PASS/FAIL UI gating (QcChecklist/final QC screen):**
+- `QcStartViewModel` runs `QcEvidencePolicy.check(...)` after loading events + evidence and surfaces `canCompleteQc` + reasons.
+- `QcStartScreen` disables PASS/FAIL buttons until `canCompleteQc` is true and shows “требуются AR-скрин и фото” next to the buttons when requirements are missing.
+
 ### 3.5 QC Checklist v1
 
 **Minimal Checklist:**
