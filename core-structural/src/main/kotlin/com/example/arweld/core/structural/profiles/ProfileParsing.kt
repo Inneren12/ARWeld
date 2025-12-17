@@ -16,7 +16,7 @@ fun parseProfileString(raw: String): ParsedProfileId {
     val patterns = listOf(
         ProfileType.W to Regex("^(?i)\\s*W\\s*([0-9A-Za-z./\\-xX\\s]+)\\s*$"),
         ProfileType.HSS to Regex("^(?i)\\s*HSS\\s*([0-9A-Za-z./\\-xX\\s]+)\\s*$"),
-        ProfileType.C to Regex("^(?i)\\s*C\\s*([0-9A-Za-z./\\-xX\\s]+)\\s*$"),
+        ProfileType.C to Regex("^(?i)\\s*(?:MC|C)\\s*([0-9A-Za-z./\\-xX\\s]+)\\s*$"),
         ProfileType.L to Regex("^(?i)\\s*L\\s*([0-9A-Za-z./\\-xX\\s]+)\\s*$"),
         ProfileType.PL to Regex("^(?i)\\s*PL\\s*([0-9A-Za-z./\\-xX\\s]+)\\s*$")
     )
