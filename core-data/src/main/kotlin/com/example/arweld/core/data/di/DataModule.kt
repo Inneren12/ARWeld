@@ -23,12 +23,15 @@ import com.example.arweld.core.data.repository.WorkItemRepositoryImpl
 import com.example.arweld.core.domain.auth.AuthRepository
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.evidence.EvidenceRepository
+import com.example.arweld.core.domain.policy.QcEvidencePolicy
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
 import com.example.arweld.core.domain.work.ResolveWorkItemByCodeUseCase
 import com.example.arweld.core.domain.work.WorkRepository
 import com.example.arweld.core.domain.work.usecase.ClaimWorkUseCase
 import com.example.arweld.core.domain.work.usecase.MarkReadyForQcUseCase
+import com.example.arweld.core.domain.work.usecase.FailQcUseCase
+import com.example.arweld.core.domain.work.usecase.PassQcUseCase
 import com.example.arweld.core.domain.work.usecase.StartQcInspectionUseCase
 import com.example.arweld.core.domain.work.usecase.StartWorkUseCase
 import dagger.Binds
@@ -98,6 +101,10 @@ object DataModule {
 
     @Provides
     @Singleton
+    fun provideQcEvidencePolicy(): QcEvidencePolicy = QcEvidencePolicy()
+
+    @Provides
+    @Singleton
     fun provideStartQcInspectionUseCase(
         eventRepository: EventRepository,
         authRepository: AuthRepository,
@@ -109,6 +116,46 @@ object DataModule {
             authRepository = authRepository,
             timeProvider = timeProvider,
             deviceInfoProvider = deviceInfoProvider,
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun providePassQcUseCase(
+        eventRepository: EventRepository,
+        evidenceRepository: EvidenceRepository,
+        authRepository: AuthRepository,
+        timeProvider: TimeProvider,
+        deviceInfoProvider: DeviceInfoProvider,
+        qcEvidencePolicy: QcEvidencePolicy,
+    ): PassQcUseCase {
+        return PassQcUseCase(
+            eventRepository = eventRepository,
+            evidenceRepository = evidenceRepository,
+            authRepository = authRepository,
+            timeProvider = timeProvider,
+            deviceInfoProvider = deviceInfoProvider,
+            qcEvidencePolicy = qcEvidencePolicy,
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideFailQcUseCase(
+        eventRepository: EventRepository,
+        evidenceRepository: EvidenceRepository,
+        authRepository: AuthRepository,
+        timeProvider: TimeProvider,
+        deviceInfoProvider: DeviceInfoProvider,
+        qcEvidencePolicy: QcEvidencePolicy,
+    ): FailQcUseCase {
+        return FailQcUseCase(
+            eventRepository = eventRepository,
+            evidenceRepository = evidenceRepository,
+            authRepository = authRepository,
+            timeProvider = timeProvider,
+            deviceInfoProvider = deviceInfoProvider,
+            qcEvidencePolicy = qcEvidencePolicy,
         )
     }
 }

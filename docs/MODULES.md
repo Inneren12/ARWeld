@@ -110,6 +110,7 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
   - `reduce(events)` — Derives `WorkItemState` from the ordered event list (pure, deterministic)
   - `RolePolicy` — ✅ Implemented in S1-04: Defines which roles can perform which actions via `hasPermission(role, permission)` and extension function `Role.hasPermission(permission)`
   - `QcEvidencePolicy` — QC evidence gate (v1) requiring ≥1 AR screenshot + ≥1 photo captured after `QC_STARTED`
+  - `PassQcUseCase` / `FailQcUseCase` (S3-12) call `QcEvidencePolicy` and throw `QcEvidencePolicyException` when evidence is insufficient before appending QC events
 - Repository contracts:
   - `WorkRepository` — Domain-facing interface for fetching WorkItems by code and deriving WorkItemState/queues from the event log
   - `EventRepository` — Domain-facing interface for appending events (single/batch) and querying timelines by WorkItem
@@ -198,6 +199,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
     - Binds `EvidenceRepository` → `EvidenceRepositoryImpl`
     - Binds `AuthRepository` → `AuthRepositoryImpl` (mock login backed by seeded users + SharedPreferences cache)
     - Binds `WorkRepository` (core-domain) → `WorkRepositoryImpl` (core-data)
+  - Provides QC policy + outcomes: `QcEvidencePolicy`, `PassQcUseCase`, `FailQcUseCase`, `StartQcInspectionUseCase`
 - **Scope:** `@Singleton` — All repositories and database are application-scoped
 - **Where to add new bindings:** Add @Binds or @Provides methods to these modules
 
