@@ -267,6 +267,8 @@ ARWeld/
 - `metaJson` stores flexible metadata (camera params, AR alignment, units). `createdAt` uses milliseconds since epoch.
 - EvidenceRepository currently handles **metadata only** (Room persistence of URIs/checksums); photo capture is provided by
   `PhotoCaptureService` (CameraX) which saves files to `filesDir/evidence/photos/`. Future AR/video capture will follow the same pattern.
+- SHA-256 hashing for evidence files lives in `core-data/src/main/kotlin/com/example/arweld/core/data/file/ChecksumCalculator.kt`
+  via `computeSha256(file: File)`, and the resulting checksum is stored on the `Evidence.sha256` field for integrity checks.
 
 ## Repositories and derived state
 - **WorkRepository (domain interface):** `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/WorkRepository.kt`
