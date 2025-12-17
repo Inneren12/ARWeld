@@ -1,24 +1,9 @@
 package com.example.arweld.core.structural.profiles
 
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-
-/**
- * Catalog entry describing a structural steel profile.
- *
- * All geometry values are expressed in millimeters (mm). Mass properties are
- * expressed as kilograms per meter (kg/m).
- */
-@Serializable
-data class ProfileSpec(
-    val type: ProfileType,
-    val designation: String,       // e.g., "W310x39"
-    val depthMm: Double,           // overall depth, mm
-    val widthMm: Double?,          // flange/leg/plate width, mm (null if not applicable)
-    val thicknessWebMm: Double?,   // web thickness, mm
-    val thicknessFlangeMm: Double?,// flange/leg/plate thickness, mm
-    val areaMm2: Double?,          // cross-sectional area, mm^2
-    val weightPerMeterKg: Double?  // linear mass, kg/m
-)
+import kotlinx.serialization.json.JsonClassDiscriminator
 
 @Serializable
 enum class ProfileType {
@@ -28,3 +13,96 @@ enum class ProfileType {
     L,
     PL
 }
+
+@Serializable
+enum class ProfileStandard {
+    CSA,
+    AISC
+}
+
+@Serializable
+@JsonClassDiscriminator("specKind")
+@OptIn(ExperimentalSerializationApi::class)
+sealed interface ProfileSpec {
+    val type: ProfileType
+    val designation: String
+    val standard: ProfileStandard
+    val aliases: List<String>
+    val massKgPerM: Double?
+    val areaMm2: Double?
+}
+
+@Serializable
+@SerialName("WShapeSpec")
+data class WShapeSpec(
+    override val designation: String,
+    override val standard: ProfileStandard = ProfileStandard.CSA,
+    override val aliases: List<String> = emptyList(),
+    override val massKgPerM: Double? = null,
+    override val areaMm2: Double? = null,
+    val dMm: Double,
+    val bfMm: Double,
+    val twMm: Double,
+    val tfMm: Double,
+    val kMm: Double? = null,
+    val rMm: Double? = null,
+    override val type: ProfileType = ProfileType.W
+) : ProfileSpec
+
+@Serializable
+@SerialName("ChannelSpec")
+data class ChannelSpec(
+    override val designation: String,
+    override val standard: ProfileStandard = ProfileStandard.CSA,
+    override val aliases: List<String> = emptyList(),
+    override val massKgPerM: Double? = null,
+    override val areaMm2: Double? = null,
+    val dMm: Double? = null,
+    val bfMm: Double? = null,
+    val twMm: Double? = null,
+    val tfMm: Double? = null,
+    override val type: ProfileType = ProfileType.C
+) : ProfileSpec
+
+@Serializable
+@SerialName("HssSpec")
+data class HssSpec(
+    override val designation: String,
+    override val standard: ProfileStandard = ProfileStandard.CSA,
+    override val aliases: List<String> = emptyList(),
+    override val massKgPerM: Double? = null,
+    override val areaMm2: Double? = null,
+    val hMm: Double,
+    val bMm: Double,
+    val tMm: Double,
+    val cornerRadiusMm: Double? = null,
+    override val type: ProfileType = ProfileType.HSS
+) : ProfileSpec
+
+@Serializable
+@SerialName("AngleSpec")
+data class AngleSpec(
+    override val designation: String,
+    override val standard: ProfileStandard = ProfileStandard.CSA,
+    override val aliases: List<String> = emptyList(),
+    override val massKgPerM: Double? = null,
+    override val areaMm2: Double? = null,
+    val leg1Mm: Double,
+    val leg2Mm: Double,
+    val tMm: Double,
+    val cornerRadiusMm: Double? = null,
+    override val type: ProfileType = ProfileType.L
+) : ProfileSpec
+
+@Serializable
+@SerialName("PlateSpec")
+data class PlateSpec(
+    override val designation: String,
+    override val standard: ProfileStandard = ProfileStandard.CSA,
+    override val aliases: List<String> = emptyList(),
+    override val massKgPerM: Double? = null,
+    override val areaMm2: Double? = null,
+    val tMm: Double,
+    val wMm: Double,
+    override val type: ProfileType = ProfileType.PL
+) : ProfileSpec

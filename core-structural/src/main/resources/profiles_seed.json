@@ -1,132 +1,123 @@
 [
   {
-    "type": "W",
+    "specKind": "WShapeSpec",
     "designation": "W200x27",
-    "depthMm": 203.2,
-    "widthMm": 133.4,
-    "thicknessWebMm": 6.1,
-    "thicknessFlangeMm": 7.6,
+    "dMm": 203.2,
+    "bfMm": 133.4,
+    "twMm": 6.1,
+    "tfMm": 7.6,
     "areaMm2": 3450.0,
-    "weightPerMeterKg": 26.9
+    "massKgPerM": 26.9
   },
   {
-    "type": "W",
+    "specKind": "WShapeSpec",
     "designation": "W310x39",
-    "depthMm": 307.3,
-    "widthMm": 165.1,
-    "thicknessWebMm": 6.4,
-    "thicknessFlangeMm": 9.4,
+    "dMm": 307.3,
+    "bfMm": 165.1,
+    "twMm": 6.4,
+    "tfMm": 9.4,
     "areaMm2": 5050.0,
-    "weightPerMeterKg": 38.9
+    "massKgPerM": 38.9
   },
   {
-    "type": "W",
+    "specKind": "WShapeSpec",
     "designation": "W360x33",
-    "depthMm": 342.9,
-    "widthMm": 171.5,
-    "thicknessWebMm": 5.8,
-    "thicknessFlangeMm": 8.9,
+    "dMm": 342.9,
+    "bfMm": 171.5,
+    "twMm": 5.8,
+    "tfMm": 8.9,
     "areaMm2": 4210.0,
-    "weightPerMeterKg": 32.9
+    "massKgPerM": 32.9
   },
   {
-    "type": "W",
+    "specKind": "WShapeSpec",
     "designation": "W410x60",
-    "depthMm": 419.1,
-    "widthMm": 178.8,
-    "thicknessWebMm": 8.6,
-    "thicknessFlangeMm": 12.7,
+    "dMm": 419.1,
+    "bfMm": 178.8,
+    "twMm": 8.6,
+    "tfMm": 12.7,
     "areaMm2": 7690.0,
-    "weightPerMeterKg": 60.3
+    "massKgPerM": 60.3
   },
   {
-    "type": "HSS",
+    "specKind": "HssSpec",
     "designation": "HSS 6x6x3/8",
-    "depthMm": 152.4,
-    "widthMm": 152.4,
-    "thicknessWebMm": 8.9,
-    "thicknessFlangeMm": 8.9,
+    "hMm": 152.4,
+    "bMm": 152.4,
+    "tMm": 8.9,
     "areaMm2": 4280.0,
-    "weightPerMeterKg": 52.9
+    "massKgPerM": 52.9
   },
   {
-    "type": "HSS",
+    "specKind": "HssSpec",
     "designation": "HSS 8x4x1/4",
-    "depthMm": 203.2,
-    "widthMm": 101.6,
-    "thicknessWebMm": 6.4,
-    "thicknessFlangeMm": 6.4,
+    "hMm": 203.2,
+    "bMm": 101.6,
+    "tMm": 6.4,
     "areaMm2": 3620.0,
-    "weightPerMeterKg": 28.3
+    "massKgPerM": 28.3
   },
   {
-    "type": "HSS",
+    "specKind": "HssSpec",
     "designation": "HSS 4x4x5/16",
-    "depthMm": 101.6,
-    "widthMm": 101.6,
-    "thicknessWebMm": 7.9,
-    "thicknessFlangeMm": 7.9,
+    "hMm": 101.6,
+    "bMm": 101.6,
+    "tMm": 7.9,
     "areaMm2": 3430.0,
-    "weightPerMeterKg": 26.9
+    "massKgPerM": 26.9
   },
   {
-    "type": "C",
+    "specKind": "ChannelSpec",
     "designation": "C200x20",
-    "depthMm": 200.0,
-    "widthMm": 76.0,
-    "thicknessWebMm": 6.0,
-    "thicknessFlangeMm": 8.0,
+    "dMm": 200.0,
+    "bfMm": 76.0,
+    "twMm": 6.0,
+    "tfMm": 8.0,
     "areaMm2": 2550.0,
-    "weightPerMeterKg": 20.0
+    "massKgPerM": 20.0
   },
   {
-    "type": "C",
+    "specKind": "ChannelSpec",
     "designation": "C380x50",
-    "depthMm": 380.0,
-    "widthMm": 100.0,
-    "thicknessWebMm": 8.0,
-    "thicknessFlangeMm": 13.0,
+    "dMm": 380.0,
+    "bfMm": 100.0,
+    "twMm": 8.0,
+    "tfMm": 13.0,
     "areaMm2": 6300.0,
-    "weightPerMeterKg": 49.0
+    "massKgPerM": 49.0
   },
   {
-    "type": "L",
+    "specKind": "AngleSpec",
     "designation": "L4x4x3/8",
-    "depthMm": 101.6,
-    "widthMm": 101.6,
-    "thicknessWebMm": 9.5,
-    "thicknessFlangeMm": 9.5,
+    "leg1Mm": 101.6,
+    "leg2Mm": 101.6,
+    "tMm": 9.5,
     "areaMm2": 1740.0,
-    "weightPerMeterKg": 13.0
+    "massKgPerM": 13.0
   },
   {
-    "type": "L",
+    "specKind": "AngleSpec",
     "designation": "L3x2x1/4",
-    "depthMm": 76.2,
-    "widthMm": 50.8,
-    "thicknessWebMm": 6.4,
-    "thicknessFlangeMm": 6.4,
+    "leg1Mm": 76.2,
+    "leg2Mm": 50.8,
+    "tMm": 6.4,
     "areaMm2": 1030.0,
-    "weightPerMeterKg": 8.1
+    "massKgPerM": 8.1
   },
   {
-    "type": "PL",
+    "specKind": "PlateSpec",
     "designation": "PL 10x250",
-    "depthMm": 10.0,
-    "widthMm": 250.0,
-    "thicknessWebMm": 10.0,
-    "thicknessFlangeMm": 10.0,
+    "tMm": 10.0,
+    "wMm": 250.0,
     "areaMm2": 2500.0,
-    "weightPerMeterKg": 19.6
+    "massKgPerM": 19.6
   },
   {
-    "type": "PL",
+    "specKind": "PlateSpec",
     "designation": "PL 20x300",
-    "depthMm": 20.0,
-    "widthMm": 300.0,
-    "thicknessWebMm": 20.0,
-    "thicknessFlangeMm": 20.0,
+    "tMm": 20.0,
+    "wMm": 300.0,
     "areaMm2": 6000.0,
-    "weightPerMeterKg": 47.1
+    "massKgPerM": 47.1
   }
 ]
