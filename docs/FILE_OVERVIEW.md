@@ -504,13 +504,13 @@ fun NewScreen(
 
 ### "I need to change QC evidence policy requirements"
 
-**Location:** `core/domain/src/main/kotlin/com/example/arweld/core/domain/policy/QcEvidencePolicy.kt`
+**Location:** `core-domain/src/main/kotlin/com/example/arweld/core/domain/policy/QcEvidencePolicy.kt`
 
 **What it does today (v1):** `check(workItemId, events, evidenceList)` ensures **at least one AR screenshot** and **at least one photo** exist **after the latest `QC_STARTED` event** for that WorkItem. Returns `QcEvidencePolicyResult.Ok` or `Failed(reasons)` with human-readable messages for UI/error handling.
 
 **Call sites:** pass/fail use cases (`PassQcUseCase`, `FailQcUseCase`) should invoke `check(...)` before emitting `QC_PASSED`/`QC_FAILED_REWORK` events and surface `Failed.reasons` in the UI banner/dialog.
 
-**To extend requirements:** add new rule checks inside `QcEvidencePolicy.check` (e.g., minimum video count or metadata validations) by appending to the `missingReasons` list. Keep reasons descriptive so the UI can present guidance without extra mapping.
+**To extend requirements:** add new entries to the requirement list inside `QcEvidencePolicy.check` (e.g., minimum video count or metadata validations) so new rules append to `missingReasons`. Keep reasons descriptive so the UI can present guidance without extra mapping.
 
 ---
 
