@@ -265,10 +265,10 @@ ARWeld/
 - Domain definitions live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/evidence/` (`EvidenceKind.kt`, `Evidence.kt`).
 - To add a new evidence type (e.g., sensor log), extend `EvidenceKind` and update downstream clients (policies, storage, UI).
 - `metaJson` stores flexible metadata (camera params, AR alignment, units). `createdAt` uses milliseconds since epoch.
-- EvidenceRepository currently handles **metadata only** (Room persistence of URIs/checksums); photo capture is provided by
-  `PhotoCaptureService` (CameraX) which saves files to `filesDir/evidence/photos/`. Future AR/video capture will follow the same pattern.
+- `EvidenceRepository` exposes `savePhoto(eventId, file)` implemented in `core-data/src/main/kotlin/com/example/arweld/core/data/repository/EvidenceRepositoryImpl.kt` to hash the file, persist metadata, and return the domain `Evidence`.
+- Photo capture is provided by `PhotoCaptureService` (CameraX) which saves files to `filesDir/evidence/photos/`. Future AR/video capture will follow the same pattern.
 - SHA-256 hashing for evidence files lives in `core-data/src/main/kotlin/com/example/arweld/core/data/file/ChecksumCalculator.kt`
-  via `computeSha256(file: File)`, and the resulting checksum is stored on the `Evidence.sha256` field for integrity checks.
+  via `computeSha256(file: File)`; `savePhoto` stores the resulting checksum on the `Evidence.sha256` field for integrity checks.
 
 ## Repositories and derived state
 - **WorkRepository (domain interface):** `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/WorkRepository.kt`

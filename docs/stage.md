@@ -563,6 +563,20 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - Repository compiles without file storage dependencies; URIs are treated as opaque references.
 - Docs capture the metadata-only limitation for S1.
 
+### **S3-08: EvidenceRepository.savePhoto** ✅ COMPLETED
+
+**Goal:** Extend EvidenceRepository with a photo-specific save method that hashes captured files and persists metadata.
+
+**What Was Implemented:**
+- Added `savePhoto(eventId, file)` to the domain `EvidenceRepository` contract.
+- Implemented hashing + metadata persistence in `EvidenceRepositoryImpl` using `computeSha256` and a `TimeProvider` timestamp.
+- Updated documentation (`MODULES.md`, `FILE_OVERVIEW.md`, this file) to reflect the new responsibility.
+
+**Acceptance Criteria:**
+- `savePhoto` computes SHA-256, builds an `Evidence` record (kind=PHOTO, URI from file), and stores it via Room.
+- The method returns the stored `Evidence` for downstream QC flows.
+- Documentation reflects the new API and implementation location.
+
 ### **S1-16: AuthRepository (mock login)** ✅ COMPLETED
 
 **Goal:** Provide a mock authentication flow that returns role-based users and caches the active session for the app lifetime.
