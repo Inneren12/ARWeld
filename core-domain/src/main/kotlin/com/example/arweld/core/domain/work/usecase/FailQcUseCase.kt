@@ -9,7 +9,18 @@ import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
+import com.example.arweld.core.domain.work.model.QcChecklistResult
 import java.util.UUID
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
+data class FailQcInput(
+    val workItemId: String,
+    val checklist: QcChecklistResult,
+    val reasons: List<String>,
+    val priority: Int,
+    val comment: String?,
+)
 
 /**
  * Marks a work item as requiring rework after QC failure, enforcing evidence requirements first.
@@ -23,16 +34,12 @@ class FailQcUseCase(
     private val qcEvidencePolicy: QcEvidencePolicy,
 ) {
 
-    /**
-     * @param payloadJson optional JSON payload containing notes, checklist, or other QC metadata.
-     */
     suspend operator fun invoke(
-        workItemId: String,
-        payloadJson: String? = null,
+        input: FailQcInput,
     ) {
-        val events = eventRepository.getEventsForWorkItem(workItemId)
+        val events = eventRepository.getEventsForWorkItem(input.workItemId)
         ensureEvidencePolicySatisfied(
-            workItemId = workItemId,
+            workItemId = input.workItemId,
             events = events,
             evidenceRepository = evidenceRepository,
             qcEvidencePolicy = qcEvidencePolicy,
@@ -43,15 +50,32 @@ class FailQcUseCase(
 
         val event = Event(
             id = UUID.randomUUID().toString(),
-            workItemId = workItemId,
+            workItemId = input.workItemId,
             type = EventType.QC_FAILED_REWORK,
             timestamp = timeProvider.nowMillis(),
             actorId = inspector.id,
             actorRole = inspector.role,
             deviceId = deviceInfoProvider.deviceId,
-            payloadJson = payloadJson,
+            payloadJson = buildPayloadJson(input),
         )
 
         eventRepository.appendEvent(event)
     }
+
+    private fun buildPayloadJson(input: FailQcInput): String {
+        val payload = FailQcPayload(
+            checklist = buildChecklistSummary(input.checklist),
+            reasons = input.reasons,
+            priority = input.priority,
+            comment = input.comment,
+        )
+        return Json.encodeToString(payload)
+    }
 }
+
+private data class FailQcPayload(
+    val checklist: ChecklistSummary,
+    val reasons: List<String>,
+    val priority: Int,
+    val comment: String?,
+)

@@ -635,6 +635,21 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - Successful execution appends a `QC_PASSED` event whose payload JSON carries the checklist summary plus optional comment.
 - Documentation reflects the new input object, checklist model location, and payload structure.
 
+### **S3-17: FailQcUseCase** ✅ COMPLETED
+
+**Goal:** Enforce evidence policy and persist a QC_FAILED_REWORK event with failure reasons, priority, checklist summary, and optional comment.
+
+**What Was Implemented:**
+- Added `FailQcInput(workItemId, checklist: QcChecklistResult, reasons: List<String>, priority: Int, comment)` to formalize inputs instead of raw payload JSON.
+- Updated `FailQcUseCase` to reuse the checklist summary builder (totals + per-item states), gate via `QcEvidencePolicy`, and emit `QC_FAILED_REWORK` events with serialized payload containing reasons, priority, checklist summary, and comment plus actor/device/timestamp metadata.
+- Shared checklist payload builder extracted to `QcChecklistPayload.kt` for use by both pass/fail flows, and unit tests now verify the failure payload structure.
+- Documentation refreshed (`MODULES.md`, `FILE_OVERVIEW.md`, this file) to reflect the new fail input contract and payload details.
+
+**Acceptance Criteria:**
+- `FailQcUseCase` enforces `QcEvidencePolicy` and refuses to append events when validation fails.
+- Successful execution appends a `QC_FAILED_REWORK` event whose payload JSON captures reasons, priority, checklist summary (totals + item states), and optional comment.
+- Documentation reflects the new input object, payload shape, and shared checklist serialization helper.
+
 ### **S1-16: AuthRepository (mock login)** ✅ COMPLETED
 
 **Goal:** Provide a mock authentication flow that returns role-based users and caches the active session for the app lifetime.

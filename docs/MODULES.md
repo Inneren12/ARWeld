@@ -110,7 +110,7 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
   - `reduce(events)` — Derives `WorkItemState` from the ordered event list (pure, deterministic)
   - `RolePolicy` — ✅ Implemented in S1-04: Defines which roles can perform which actions via `hasPermission(role, permission)` and extension function `Role.hasPermission(permission)`
 - `QcEvidencePolicy` — QC evidence gate (v1) requiring ≥1 AR screenshot + ≥1 photo captured after `QC_STARTED`
-- `PassQcUseCase` / `FailQcUseCase` (S3-12, S3-16) call `QcEvidencePolicy` with the timeline + aggregated evidence and throw `QcEvidencePolicyException` when evidence is insufficient before appending QC events; the pass flow now accepts `PassQcInput` with `QcChecklistResult` + optional comment and serializes a checklist summary payload for `QC_PASSED`
+- `PassQcUseCase` / `FailQcUseCase` (S3-12, S3-16, S3-17) call `QcEvidencePolicy` with the timeline + aggregated evidence and throw `QcEvidencePolicyException` when evidence is insufficient before appending QC events; the pass flow accepts `PassQcInput` with `QcChecklistResult` + optional comment and serializes a checklist summary payload for `QC_PASSED`, while the fail flow accepts `FailQcInput` (checklist, reasons, priority, optional comment) and serializes the same checklist summary plus reasons/priority/comment for `QC_FAILED_REWORK`; both reuse the checklist summary builder in `QcChecklistPayload.kt`
 - Repository contracts:
   - `WorkRepository` — Domain-facing interface for fetching WorkItems by code and deriving WorkItemState/queues from the event log
   - `EventRepository` — Domain-facing interface for appending events (single/batch) and querying timelines by WorkItem

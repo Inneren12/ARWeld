@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.arweld.core.domain.model.WorkItem
 import com.example.arweld.core.domain.work.WorkRepository
 import com.example.arweld.core.domain.work.usecase.FailQcUseCase
+import com.example.arweld.core.domain.work.usecase.FailQcInput
 import com.example.arweld.core.domain.work.usecase.PassQcInput
 import com.example.arweld.core.domain.work.usecase.PassQcUseCase
 import com.example.arweld.core.domain.work.usecase.StartQcInspectionUseCase
@@ -103,7 +104,17 @@ class QcStartViewModel @Inject constructor(
     }
 
     fun onFailQc() {
-        performQcOutcome { workItemId -> failQcUseCase(workItemId) }
+        performQcOutcome { workItemId ->
+            failQcUseCase(
+                FailQcInput(
+                    workItemId = workItemId,
+                    checklist = QcChecklistResult(emptyList()),
+                    reasons = emptyList(),
+                    priority = 0,
+                    comment = null,
+                ),
+            )
+        }
     }
 
     fun refreshPolicy(workItemId: String? = null) {
