@@ -171,7 +171,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
 - Repository implementations:
   - `WorkItemRepository` ✅ Implemented
   - `EventRepository` ✅ Implemented (Room-backed with centralized EventEntity ↔ Event mappers)
-  - `EvidenceRepository` ✅ Implemented for metadata-only storage (no file I/O yet)
+  - `EvidenceRepository` ✅ Implements photo saving (SHA-256 hashing + metadata persistence)
   - `AuthRepositoryImpl` ✅ S1-16: mock login with in-memory + SharedPreferences caching
   - `WorkRepositoryImpl` ✅ S1-13: derives WorkItemState and queues using Room + reducer
   - `ResolveWorkItemByCodeUseCaseImpl` ✅ S2-04: delegates to `WorkRepository.getWorkItemByCode` for scanner flows
@@ -195,7 +195,7 @@ Data layer providing local storage, repositories, and data access abstractions. 
   - **Module:** `RepositoryModule` (`core-data/src/main/kotlin/.../di/DataModule.kt`)
     - Binds `WorkItemRepository` → `WorkItemRepositoryImpl`
     - Binds `EventRepository` → `EventRepositoryImpl`
-    - Binds `EvidenceRepository` → `EvidenceRepositoryImpl` (metadata-only in S1)
+    - Binds `EvidenceRepository` → `EvidenceRepositoryImpl`
     - Binds `AuthRepository` → `AuthRepositoryImpl` (mock login backed by seeded users + SharedPreferences cache)
     - Binds `WorkRepository` (core-domain) → `WorkRepositoryImpl` (core-data)
 - **Scope:** `@Singleton` — All repositories and database are application-scoped
@@ -235,8 +235,8 @@ Data layer providing local storage, repositories, and data access abstractions. 
 **Notes:**
 - This is the **persistence layer** for the app
 - All feature modules interact with data via repositories (never directly with DAOs)
-- EvidenceRepositoryImpl currently persists only metadata in Room; actual photo/AR/video files will be handled by a later file
-  manager component.
+- EvidenceRepositoryImpl now persists photo metadata after hashing captured files; additional evidence types will be wired in
+  future sprints.
 - Repositories expose Flow or suspend functions for reactive/async data
 - DAOs cover core queries: WorkItem lookup by id/code, ordered event timelines and per-actor history, evidence by event, user roster retrieval, and pending sync queue fetches ordered by creation time
 
