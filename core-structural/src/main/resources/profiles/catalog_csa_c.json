@@ -1,0 +1,26 @@
+{
+  "standard": "CSA",
+  "type": "C",
+  "items": [
+    {
+      "designation": "C200x17",
+      "aliases": ["C200X17", "C 200 x 17"],
+      "dMm": 200.0,
+      "bfMm": 75.0,
+      "twMm": 6.0,
+      "tfMm": 9.0,
+      "massKgPerM": 17.0,
+      "areaMm2": 2170.0
+    },
+    {
+      "designation": "C200x28",
+      "aliases": ["C200X28", "C 200 x 28"],
+      "dMm": 203.2,
+      "bfMm": 76.2,
+      "twMm": 8.1,
+      "tfMm": 12.7,
+      "massKgPerM": 28.0,
+      "areaMm2": 3580.0
+    }
+  ]
+}
