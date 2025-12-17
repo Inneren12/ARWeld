@@ -1,5 +1,7 @@
 package com.example.arweld.core.structural.profiles
 
+import com.example.arweld.core.structural.profiles.parse.normalizeDesignation
+import com.example.arweld.core.structural.profiles.parse.parseProfileString
 import kotlinx.serialization.decodeFromString
 
 class ProfileCatalog(
@@ -72,34 +74,5 @@ class ProfileCatalog(
             }
         }
 
-        internal fun normalizeDesignation(type: ProfileType, rawDesignation: String): String {
-            val compactBody = rawDesignation.trim()
-                .replace("\\s+".toRegex(), "")
-                .replace("X", "x")
-            val uppercaseBody = compactBody.uppercase()
-            val bodyWithoutPrefix = when (type) {
-                ProfileType.HSS, ProfileType.PL -> if (uppercaseBody.startsWith(type.name)) {
-                    compactBody.drop(type.name.length)
-                } else {
-                    compactBody
-                }
-
-                ProfileType.C -> when {
-                    uppercaseBody.startsWith("MC") -> compactBody.drop(2)
-                    uppercaseBody.startsWith(type.name) -> compactBody.drop(type.name.length)
-                    else -> compactBody
-                }
-
-                else -> if (uppercaseBody.startsWith(type.name)) {
-                    compactBody.drop(type.name.length)
-                } else {
-                    compactBody
-                }
-            }
-            return when (type) {
-                ProfileType.HSS, ProfileType.PL -> "${type.name} $bodyWithoutPrefix"
-                else -> "${type.name}$bodyWithoutPrefix"
-            }
-        }
     }
 }
