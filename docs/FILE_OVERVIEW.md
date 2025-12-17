@@ -10,7 +10,7 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/QcChecklistScreen.kt` — QC checklist UI with 3-state toggles (OK/NOT_OK/NA) and a continue CTA that returns to the PASS/FAIL step.
 - `app/src/main/kotlin/com/example/arweld/ui/work/WorkItemSummaryRoute.kt` — NavHost wrapper that forwards `workItemId` arguments from ScanCode/AssemblerQueue into the Hilt ViewModel.
 - `core-domain/src/test/kotlin/com/example/arweld/core/domain/state/WorkItemReducerHappyPathTest.kt` — Reducer unit tests covering happy path and fail→rework→ready→pass rework flow.
-- `feature-work/src/main/kotlin/com/example/arweld/feature/work/viewmodel/QcChecklistViewModel.kt` — Holds `QcChecklistResult` + item-state updates for the 5-point QC checklist (geometry, completeness, fasteners, marking, cleanliness).
+- `feature-work/src/main/kotlin/com/example/arweld/feature/work/viewmodel/QcChecklistViewModel.kt` — Holds UI state for the 5-point QC checklist (geometry, completeness, fasteners, marking, cleanliness); domain checklist models for QC outcomes live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/model/QcChecklistResult.kt` (S3-16).
 
 ### AR view and rendering (feature-arview)
 
@@ -511,7 +511,7 @@ fun NewScreen(
 
 **What it does today (v1):** `check(workItemId, events, evidenceList)` ensures **at least one AR screenshot** and **at least one photo** exist **after the latest `QC_STARTED` event** for that WorkItem. Returns `QcEvidencePolicyResult.Ok` or `Failed(reasons)` with human-readable messages for UI/error handling.
 
-**Call sites:** `PassQcUseCase` and `FailQcUseCase` load timeline events + evidence for a WorkItem, invoke `check(...)`, and throw `QcEvidencePolicyException` when `Failed` instead of emitting `QC_PASSED`/`QC_FAILED_REWORK`. The shared helper `ensureEvidencePolicySatisfied(...)` gathers evidence per event before gating the QC outcome, and UI surfaces `Failed.reasons` in banner/dialogs.
+**Call sites:** `PassQcUseCase` (takes `PassQcInput` with `QcChecklistResult` + optional comment) and `FailQcUseCase` load timeline events + evidence for a WorkItem, invoke `check(...)`, and throw `QcEvidencePolicyException` when `Failed` instead of emitting `QC_PASSED`/`QC_FAILED_REWORK`. `PassQcUseCase` serializes a payload JSON that captures checklist totals (OK/NOT_OK/NA counts), per-item states, and the optional comment for `QC_PASSED`. The shared helper `ensureEvidencePolicySatisfied(...)` gathers evidence per event before gating the QC outcome, and UI surfaces `Failed.reasons` in banner/dialogs.
 
 **To extend requirements:** add new entries to the requirement list inside `QcEvidencePolicy.check` (e.g., minimum video count or metadata validations) so new rules append to `missingReasons`. Keep reasons descriptive so the UI can present guidance without extra mapping.
 
