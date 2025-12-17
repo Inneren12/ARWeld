@@ -1538,48 +1538,7 @@ data class ArScreenshotMetadata(
 
 ### 3.4 QC Policy Gate (core:domain)
 
-**QcEvidencePolicy v1:**
-
-```kotlin
-object QcEvidencePolicy {
-    data class Requirements(
-        val minArScreenshots: Int = 1,
-        val minPhotos: Int = 1,
-        val requireAfterQcStarted: Boolean = true
-    )
-
-    fun validateEvidence(
-        evidence: List<Evidence>,
-        events: List<Event>,
-        requirements: Requirements = Requirements()
-    ): ValidationResult {
-        val qcStartedEvent = events.firstOrNull { it.type == EventType.QC_STARTED }
-            ?: return ValidationResult.NoQcStarted
-
-        val evidenceAfterQc = evidence.filter {
-            it.capturedAt >= qcStartedEvent.timestamp
-        }
-
-        val arScreenshots = evidenceAfterQc.count { it.kind == EvidenceKind.AR_SCREENSHOT }
-        val photos = evidenceAfterQc.count { it.kind == EvidenceKind.PHOTO }
-
-        return when {
-            arScreenshots < requirements.minArScreenshots ->
-                ValidationResult.InsufficientArScreenshots(arScreenshots, requirements.minArScreenshots)
-            photos < requirements.minPhotos ->
-                ValidationResult.InsufficientPhotos(photos, requirements.minPhotos)
-            else -> ValidationResult.Valid
-        }
-    }
-}
-
-sealed class ValidationResult {
-    object Valid : ValidationResult()
-    object NoQcStarted : ValidationResult()
-    data class InsufficientArScreenshots(val actual: Int, val required: Int) : ValidationResult()
-    data class InsufficientPhotos(val actual: Int, val required: Int) : ValidationResult()
-}
-```
+**S3-11 — QcEvidencePolicy v1 (core-domain):** `check(workItemId, events, evidenceList)` finds the latest `QC_STARTED` for the WorkItem and requires **at least one AR screenshot** and **at least one photo** captured **after** that timestamp. Returns `QcEvidencePolicyResult.Ok` or `Failed(reasons)` with UI-friendly messages.
 
 **Pass/Fail Use Cases:**
 

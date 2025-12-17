@@ -146,7 +146,7 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
   - `Permission.kt` — Enum of permissions (CLAIM_WORK, START_QC, PASS_QC, FAIL_QC, VIEW_ALL)
   - `RolePolicy.kt` — Central policy for role-based permissions with extension function
 - `policy/` — Business rules
-  - `QcEvidencePolicy.kt`
+  - `QcEvidencePolicy.kt` — Validates QC evidence gate (v1: requires ≥1 AR screenshot + ≥1 photo captured after QC start)
 - `validation/` — Domain validation logic
   - `ValidationResult.kt`
 

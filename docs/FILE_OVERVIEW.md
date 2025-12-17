@@ -506,24 +506,11 @@ fun NewScreen(
 
 **Location:** `core/domain/src/main/kotlin/com/example/arweld/core/domain/policy/QcEvidencePolicy.kt`
 
-**Steps:**
-1. Modify `Requirements` data class:
-   ```kotlin
-   data class Requirements(
-       val minArScreenshots: Int = 1,
-       val minPhotos: Int = 1,
-       val minVideos: Int = 0,        // Add new requirement
-       val requireAfterQcStarted: Boolean = true
-   )
-   ```
+**What it does today (v1):** `check(workItemId, events, evidenceList)` ensures **at least one AR screenshot** and **at least one photo** exist **after the latest `QC_STARTED` event** for that WorkItem. Returns `QcEvidencePolicyResult.Ok` or `Failed(reasons)` with human-readable messages for UI/error handling.
 
-2. Update `validateEvidence()` logic to check new requirement
+**Call sites:** pass/fail use cases (`PassQcUseCase`, `FailQcUseCase`) should invoke `check(...)` before emitting `QC_PASSED`/`QC_FAILED_REWORK` events and surface `Failed.reasons` in the UI banner/dialog.
 
-3. Update UI in `feature:qc/ui/QcInspectionScreen.kt` to show new requirement banner
-
-**Example:** Require 2 AR screenshots instead of 1:
-- Change `minArScreenshots: Int = 2` in Requirements
-- UI automatically updates (reads from policy)
+**To extend requirements:** add new rule checks inside `QcEvidencePolicy.check` (e.g., minimum video count or metadata validations) by appending to the `missingReasons` list. Keep reasons descriptive so the UI can present guidance without extra mapping.
 
 ---
 
