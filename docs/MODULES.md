@@ -348,7 +348,7 @@ Assembler workflows: "My Work" queue, claim work, start work, mark ready for QC.
   - `QcQueueViewModel.kt` — Sprint 3 view model that loads READY_FOR_QC/QC_IN_PROGRESS items from `WorkRepository.getQcQueue()`
     and sorts them by time spent in READY_FOR_QC (oldest first by default)
   - `QcStartViewModel.kt` — Calls `StartQcInspectionUseCase` once and exposes minimal WorkItem details (id/code/zone) for the start screen
-  - `QcChecklistViewModel.kt` — Holds the current checklist selection (`QcChecklistResult`) and updates item state via `updateItemState(id, state)`
+  - `QcChecklistViewModel.kt` — Holds `QcChecklistResult` state with 5 localized default items (geometry, completeness, fasteners, marking, cleanliness) and exposes item-state updates
 - `camera/PhotoCaptureService.kt` — Interface for capturing photos that returns a saved `Uri` and file size; implemented in the app module via CameraX
 - `app` wrapper — `ui/work/WorkItemSummaryRoute.kt` forwards `workItemId` into the Hilt ViewModel and renders feature UI
   - `ui/work/AssemblerQueueRoute.kt` wires Hilt VM + navigation to WorkItemSummary
