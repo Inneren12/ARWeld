@@ -577,6 +577,21 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - The method returns the stored `Evidence` for downstream QC flows.
 - Documentation reflects the new API and implementation location.
 
+### **S3-09: captureArScreenshot() from ArViewScreen** ✅ COMPLETED
+
+**Goal:** Allow the AR screen to capture the current AR frame as a screenshot, save it to disk, and return a usable `Uri`.
+
+**What Was Implemented:**
+- Added `ArScreenshotService` interface to `feature-arview/arcore` with suspend `captureArScreenshot()`.
+- Implemented the service in `ARViewController` using `PixelCopy` on the AR `SurfaceView`, saving PNGs under `filesDir/evidence/ar_screenshots` and returning the saved `Uri`.
+- Exposed a Compose button on `ARViewScreen` to trigger screenshot capture with toast feedback.
+- Updated documentation (`MODULES.md`, `FILE_OVERVIEW.md`, this file) to reflect the new API and storage path.
+
+**Acceptance Criteria:**
+- Calling `captureArScreenshot()` creates a file on disk and returns its `Uri`.
+- The AR UI can trigger screenshot capture without crashing.
+- Docs list the API and implementation location.
+
 ### **S1-16: AuthRepository (mock login)** ✅ COMPLETED
 
 **Goal:** Provide a mock authentication flow that returns role-based users and caches the active session for the app lifetime.

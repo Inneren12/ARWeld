@@ -6,4 +6,7 @@
     <string name="tracking_ok">Tracking OK</string>
     <string name="tracking_unstable">Tracking unstable</string>
     <string name="tracking_poor">Tracking poor</string>
+    <string name="capture_ar_screenshot">Capture AR screenshot</string>
+    <string name="capture_ar_screenshot_success">AR screenshot saved: %1$s</string>
+    <string name="capture_ar_screenshot_error">Failed to capture AR screenshot</string>
 </resources>
