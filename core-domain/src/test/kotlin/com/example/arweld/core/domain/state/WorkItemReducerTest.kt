@@ -82,6 +82,32 @@ class WorkItemReducerTest {
     }
 
     @Test
+    fun `qc passed after ready flow moves to approved`() {
+        val readyForQc = event(EventType.WORK_READY_FOR_QC, actorId = "asm-1", actorRole = Role.ASSEMBLER, timestamp = 10L)
+        val qcStarted = event(EventType.QC_STARTED, actorId = "qc-1", actorRole = Role.QC, timestamp = 20L)
+        val qcPassed = event(EventType.QC_PASSED, actorId = "qc-1", actorRole = Role.QC, timestamp = 30L)
+
+        val state = reduce(listOf(readyForQc, qcStarted, qcPassed))
+
+        assertEquals(WorkStatus.APPROVED, state.status)
+        assertEquals(QcStatus.PASSED, state.qcStatus)
+        assertEquals(qcPassed, state.lastEvent)
+    }
+
+    @Test
+    fun `qc failed rework after ready flow moves to rework required`() {
+        val readyForQc = event(EventType.WORK_READY_FOR_QC, actorId = "asm-1", actorRole = Role.ASSEMBLER, timestamp = 10L)
+        val qcStarted = event(EventType.QC_STARTED, actorId = "qc-1", actorRole = Role.QC, timestamp = 20L)
+        val qcFailed = event(EventType.QC_FAILED_REWORK, actorId = "qc-1", actorRole = Role.QC, timestamp = 30L)
+
+        val state = reduce(listOf(readyForQc, qcStarted, qcFailed))
+
+        assertEquals(WorkStatus.REWORK_REQUIRED, state.status)
+        assertEquals(QcStatus.REWORK_REQUIRED, state.qcStatus)
+        assertEquals(qcFailed, state.lastEvent)
+    }
+
+    @Test
     fun `unsorted events are processed chronologically`() {
         val qcPassed = event(EventType.QC_PASSED, actorId = "qc-1", actorRole = Role.QC, timestamp = 40L)
         val qcStarted = event(EventType.QC_STARTED, actorId = "qc-1", actorRole = Role.QC, timestamp = 30L)

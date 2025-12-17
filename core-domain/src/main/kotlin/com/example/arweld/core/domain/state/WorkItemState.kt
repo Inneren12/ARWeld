@@ -83,12 +83,14 @@ fun reduce(events: List<Event>): WorkItemState {
             )
 
             EventType.QC_PASSED -> state.copy(
+                // QC outcome: approved
                 status = WorkStatus.APPROVED,
                 qcStatus = QcStatus.PASSED,
                 readyForQcSince = null,
             )
 
             EventType.QC_FAILED_REWORK -> state.copy(
+                // QC outcome: rework requested
                 status = WorkStatus.REWORK_REQUIRED,
                 qcStatus = QcStatus.REWORK_REQUIRED,
                 readyForQcSince = null,

@@ -65,7 +65,7 @@ ARWeld/
 │   │   │   │   ├── EventType.kt           # Workflow milestones
 │   │   │   │   └── EventRepository.kt     # Domain contract to append/query events
 │   │   │   ├── state/                     # ✅ S1-08: Derived state + reducer
-│   │   │   │   └── WorkItemState.kt       # WorkStatus, QcStatus, reduce(events)
+│   │   │   │   └── WorkItemState.kt       # WorkStatus, QcStatus, reduce(events); QC outcomes (S3-18) set APPROVED / REWORK_REQUIRED
 │   │   │   ├── evidence/                  # ✅ S1-07: Evidence domain models
 │   │   │   │   ├── EvidenceKind.kt        # PHOTO, AR_SCREENSHOT, VIDEO, MEASUREMENT
 │   │   │   │   └── Evidence.kt            # id, eventId, uri, sha256, metaJson, createdAt (ms since epoch)

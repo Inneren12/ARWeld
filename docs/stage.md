@@ -650,6 +650,20 @@ if (RolePolicy.hasPermission(Role.DIRECTOR, Permission.VIEW_ALL)) {
 - Successful execution appends a `QC_FAILED_REWORK` event whose payload JSON captures reasons, priority, checklist summary (totals + item states), and optional comment.
 - Documentation reflects the new input object, payload shape, and shared checklist serialization helper.
 
+### **S3-18: Reducer integration for QC outcomes** ✅ COMPLETED
+
+**Goal:** Ensure the WorkItem reducer maps QC_PASSED and QC_FAILED_REWORK events to the correct derived statuses.
+
+**What Was Implemented:**
+- Updated the reducer (`WorkItemState.reduce`) to explicitly set `status = APPROVED` with `qcStatus = PASSED` for `QC_PASSED` and `status = REWORK_REQUIRED` with `qcStatus = REWORK_REQUIRED` for `QC_FAILED_REWORK`.
+- Added reducer unit tests that cover `[WORK_READY_FOR_QC, QC_STARTED, QC_PASSED]` → APPROVED and `[WORK_READY_FOR_QC, QC_STARTED, QC_FAILED_REWORK]` → REWORK_REQUIRED flows.
+- Synced documentation (`FILE_OVERVIEW.md`, this file) to note the QC outcome mapping.
+
+**Acceptance Criteria:**
+- Reducer returns APPROVED after a QC_PASSED event and REWORK_REQUIRED after a QC_FAILED_REWORK event.
+- Unit tests cover both QC outcome flows and pass.
+- Documentation reflects the reducer updates.
+
 ### **S1-16: AuthRepository (mock login)** ✅ COMPLETED
 
 **Goal:** Provide a mock authentication flow that returns role-based users and caches the active session for the app lifetime.
