@@ -61,6 +61,33 @@ class QcOutcomeUseCaseTest {
     }
 
     @Test
+    fun `fail QC throws when evidence policy fails`() = runBlocking {
+        val workItemId = "work-1"
+        val qcStarted = qcStartedEvent(workItemId)
+        val eventRepository = FakeEventRepository(mutableListOf(qcStarted))
+        val evidenceRepository = FakeEvidenceRepository()
+        val authRepository = FakeAuthRepository(qcUser)
+
+        val useCase = FailQcUseCase(
+            eventRepository = eventRepository,
+            evidenceRepository = evidenceRepository,
+            authRepository = authRepository,
+            timeProvider = timeProvider,
+            deviceInfoProvider = deviceInfoProvider,
+            qcEvidencePolicy = qcEvidencePolicy,
+        )
+
+        assertThrows(QcEvidencePolicyException::class.java) {
+            runBlocking {
+                useCase(workItemId, payloadJson = """{"notes":"missing evidence"}""")
+            }
+        }
+
+        val events = eventRepository.getEventsForWorkItem(workItemId)
+        assertEquals(1, events.size) // Only QC_STARTED remains
+    }
+
+    @Test
     fun `pass QC appends event when evidence policy is satisfied`() = runBlocking {
         val workItemId = "work-2"
         val qcStarted = qcStartedEvent(workItemId)

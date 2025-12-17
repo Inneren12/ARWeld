@@ -509,7 +509,7 @@ fun NewScreen(
 
 **What it does today (v1):** `check(workItemId, events, evidenceList)` ensures **at least one AR screenshot** and **at least one photo** exist **after the latest `QC_STARTED` event** for that WorkItem. Returns `QcEvidencePolicyResult.Ok` or `Failed(reasons)` with human-readable messages for UI/error handling.
 
-**Call sites:** `PassQcUseCase` and `FailQcUseCase` load timeline events + evidence for a WorkItem, invoke `check(...)`, and throw `QcEvidencePolicyException` when `Failed` instead of emitting `QC_PASSED`/`QC_FAILED_REWORK`. UI surfaces `Failed.reasons` in banner/dialogs.
+**Call sites:** `PassQcUseCase` and `FailQcUseCase` load timeline events + evidence for a WorkItem, invoke `check(...)`, and throw `QcEvidencePolicyException` when `Failed` instead of emitting `QC_PASSED`/`QC_FAILED_REWORK`. The shared helper `ensureEvidencePolicySatisfied(...)` gathers evidence per event before gating the QC outcome, and UI surfaces `Failed.reasons` in banner/dialogs.
 
 **To extend requirements:** add new entries to the requirement list inside `QcEvidencePolicy.check` (e.g., minimum video count or metadata validations) so new rules append to `missingReasons`. Keep reasons descriptive so the UI can present guidance without extra mapping.
 

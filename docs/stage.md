@@ -1540,7 +1540,7 @@ data class ArScreenshotMetadata(
 
 **S3-11 — QcEvidencePolicy v1 (core-domain):** `check(workItemId, events, evidenceList)` finds the latest `QC_STARTED` for the WorkItem and requires **at least one AR screenshot** and **at least one photo** captured **after** that timestamp. Returns `QcEvidencePolicyResult.Ok` or `Failed(reasons)` with UI-friendly messages.
 
-**S3-12 — Pass/Fail use cases enforce QcEvidencePolicy:** `PassQcUseCase` and `FailQcUseCase` now load the work-item timeline via `EventRepository.getEventsForWorkItem`, gather evidence for each event via `EvidenceRepository.getEvidenceForEvent`, and call `QcEvidencePolicy.check(...)`. When validation fails they throw `QcEvidencePolicyException(reasons)` without appending QC events; when validation passes they append `QC_PASSED` or `QC_FAILED_REWORK` with caller-provided payload JSON plus actor/device/timestamp metadata.
+**S3-12 — Pass/Fail use cases enforce QcEvidencePolicy:** `PassQcUseCase` and `FailQcUseCase` now load the work-item timeline via `EventRepository.getEventsForWorkItem`, gather evidence for each event via `EvidenceRepository.getEvidenceForEvent`, and call `QcEvidencePolicy.check(...)`. When validation fails they throw `QcEvidencePolicyException(reasons)` without appending QC events; when validation passes they append `QC_PASSED` or `QC_FAILED_REWORK` with caller-provided payload JSON plus actor/device/timestamp metadata. The helper `ensureEvidencePolicySatisfied` centralizes this gate so both outcomes respect the policy before writing to the event log.
 
 **UI Enforcement:**
 - Pass/Fail buttons disabled until policy satisfied
