@@ -31,6 +31,8 @@ fun QcStartRoute(
         workItemId = workItemId,
         uiState = uiState,
         onNavigateToAr = { id -> navController.navigate(arViewRoute(id)) },
+        onPassQc = { viewModel.onPassQc() },
+        onFailQc = { viewModel.onFailQc() },
         onBackToQueue = {
             val popped = navController.popBackStack(ROUTE_QC_QUEUE, false)
             if (!popped) {

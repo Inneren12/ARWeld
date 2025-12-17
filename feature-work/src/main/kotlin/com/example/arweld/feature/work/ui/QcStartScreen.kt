@@ -2,6 +2,7 @@ package com.example.arweld.feature.work.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +30,8 @@ fun QcStartScreen(
     workItemId: String?,
     uiState: QcStartUiState,
     onNavigateToAr: (String) -> Unit,
+    onPassQc: () -> Unit,
+    onFailQc: () -> Unit,
     onBackToQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -111,12 +114,68 @@ fun QcStartScreen(
                         }
                     }
 
+                    if (uiState.policyReasons.isNotEmpty()) {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "Evidence requirements",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                uiState.policyReasons.forEach { reason ->
+                                    Text(
+                                        text = "• $reason",
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     Button(
                         enabled = resolvedId != null,
                         onClick = { resolvedId?.let(onNavigateToAr) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Перейти в AR")
+                    }
+
+                    val buttonsEnabled = resolvedId != null && uiState.canCompleteQc && !uiState.actionInProgress
+                    if (!uiState.canCompleteQc) {
+                        Text(
+                            text = "требуются AR-скрин и фото",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+
+                    if (uiState.actionErrorMessage != null) {
+                        Text(
+                            text = uiState.actionErrorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            enabled = buttonsEnabled,
+                            onClick = onPassQc,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = "PASS")
+                        }
+
+                        Button(
+                            enabled = buttonsEnabled,
+                            onClick = onFailQc,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = "FAIL")
+                        }
                     }
 
                     Button(

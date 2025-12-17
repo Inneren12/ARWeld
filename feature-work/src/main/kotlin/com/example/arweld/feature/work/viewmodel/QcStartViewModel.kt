@@ -2,8 +2,15 @@ package com.example.arweld.feature.work.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.arweld.core.domain.model.WorkItem
 import com.example.arweld.core.domain.work.WorkRepository
+import com.example.arweld.core.domain.work.usecase.FailQcUseCase
+import com.example.arweld.core.domain.work.usecase.PassQcUseCase
 import com.example.arweld.core.domain.work.usecase.StartQcInspectionUseCase
+import com.example.arweld.core.domain.event.EventRepository
+import com.example.arweld.core.domain.evidence.EvidenceRepository
+import com.example.arweld.core.domain.policy.QcEvidencePolicy
+import com.example.arweld.core.domain.policy.QcEvidencePolicyResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +25,11 @@ import kotlinx.coroutines.launch
 class QcStartViewModel @Inject constructor(
     private val startQcInspectionUseCase: StartQcInspectionUseCase,
     private val workRepository: WorkRepository,
+    private val eventRepository: EventRepository,
+    private val evidenceRepository: EvidenceRepository,
+    private val qcEvidencePolicy: QcEvidencePolicy,
+    private val passQcUseCase: PassQcUseCase,
+    private val failQcUseCase: FailQcUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QcStartUiState(isLoading = true))
@@ -29,43 +41,142 @@ class QcStartViewModel @Inject constructor(
         initializedForWorkItemId = null
         _uiState.value = QcStartUiState(
             isLoading = false,
+            actionInProgress = false,
             errorMessage = "Work item not found",
         )
     }
 
     fun start(workItemId: String) {
-        if (initializedForWorkItemId == workItemId) return
+        if (initializedForWorkItemId == workItemId) {
+            refreshPolicy(workItemId)
+            return
+        }
         initializedForWorkItemId = workItemId
 
         viewModelScope.launch {
             _uiState.value = QcStartUiState(isLoading = true)
             runCatching {
                 startQcInspectionUseCase(workItemId)
-                workRepository.getWorkItemById(workItemId)
+                val workItem = workRepository.getWorkItemById(workItemId)
                     ?: error("Work item not found")
-            }.onSuccess { workItem ->
+                val policy = loadPolicy(workItem.id)
+
+                LoadedPayload(
+                    workItem = workItem,
+                    policy = policy,
+                )
+            }.onSuccess { payload ->
                 _uiState.value = QcStartUiState(
                     isLoading = false,
-                    workItemId = workItem.id,
-                    code = workItem.code,
-                    zone = workItem.zone,
+                    actionInProgress = false,
+                    workItemId = payload.workItem.id,
+                    code = payload.workItem.code,
+                    zone = payload.workItem.zone,
+                    canCompleteQc = payload.policy.canComplete,
+                    policyReasons = payload.policy.reasons,
                     errorMessage = null,
                 )
             }.onFailure { throwable ->
+                initializedForWorkItemId = null
                 _uiState.value = QcStartUiState(
                     isLoading = false,
+                    actionInProgress = false,
                     workItemId = workItemId,
                     errorMessage = throwable.message ?: "Failed to start QC",
                 )
             }
         }
     }
-}
 
+    fun onPassQc() {
+        performQcOutcome { workItemId -> passQcUseCase(workItemId) }
+    }
+
+    fun onFailQc() {
+        performQcOutcome { workItemId -> failQcUseCase(workItemId) }
+    }
+
+    fun refreshPolicy(workItemId: String? = null) {
+        val idToCheck = workItemId ?: _uiState.value.workItemId ?: return
+        viewModelScope.launch {
+            runCatching { loadPolicy(idToCheck) }
+                .onSuccess { policy ->
+                    _uiState.value = _uiState.value.copy(
+                        canCompleteQc = policy.canComplete,
+                        policyReasons = policy.reasons,
+                    )
+                }
+                .onFailure { throwable ->
+                    _uiState.value = _uiState.value.copy(
+                        canCompleteQc = false,
+                        policyReasons = listOf(
+                            throwable.message ?: "Не удалось проверить требования доказательств",
+                        ),
+                    )
+                }
+        }
+    }
+
+    private fun performQcOutcome(block: suspend (String) -> Unit) {
+        val workItemId = _uiState.value.workItemId ?: return
+        viewModelScope.launch {
+            if (!_uiState.value.canCompleteQc) {
+                _uiState.value = _uiState.value.copy(
+                    actionErrorMessage = "требуются AR-скрин и фото",
+                )
+                return@launch
+            }
+
+            _uiState.value = _uiState.value.copy(
+                actionInProgress = true,
+                actionErrorMessage = null,
+            )
+
+            runCatching { block(workItemId) }
+                .onSuccess {
+                    refreshPolicy(workItemId)
+                    _uiState.value = _uiState.value.copy(actionInProgress = false)
+                }
+                .onFailure { throwable ->
+                    _uiState.value = _uiState.value.copy(
+                        actionInProgress = false,
+                        actionErrorMessage = throwable.message
+                            ?: "Не удалось завершить QC",
+                    )
+                }
+        }
+    }
+
+    private suspend fun loadPolicy(workItemId: String): PolicySnapshot {
+        val events = eventRepository.getEventsForWorkItem(workItemId)
+        val evidence = events.flatMap { event -> evidenceRepository.getEvidenceForEvent(event.id) }
+        return when (val result = qcEvidencePolicy.check(workItemId, events, evidence)) {
+            QcEvidencePolicyResult.Ok -> PolicySnapshot(canComplete = true, reasons = emptyList())
+            is QcEvidencePolicyResult.Failed -> PolicySnapshot(
+                canComplete = false,
+                reasons = result.reasons,
+            )
+        }
+    }
+
+    private data class LoadedPayload(
+        val workItem: WorkItem,
+        val policy: PolicySnapshot,
+    )
+
+    private data class PolicySnapshot(
+        val canComplete: Boolean,
+        val reasons: List<String>,
+    )
+}
 data class QcStartUiState(
     val isLoading: Boolean = false,
+    val actionInProgress: Boolean = false,
     val workItemId: String? = null,
     val code: String? = null,
     val zone: String? = null,
+    val canCompleteQc: Boolean = false,
+    val policyReasons: List<String> = emptyList(),
+    val actionErrorMessage: String? = null,
     val errorMessage: String? = null,
 )
