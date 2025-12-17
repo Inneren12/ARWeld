@@ -9,6 +9,8 @@ java {
 }
 
 dependencies {
+    implementation(project(":core-structural"))
+
     // Kotlinx
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)

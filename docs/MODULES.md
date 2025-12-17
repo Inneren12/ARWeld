@@ -14,24 +14,30 @@ app
  ├─> feature:arview
  ├─> core:auth
  ├─> core:data
- └─> core:domain
+ ├─> core:domain
+ └─> core:structural
 
 feature:* modules
  ├─> core:data
- └─> core:domain
+ ├─> core:domain
+ └─> core:structural (for AR/geometry features)
 
 core:data
  └─> core:domain
 
 core:domain
- └─ (no dependencies, pure domain logic)
+ └─> core:structural
+
+core:structural
+ └─ (no dependencies, pure Kotlin/JVM)
 ```
 
 **Dependency Rules:**
 - `app` depends on all feature modules and core modules
 - Feature modules depend only on core modules (never on other features)
 - `core:data` depends on `core:domain`
-- `core:domain` has no dependencies (pure Kotlin, no Android framework)
+- `core:domain` depends on `core:structural`
+- `core:structural` has no dependencies (pure Kotlin/JVM, no Android framework)
 
 ---
 
@@ -157,6 +163,38 @@ Pure domain logic with no Android dependencies. Contains business models, use ca
 - 100% unit testable (no Android framework)
 - Shared truth for all other modules
 - Changes here impact entire app; design carefully
+
+---
+
+### core:structural
+
+**Status:** ✅ Implemented (S-CORE-0 v0.1)
+
+**Description:**
+Pure Kotlin/JVM module that defines the structural steel model used by AR/QC pipelines. Handles profile catalog/normalization, model JSON parsing, and basic validation. All dimensions are millimeters (mm); weights are kilograms per meter (kg/m).
+
+**Key Responsibilities:**
+- Profile taxonomy and catalog (`ProfileType`, `ProfileSpec`, seed profiles for W/HSS/C/L/PL)
+- Profile normalization (`parseProfileString`, `ProfileCatalog.findByDesignation`)
+- Structural topology models (`Node`, `Member`, `Connection`, `Plate`, `StructuralModel`)
+- JSON parsing (`ModelJsonParser`, DTOs) and validation (`StructuralModelCore.validate`)
+- Example assets (`example_model.json`, `profiles_seed.json`)
+
+**Dependencies:**
+- None (pure Kotlin/JVM)
+
+**DI Configuration:**
+- None — instantiated directly; consumers pass a `ProfileCatalog` into `DefaultStructuralModelCore`
+
+**Key Files/Packages:**
+- `core-structural/src/main/kotlin/.../profiles` — profile taxonomy, catalog, parser
+- `core-structural/src/main/kotlin/.../model` — Node/Member/Connection/Plate/StructuralModel
+- `core-structural/src/main/kotlin/.../serialization` — `ModelJsonParser`, DTOs, `toDomain`
+- `core-structural/src/main/kotlin/.../core` — `StructuralModelCore`, `DefaultStructuralModelCore`
+
+**Notes:**
+- Units fixed to mm for v0.1; validation enforces `units == "mm"`
+- No Android dependencies; reusable in backend/offline tools
 
 ---
 
