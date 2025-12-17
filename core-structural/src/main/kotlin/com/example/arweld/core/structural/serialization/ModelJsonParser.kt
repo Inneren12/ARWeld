@@ -8,7 +8,7 @@ import com.example.arweld.core.structural.model.OrientationMeta
 import com.example.arweld.core.structural.model.Plate
 import com.example.arweld.core.structural.model.StructuralModel
 import com.example.arweld.core.structural.profiles.ProfileCatalog
-import com.example.arweld.core.structural.profiles.parseProfileString
+import com.example.arweld.core.structural.profiles.parse.parseProfileString
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
