@@ -1557,9 +1557,13 @@ class PassQcUseCase(
         val events = eventRepository.getByWorkItem(workItemId)
         val evidence = evidenceRepository.getByWorkItem(workItemId)
 
-        val validation = QcEvidencePolicy.validateEvidence(evidence, events)
-        if (validation !is ValidationResult.Valid) {
-            throw InsufficientEvidenceException(validation)
+        val validation = QcEvidencePolicy().check(
+            workItemId = workItemId,
+            events = events,
+            evidenceList = evidence,
+        )
+        if (validation is QcEvidencePolicyResult.Failed) {
+            throw InsufficientEvidenceException(validation.reasons)
         }
 
         // 2. Create PASS event

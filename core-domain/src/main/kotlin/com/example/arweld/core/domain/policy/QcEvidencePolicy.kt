@@ -15,6 +15,17 @@ class QcEvidencePolicy {
         events: List<Event>,
         evidenceList: List<Evidence>,
     ): QcEvidencePolicyResult {
+        val requiredEvidence = listOf(
+            EvidenceRequirement(
+                kind = EvidenceKind.AR_SCREENSHOT,
+                reason = "Capture at least one AR screenshot after QC start.",
+            ),
+            EvidenceRequirement(
+                kind = EvidenceKind.PHOTO,
+                reason = "Capture at least one photo after QC start.",
+            ),
+        )
+
         val qcStartedAt = events
             .asSequence()
             .filter { it.workItemId == workItemId && it.type == EventType.QC_STARTED }
@@ -26,15 +37,9 @@ class QcEvidencePolicy {
 
         val evidenceAfterQcStart = evidenceList.filter { it.createdAt >= qcStartedAt }
 
-        val missingReasons = mutableListOf<String>()
-
-        if (evidenceAfterQcStart.none { it.kind == EvidenceKind.AR_SCREENSHOT }) {
-            missingReasons += "Capture at least one AR screenshot after QC start."
-        }
-
-        if (evidenceAfterQcStart.none { it.kind == EvidenceKind.PHOTO }) {
-            missingReasons += "Capture at least one photo after QC start."
-        }
+        val missingReasons = requiredEvidence
+            .filter { requirement -> evidenceAfterQcStart.none { it.kind == requirement.kind } }
+            .map { it.reason }
 
         return if (missingReasons.isEmpty()) {
             QcEvidencePolicyResult.Ok
@@ -48,3 +53,8 @@ sealed class QcEvidencePolicyResult {
     object Ok : QcEvidencePolicyResult()
     data class Failed(val reasons: List<String>) : QcEvidencePolicyResult()
 }
+
+private data class EvidenceRequirement(
+    val kind: EvidenceKind,
+    val reason: String,
+)
