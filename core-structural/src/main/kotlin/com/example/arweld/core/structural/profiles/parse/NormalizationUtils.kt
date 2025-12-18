@@ -3,7 +3,7 @@ package com.example.arweld.core.structural.profiles.parse
 private val ocrNoiseChars = setOf('|', ';', ',', '‚', '`', '´')
 
 internal fun normalizeRawProfileInput(raw: String): String {
-    var normalized = raw
+    var normalized = raw.trim()
     normalized = normalized.replace('×', 'x')
     normalized = normalized.replace('X', 'x')
     normalized = normalizeDecimalSeparator(normalized)
@@ -20,3 +20,6 @@ internal fun trimOcrNoise(input: String): String =
 
 internal fun normalizeDecimalSeparator(input: String): String =
     input.replace("(?<=\\d),(?=\\d)".toRegex(), ".")
+
+internal fun removePrefixIgnoreCase(input: String, prefix: String): String =
+    if (input.startsWith(prefix, ignoreCase = true)) input.drop(prefix.length) else input

@@ -1,12 +1,14 @@
 package com.example.arweld.core.structural.profiles.parse
 
+import com.example.arweld.core.structural.profiles.ChannelSeries
 import com.example.arweld.core.structural.profiles.ProfileStandard
 import com.example.arweld.core.structural.profiles.ProfileType
 
 data class ParsedProfileId(
     val type: ProfileType,
     val designation: String, // canonical
-    val standardHint: ProfileStandard? = ProfileStandard.CSA
+    val standardHint: ProfileStandard,
+    val channelSeries: ChannelSeries? = null
 )
 
 /**
@@ -17,16 +19,40 @@ fun parseProfileString(raw: String): ParsedProfileId {
     val normalizedInput = normalizeRawProfileInput(raw)
     require(normalizedInput.isNotBlank()) { "Profile string is empty" }
 
-    val upper = normalizedInput.uppercase()
-    val type = when {
-        upper.startsWith("PL") -> ProfileType.PL
-        upper.startsWith("C") || upper.startsWith("MC") -> ProfileType.C
-        upper.startsWith("L") -> ProfileType.L
-        upper.startsWith("W") -> ProfileType.W
-        upper.startsWith("HSS") -> ProfileType.HSS
-        else -> throw IllegalArgumentException("Unsupported profile format: '$raw'")
+    val rule = profileParseRules.firstOrNull { it.regex.containsMatchIn(normalizedInput) }
+        ?: throw IllegalArgumentException("Unsupported profile format: '$raw'")
+
+    val designation = normalizeDesignation(rule.type, normalizedInput, rule.channelSeries)
+    val standardHint = determineStandardHint(normalizedInput)
+
+    return ParsedProfileId(
+        type = rule.type,
+        designation = designation,
+        standardHint = standardHint,
+        channelSeries = rule.channelSeries
+    )
+}
+
+private val fractionRegex = "\\d+/\\d+".toRegex()
+
+private fun determineStandardHint(input: String): ProfileStandard =
+    if (fractionRegex.containsMatchIn(input) || input.contains('"') || input.contains('\'')) {
+        ProfileStandard.AISC
+    } else {
+        ProfileStandard.CSA
     }
 
-    val designation = normalizeDesignation(type, normalizedInput)
-    return ParsedProfileId(type = type, designation = designation, standardHint = ProfileStandard.CSA)
-}
+private data class ProfileParseRule(
+    val regex: Regex,
+    val type: ProfileType,
+    val channelSeries: ChannelSeries? = null
+)
+
+private val profileParseRules = listOf(
+    ProfileParseRule("^\\s*PL".toRegex(setOf(RegexOption.IGNORE_CASE)), ProfileType.PL),
+    ProfileParseRule("^\\s*HSS".toRegex(setOf(RegexOption.IGNORE_CASE)), ProfileType.HSS),
+    ProfileParseRule("^\\s*MC".toRegex(setOf(RegexOption.IGNORE_CASE)), ProfileType.C, ChannelSeries.MC),
+    ProfileParseRule("^\\s*C".toRegex(setOf(RegexOption.IGNORE_CASE)), ProfileType.C, ChannelSeries.C),
+    ProfileParseRule("^\\s*L".toRegex(setOf(RegexOption.IGNORE_CASE)), ProfileType.L),
+    ProfileParseRule("^\\s*W".toRegex(setOf(RegexOption.IGNORE_CASE)), ProfileType.W)
+)
