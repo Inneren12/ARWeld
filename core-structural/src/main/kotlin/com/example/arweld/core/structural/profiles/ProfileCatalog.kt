@@ -1,6 +1,8 @@
 package com.example.arweld.core.structural.profiles
 
+import com.example.arweld.core.structural.profiles.parse.canonicalizePlateDesignation
 import com.example.arweld.core.structural.profiles.parse.normalizeDesignation
+import com.example.arweld.core.structural.profiles.parse.parsePlateDimensions
 import com.example.arweld.core.structural.profiles.parse.parseProfileString
 import java.io.File
 import kotlinx.serialization.Serializable
@@ -110,7 +112,11 @@ class ProfileCatalog(
         val normalizedAliases = aliases.map { normalizeDesignation(type, it) }
         return when (this) {
             is WShapeSpec -> copy(designation = canonical, aliases = normalizedAliases)
-            is ChannelSpec -> copy(designation = canonical, aliases = normalizedAliases)
+            is ChannelSpec -> copy(
+                designation = canonical,
+                aliases = normalizedAliases,
+                channelSeries = channelSeries
+            )
             is HssSpec -> copy(designation = canonical, aliases = normalizedAliases)
             is AngleSpec -> copy(designation = canonical, aliases = normalizedAliases)
             is PlateSpec -> copy(designation = canonical, aliases = normalizedAliases)
@@ -121,21 +127,18 @@ class ProfileCatalog(
         normalizedDesignation: String,
         preferredStandard: ProfileStandard
     ): ProfileSpec? {
-        val body = normalizedDesignation.removePrefix("PL").removePrefix("pl")
-        val parts = body.split("x")
-        if (parts.size != 2) return null
-        val thickness = parts[0].toDoubleOrNull() ?: return null
-        val width = parts[1].toDoubleOrNull() ?: return null
-        val canonical = normalizeDesignation(ProfileType.PL, normalizedDesignation)
-        val areaMm2 = thickness * width
+        val canonical = canonicalizePlateDesignation(normalizedDesignation) ?: return null
+        val dimensions = parsePlateDimensions(normalizedDesignation) ?: return null
+        val areaMm2 = dimensions.thicknessMm * dimensions.widthMm
+        val massKgPerM = areaMm2 * 1e-6 * 7850
         return PlateSpec(
             designation = canonical,
             standard = preferredStandard,
             aliases = emptyList(),
-            tMm = thickness,
-            wMm = width,
+            tMm = dimensions.thicknessMm,
+            wMm = dimensions.widthMm,
             areaMm2 = areaMm2,
-            massKgPerM = null
+            massKgPerM = massKgPerM
         )
     }
 }
@@ -198,6 +201,7 @@ private data class ProfileCatalogItemDto(
     val aliases: List<String> = emptyList(),
     val massKgPerM: Double? = null,
     val areaMm2: Double? = null,
+    val channelSeries: ChannelSeries? = null,
     // W/C
     val dMm: Double? = null,
     val bfMm: Double? = null,
@@ -241,10 +245,11 @@ private fun ProfileCatalogItemDto.toSpec(
             aliases = aliases,
             massKgPerM = massKgPerM,
             areaMm2 = areaMm2,
-            dMm = dMm,
-            bfMm = bfMm,
-            twMm = twMm,
-            tfMm = tfMm
+            dMm = dMm ?: error("dMm is required for channel ($designation)"),
+            bfMm = bfMm ?: error("bfMm is required for channel ($designation)"),
+            twMm = twMm ?: error("twMm is required for channel ($designation)"),
+            tfMm = tfMm ?: error("tfMm is required for channel ($designation)"),
+            channelSeries = channelSeries ?: inferChannelSeriesFromDesignation(designation)
         )
 
         ProfileType.HSS -> HssSpec(
@@ -271,14 +276,24 @@ private fun ProfileCatalogItemDto.toSpec(
             cornerRadiusMm = cornerRadiusMm
         )
 
-        ProfileType.PL -> PlateSpec(
-            designation = designation,
-            standard = standard,
-            aliases = aliases,
-            massKgPerM = massKgPerM,
-            areaMm2 = areaMm2,
-            tMm = tMm ?: error("tMm is required for plate ($designation)"),
-            wMm = wMm ?: leg1Mm ?: error("wMm is required for plate ($designation)")
-        )
+        ProfileType.PL -> {
+            val thickness = tMm ?: error("tMm is required for plate ($designation)")
+            val width = wMm ?: leg1Mm ?: error("wMm is required for plate ($designation)")
+            val resolvedArea = areaMm2 ?: thickness * width
+            val resolvedMass = massKgPerM ?: resolvedArea * 1e-6 * 7850
+
+            PlateSpec(
+                designation = designation,
+                standard = standard,
+                aliases = aliases,
+                tMm = thickness,
+                wMm = width,
+                areaMm2 = resolvedArea,
+                massKgPerM = resolvedMass
+            )
+        }
     }
 }
+
+private fun inferChannelSeriesFromDesignation(designation: String): ChannelSeries =
+    if (designation.trimStart().startsWith("MC", ignoreCase = true)) ChannelSeries.MC else ChannelSeries.C

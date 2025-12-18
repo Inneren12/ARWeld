@@ -21,6 +21,12 @@ enum class ProfileStandard {
 }
 
 @Serializable
+enum class ChannelSeries {
+    C,
+    MC
+}
+
+@Serializable
 @JsonClassDiscriminator("specKind")
 @OptIn(ExperimentalSerializationApi::class)
 sealed interface ProfileSpec {
@@ -57,12 +63,20 @@ data class ChannelSpec(
     override val aliases: List<String> = emptyList(),
     override val massKgPerM: Double? = null,
     override val areaMm2: Double? = null,
-    val dMm: Double? = null,
-    val bfMm: Double? = null,
-    val twMm: Double? = null,
-    val tfMm: Double? = null,
+    val dMm: Double,
+    val bfMm: Double,
+    val twMm: Double,
+    val tfMm: Double,
+    val channelSeries: ChannelSeries = ChannelSeries.C,
     override val type: ProfileType = ProfileType.C
-) : ProfileSpec
+) : ProfileSpec {
+    init {
+        require(dMm > 0) { "dMm must be positive" }
+        require(bfMm > 0) { "bfMm must be positive" }
+        require(twMm > 0) { "twMm must be positive" }
+        require(tfMm > 0) { "tfMm must be positive" }
+    }
+}
 
 @Serializable
 @SerialName("HssSpec")
@@ -100,9 +114,14 @@ data class PlateSpec(
     override val designation: String,
     override val standard: ProfileStandard = ProfileStandard.CSA,
     override val aliases: List<String> = emptyList(),
-    override val massKgPerM: Double? = null,
-    override val areaMm2: Double? = null,
     val tMm: Double,
     val wMm: Double,
+    override val areaMm2: Double = tMm * wMm,
+    override val massKgPerM: Double = areaMm2 * 1e-6 * 7850,
     override val type: ProfileType = ProfileType.PL
-) : ProfileSpec
+) : ProfileSpec {
+    init {
+        require(tMm > 0) { "tMm must be positive" }
+        require(wMm > 0) { "wMm must be positive" }
+    }
+}

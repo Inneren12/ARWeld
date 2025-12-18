@@ -1,32 +1,61 @@
 package com.example.arweld.core.structural.profiles.parse
 
+import com.example.arweld.core.structural.profiles.ChannelSeries
 import com.example.arweld.core.structural.profiles.ProfileType
 
-internal fun normalizeDesignation(type: ProfileType, rawDesignation: String): String {
+internal fun normalizeDesignation(
+    type: ProfileType,
+    rawDesignation: String,
+    channelSeries: ChannelSeries? = null
+): String {
     val sanitized = normalizeRawProfileInput(rawDesignation)
-    val compact = sanitized
-        .replace("\\s+".toRegex(), "")
-        .replace('×', 'x')
-        .replace('X', 'x')
-
-    val uppercase = compact.uppercase()
-    val bodyWithoutPrefix = when (type) {
-        ProfileType.HSS -> if (uppercase.startsWith("HSS")) compact.drop(3) else compact
-        ProfileType.PL -> if (uppercase.startsWith("PL")) compact.drop(2) else compact
-        ProfileType.C -> when {
-            uppercase.startsWith("MC") -> compact.drop(2)
-            uppercase.startsWith("C") -> compact.drop(1)
-            else -> compact
-        }
-
-        ProfileType.L -> if (uppercase.startsWith("L")) compact.drop(1) else compact
-        ProfileType.W -> if (uppercase.startsWith("W")) compact.drop(1) else compact
-    }
-    val cleanedBody = bodyWithoutPrefix.replace('X', 'x')
+    val separatorsNormalized = sanitized.replace("(?i)\\s*x\\s*".toRegex(), "x")
+    val compact = separatorsNormalized.replace("\\s+".toRegex(), "")
 
     return when (type) {
-        ProfileType.HSS -> "HSS ${cleanedBody}"
-        ProfileType.PL -> "PL${cleanedBody}"
-        else -> "${type.name}${cleanedBody}"
+        ProfileType.HSS -> {
+            val body = removePrefixIgnoreCase(compact, "HSS")
+            val cleanedBody = body.replace('X', 'x')
+            "HSS ${cleanedBody}"
+        }
+
+        ProfileType.PL -> canonicalizePlateDesignation(compact) ?: run {
+            val body = removePrefixIgnoreCase(compact, "PL")
+            "PL${body.replace('X', 'x')}"
+        }
+
+        ProfileType.C -> {
+            val series = channelSeries ?: inferChannelSeries(compact)
+            val prefix = when (series) {
+                ChannelSeries.MC -> "MC"
+                ChannelSeries.C -> "C"
+            }
+            val body = removeChannelPrefix(compact)
+            "$prefix${body.replace('X', 'x')}"
+        }
+
+        ProfileType.L -> {
+            val body = removePrefixIgnoreCase(compact, "L")
+            "L${body.replace('X', 'x')}"
+        }
+
+        ProfileType.W -> {
+            val body = removePrefixIgnoreCase(compact, "W")
+            "W${body.replace('X', 'x')}"
+        }
+    }
+}
+
+private fun inferChannelSeries(designation: String): ChannelSeries {
+    val trimmed = designation.trimStart()
+    return if (trimmed.startsWith("MC", ignoreCase = true)) ChannelSeries.MC else ChannelSeries.C
+}
+
+private fun removeChannelPrefix(designation: String): String {
+    val trimmed = designation.trimStart()
+    return when {
+        trimmed.startsWith("MC", ignoreCase = true) -> trimmed.drop(2)
+        trimmed.startsWith("C", ignoreCase = true) -> trimmed.drop(1)
+        else -> trimmed
     }
 }

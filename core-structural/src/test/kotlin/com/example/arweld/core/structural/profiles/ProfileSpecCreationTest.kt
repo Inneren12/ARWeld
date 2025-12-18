@@ -30,6 +30,18 @@ class ProfileSpecCreationTest {
 
         assertThat(spec.type).isEqualTo(ProfileType.PL)
         assertThat(spec.standard).isEqualTo(ProfileStandard.CSA)
-        assertThat(spec.massKgPerM).isNull()
+        assertThat(spec.massKgPerM).isGreaterThan(0.0)
+    }
+
+    @Test
+    fun `computes plate mass`() {
+        val spec = PlateSpec(
+            designation = "PL10x190",
+            tMm = 10.0,
+            wMm = 190.0
+        )
+
+        assertThat(spec.areaMm2).isWithin(1e-6).of(1900.0)
+        assertThat(spec.massKgPerM).isWithin(1e-3).of(14.915)
     }
 }
