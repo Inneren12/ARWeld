@@ -10,6 +10,6 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class OrientationMeta(
-    val rollAngleDeg: Double?,
-    val camberMm: Double?
+    val rollAngleDeg: Double? = null,
+    val camberMm: Double? = null
 )

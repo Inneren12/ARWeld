@@ -44,6 +44,12 @@ class DefaultStructuralModelCore(
         }
         val memberIdSet = memberIds.toSet()
 
+        val plateIds = model.plates.map { it.id }
+        if (plateIds.size != plateIds.toSet().size) {
+            errors.add("Duplicate plate ids detected.")
+        }
+        val plateIdSet = plateIds.toSet()
+
         model.members.forEach { member ->
             if (member.nodeStartId !in nodeIdSet) {
                 errors.add("Member ${member.id} references missing nodeStartId ${member.nodeStartId}.")
@@ -57,6 +63,10 @@ class DefaultStructuralModelCore(
             val missingMembers = connection.memberIds.filterNot { it in memberIdSet }
             if (missingMembers.isNotEmpty()) {
                 errors.add("Connection ${connection.id} references missing members ${missingMembers.joinToString()}.")
+            }
+            val missingPlates = connection.plateIds.filterNot { it in plateIdSet }
+            if (missingPlates.isNotEmpty()) {
+                errors.add("Connection ${connection.id} references missing plates ${missingPlates.joinToString()}.")
             }
         }
 
