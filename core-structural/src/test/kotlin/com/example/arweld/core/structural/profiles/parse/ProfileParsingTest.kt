@@ -28,6 +28,14 @@ class ProfileParsingTest {
     }
 
     @Test
+    fun `parses HSS designation without whitespace`() {
+        val parsed = parseProfileString("HSS6x6x3/8")
+
+        assertThat(parsed.type).isEqualTo(ProfileType.HSS)
+        assertThat(parsed.designation).isEqualTo("HSS 6x6x3/8")
+    }
+
+    @Test
     fun `parses PL designation with normalization`() {
         val parsed = parseProfileString("PL10x250")
 
@@ -54,14 +62,25 @@ class ProfileParsingTest {
 
     @Test
     fun `rejects unsupported profile strings`() {
-        assertThrows(IllegalArgumentException::class.java) {
+        val unsupported = assertThrows(IllegalArgumentException::class.java) {
             parseProfileString("HSS6x6")
         }
+        assertThat(unsupported.message).contains("Unsupported profile format")
+
         assertThrows(IllegalArgumentException::class.java) {
             parseProfileString("PL10")
         }
         assertThrows(IllegalArgumentException::class.java) {
             parseProfileString("X123")
         }
+    }
+
+    @Test
+    fun `rejects empty profile string with message`() {
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            parseProfileString("   ")
+        }
+
+        assertThat(exception.message).contains("Profile string is empty")
     }
 }

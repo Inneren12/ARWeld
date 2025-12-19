@@ -14,7 +14,7 @@
 - `Member(id, kind, profile: ProfileSpec, nodeStartId, nodeEndId, orientationMeta?)`
 - `OrientationMeta(rollAngleDeg?, camberMm?)`
 - `Plate(id, thickness, width, length)` — dimensions in mm.
-- `Connection(id, memberIds, plateIds?)`
+- `Connection(id, memberIds, plateIds?, boltGroupIds?)`
 - `BoltGroup(id, boltDiaMm, grade?, pattern = [])` — optional/reserved in v0.1.
 - `StructuralModel(id, nodes, members, connections = [], plates = [], boltGroups = [], meta = {})` (plates/bolt groups optional; variant B)
 

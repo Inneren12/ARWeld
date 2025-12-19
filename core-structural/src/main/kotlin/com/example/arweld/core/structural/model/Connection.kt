@@ -3,7 +3,8 @@ package com.example.arweld.core.structural.model
 import kotlinx.serialization.Serializable
 
 /**
- * Connection references member/plate ids; no bolts or detailed hardware yet.
+ * Connection references member/plate/bolt group ids; detailed hardware is not modeled yet
+ * (bolt groups are minimal/reserved in v0.1).
  */
 @Serializable
 data class Connection(
