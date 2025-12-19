@@ -28,5 +28,5 @@ internal fun parsePlateDimensions(raw: String): PlateDimensions? {
 
 internal fun canonicalizePlateDesignation(raw: String): String? {
     val dimensions = parsePlateDimensions(raw) ?: return null
-    return "PL${dimensions.thicknessToken}x${dimensions.widthToken}"
+    return "PL ${dimensions.thicknessToken}x${dimensions.widthToken}"
 }

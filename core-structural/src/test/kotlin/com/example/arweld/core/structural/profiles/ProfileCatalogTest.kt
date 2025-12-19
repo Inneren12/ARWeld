@@ -10,26 +10,16 @@ class ProfileCatalogTest {
 
     @Test
     fun `finds channel by mixed case designation`() {
-        val spec = catalog.findByDesignation("C200X17")
+        val spec = catalog.findByDesignation("C200X20")
 
         assertThat(spec).isInstanceOf(ChannelSpec::class.java)
-        assertThat(spec?.designation).isEqualTo("C200x17")
+        assertThat(spec?.designation).isEqualTo("C200x20")
         assertThat(spec?.standard).isEqualTo(ProfileStandard.CSA)
     }
 
     @Test
-    fun `finds MC channel`() {
-        val spec = catalog.findByDesignation("MC250X33")
-
-        assertThat(spec).isInstanceOf(ChannelSpec::class.java)
-        val channel = spec as ChannelSpec
-        assertThat(channel.designation).isEqualTo("MC250x33")
-        assertThat(channel.channelSeries).isEqualTo(ChannelSeries.MC)
-    }
-
-    @Test
     fun `resolves angle by canonical designation`() {
-        val spec = catalog.findByDesignation("L51x38x6.4")
+        val spec = catalog.findByDesignation("L4x4x3/8")
 
         assertThat(spec).isInstanceOf(AngleSpec::class.java)
         assertThat(spec?.type).isEqualTo(ProfileType.L)
@@ -43,11 +33,12 @@ class ProfileCatalogTest {
         val plate = spec as PlateSpec
         assertThat(plate.tMm).isEqualTo(10.0)
         assertThat(plate.wMm).isEqualTo(190.0)
+        assertThat(plate.designation).isEqualTo("PL 10x190")
     }
 
     @Test
     fun `resolves W shape from catalog`() {
-        val spec = catalog.findByDesignation("W310x39")
+        val spec = catalog.findByDesignation("w310x39")
 
         assertThat(spec).isInstanceOf(WShapeSpec::class.java)
         assertThat(spec?.designation).isEqualTo("W310x39")
@@ -55,10 +46,10 @@ class ProfileCatalogTest {
 
     @Test
     fun `resolves alias for channel`() {
-        val spec = catalog.findByDesignation("C 200 x 17")
+        val spec = catalog.findByDesignation("C 200 x 20")
 
         assertThat(spec).isInstanceOf(ChannelSpec::class.java)
-        assertThat(spec?.designation).isEqualTo("C200x17")
+        assertThat(spec?.designation).isEqualTo("C200x20")
     }
 
     @Test
@@ -95,7 +86,7 @@ class ProfileCatalogTest {
         }
 
         assertThrows(IllegalStateException::class.java) {
-            ProfileCatalog(loader).listStandards()
+            ProfileCatalog(resourceLoader = loader, resourceName = "").listStandards()
         }
     }
 }

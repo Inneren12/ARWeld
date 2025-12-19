@@ -7,8 +7,9 @@ import com.example.arweld.core.structural.profiles.ProfileType
 data class ParsedProfileId(
     val type: ProfileType,
     val designation: String, // canonical
-    val standardHint: ProfileStandard,
-    val channelSeries: ChannelSeries? = null
+    val standardHint: ProfileStandard?,
+    val channelSeries: ChannelSeries? = null,
+    val raw: String
 )
 
 /**
@@ -22,6 +23,8 @@ fun parseProfileString(raw: String): ParsedProfileId {
     val rule = profileParseRules.firstOrNull { it.regex.containsMatchIn(normalizedInput) }
         ?: throw IllegalArgumentException("Unsupported profile format: '$raw'")
 
+    validateFormat(rule.type, normalizedInput, raw)
+
     val designation = normalizeDesignation(rule.type, normalizedInput, rule.channelSeries)
     val standardHint = determineStandardHint(normalizedInput)
 
@@ -29,17 +32,18 @@ fun parseProfileString(raw: String): ParsedProfileId {
         type = rule.type,
         designation = designation,
         standardHint = standardHint,
-        channelSeries = rule.channelSeries
+        channelSeries = rule.channelSeries,
+        raw = raw
     )
 }
 
 private val fractionRegex = "\\d+/\\d+".toRegex()
 
-private fun determineStandardHint(input: String): ProfileStandard =
+private fun determineStandardHint(input: String): ProfileStandard? =
     if (fractionRegex.containsMatchIn(input) || input.contains('"') || input.contains('\'')) {
         ProfileStandard.AISC
     } else {
-        ProfileStandard.CSA
+        null
     }
 
 private data class ProfileParseRule(
@@ -56,3 +60,29 @@ private val profileParseRules = listOf(
     ProfileParseRule("^\\s*L".toRegex(setOf(RegexOption.IGNORE_CASE)), ProfileType.L),
     ProfileParseRule("^\\s*W".toRegex(setOf(RegexOption.IGNORE_CASE)), ProfileType.W)
 )
+
+private val wPattern =
+    "^\\s*W\\s*\\d+(?:\\.\\d+)?\\s*x\\s*\\d+(?:\\.\\d+)?\\s*$".toRegex(RegexOption.IGNORE_CASE)
+private val hssPattern =
+    "^\\s*HSS\\s*\\d+(?:\\.\\d+)?\\s*x\\s*\\d+(?:\\.\\d+)?\\s*x\\s*(?:\\d+(?:\\.\\d+)?|\\d+/\\d+)\\s*$"
+        .toRegex(RegexOption.IGNORE_CASE)
+private val channelPattern =
+    "^\\s*(?:MC|C)\\s*\\d+(?:\\.\\d+)?\\s*x\\s*\\d+(?:\\.\\d+)?\\s*$"
+        .toRegex(RegexOption.IGNORE_CASE)
+private val anglePattern =
+    "^\\s*L\\s*\\d+(?:\\.\\d+)?\\s*x\\s*\\d+(?:\\.\\d+)?\\s*x\\s*(?:\\d+(?:\\.\\d+)?|\\d+/\\d+)\\s*$"
+        .toRegex(RegexOption.IGNORE_CASE)
+
+private fun validateFormat(type: ProfileType, normalizedInput: String, raw: String) {
+    val isValid = when (type) {
+        ProfileType.W -> wPattern.matches(normalizedInput)
+        ProfileType.HSS -> hssPattern.matches(normalizedInput)
+        ProfileType.C -> channelPattern.matches(normalizedInput)
+        ProfileType.L -> anglePattern.matches(normalizedInput)
+        ProfileType.PL -> parsePlateDimensions(normalizedInput) != null
+    }
+
+    if (!isValid) {
+        throw IllegalArgumentException("Unsupported profile format: '$raw'")
+    }
+}
