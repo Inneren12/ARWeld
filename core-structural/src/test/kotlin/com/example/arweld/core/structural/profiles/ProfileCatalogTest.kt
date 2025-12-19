@@ -18,6 +18,16 @@ class ProfileCatalogTest {
     }
 
     @Test
+    fun `finds MC channel`() {
+        val spec = catalog.findByDesignation("MC250X33")
+
+        assertThat(spec).isInstanceOf(ChannelSpec::class.java)
+        val channel = spec as ChannelSpec
+        assertThat(channel.designation).isEqualTo("MC250x33")
+        assertThat(channel.channelSeries).isEqualTo(ChannelSeries.MC)
+    }
+
+    @Test
     fun `resolves angle by canonical designation`() {
         val spec = catalog.findByDesignation("L51x38x6.4")
 
@@ -62,6 +72,30 @@ class ProfileCatalogTest {
     fun `requireByDesignation throws for unknown`() {
         assertThrows(IllegalStateException::class.java) {
             catalog.requireByDesignation("W999x999")
+        }
+    }
+
+    @Test
+    fun `throws on alias collision`() {
+        val loader = object : CatalogResourceLoader {
+            override fun loadCatalogResources(): List<CatalogResource> = listOf(
+                CatalogResource(
+                    name = "one.json",
+                    content = """
+                        {"standard":"CSA","type":"W","items":[{"designation":"W100x10","aliases":["DUP"],"dMm":100,"bfMm":100,"twMm":6,"tfMm":8}]}
+                    """.trimIndent()
+                ),
+                CatalogResource(
+                    name = "two.json",
+                    content = """
+                        {"standard":"CSA","type":"W","items":[{"designation":"W110x12","aliases":["DUP"],"dMm":110,"bfMm":105,"twMm":6,"tfMm":9}]}
+                    """.trimIndent()
+                )
+            )
+        }
+
+        assertThrows(IllegalStateException::class.java) {
+            ProfileCatalog(loader).listStandards()
         }
     }
 }

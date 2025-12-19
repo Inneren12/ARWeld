@@ -3,16 +3,6 @@
   "type": "W",
   "items": [
     {
-      "designation": "W200x27",
-      "aliases": ["W200X27", "W 200 x 27"],
-      "dMm": 203.2,
-      "bfMm": 133.4,
-      "twMm": 6.1,
-      "tfMm": 7.6,
-      "massKgPerM": 26.9,
-      "areaMm2": 3450.0
-    },
-    {
       "designation": "W310x39",
       "aliases": ["W310X39", "W 310 x 39"],
       "dMm": 307.3,
