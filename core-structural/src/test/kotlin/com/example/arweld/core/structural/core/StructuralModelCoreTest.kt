@@ -150,6 +150,43 @@ class StructuralModelCoreTest {
     }
 
     @Test
+    fun `bolt groups are preserved in domain mapping`() {
+        val json = """
+            {
+              "id": "bolts_present",
+              "units": "mm",
+              "nodes": [
+                { "id": "N1", "x": 0.0, "y": 0.0, "z": 0.0 },
+                { "id": "N2", "x": 1000.0, "y": 0.0, "z": 0.0 }
+              ],
+              "members": [
+                { "id": "M1", "kind": "BEAM", "profile": "W310x39", "nodeStartId": "N1", "nodeEndId": "N2" }
+              ],
+              "boltGroups": [
+                {
+                  "id": "BG1",
+                  "boltDiaMm": 20.0,
+                  "grade": "A325",
+                  "pattern": [
+                    { "xMm": -50.0, "yMm": 0.0 },
+                    { "xMm": 50.0, "yMm": 0.0 }
+                  ]
+                }
+              ],
+              "connections": [
+                { "id": "C1", "memberIds": ["M1"], "boltGroupIds": ["BG1"] }
+              ]
+            }
+        """.trimIndent()
+
+        val model = ModelJsonParser.parse(json).toDomain(catalog)
+
+        assertThat(model.boltGroups).hasSize(1)
+        assertThat(model.boltGroups.single().id).isEqualTo("BG1")
+        assertThat(model.connections.single().boltGroupIds).containsExactly("BG1")
+    }
+
+    @Test
     fun `validate detects missing plate references`() {
         val json = """
             {
@@ -174,6 +211,32 @@ class StructuralModelCoreTest {
         }
 
         assertThat(exception.message).contains("missing plates")
+    }
+
+    @Test
+    fun `loadModelFromJson fails on missing bolt group references`() {
+        val json = """
+            {
+              "id": "missing_bolt_group_refs",
+              "units": "mm",
+              "nodes": [
+                { "id": "N1", "x": 0.0, "y": 0.0, "z": 0.0 },
+                { "id": "N2", "x": 1000.0, "y": 0.0, "z": 0.0 }
+              ],
+              "members": [
+                { "id": "M1", "kind": "BEAM", "profile": "W310x39", "nodeStartId": "N1", "nodeEndId": "N2" }
+              ],
+              "connections": [
+                { "id": "C1", "memberIds": ["M1"], "boltGroupIds": ["BG404"] }
+              ]
+            }
+        """.trimIndent()
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            core.loadModelFromJson(json)
+        }
+
+        assertThat(exception.message).contains("missing bolt groups")
     }
 
     @Test

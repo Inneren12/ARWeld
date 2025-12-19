@@ -1,5 +1,7 @@
 package com.example.arweld.core.structural.serialization
 
+import com.example.arweld.core.structural.model.BoltGroup
+import com.example.arweld.core.structural.model.BoltPoint2D
 import com.example.arweld.core.structural.model.Connection
 import com.example.arweld.core.structural.model.Member
 import com.example.arweld.core.structural.model.MemberKind
@@ -50,10 +52,25 @@ data class PlateDto(
 )
 
 @Serializable
+data class BoltPoint2DDto(
+    val xMm: Double,
+    val yMm: Double
+)
+
+@Serializable
+data class BoltGroupDto(
+    val id: String,
+    val boltDiaMm: Double,
+    val grade: String? = null,
+    val pattern: List<BoltPoint2DDto> = emptyList()
+)
+
+@Serializable
 data class ConnectionDto(
     val id: String,
     val memberIds: List<String>,
-    val plateIds: List<String> = emptyList()
+    val plateIds: List<String> = emptyList(),
+    val boltGroupIds: List<String> = emptyList()
 )
 
 @Serializable
@@ -64,6 +81,7 @@ data class StructuralModelDto(
     val members: List<MemberDto>,
     val connections: List<ConnectionDto> = emptyList(),
     val plates: List<PlateDto> = emptyList(),
+    val boltGroups: List<BoltGroupDto> = emptyList(),
     val meta: Map<String, String> = emptyMap()
 )
 
@@ -95,8 +113,16 @@ fun StructuralModelDto.toDomain(profileCatalog: ProfileCatalog): StructuralModel
         )
     }
     val connectionsDomain =
-        connections.map { Connection(it.id, it.memberIds, it.plateIds) }
+        connections.map { Connection(it.id, it.memberIds, it.plateIds, it.boltGroupIds) }
     val platesDomain = plates.map { Plate(it.id, it.thicknessMm, it.widthMm, it.lengthMm) }
+    val boltGroupsDomain = boltGroups.map { boltGroup ->
+        BoltGroup(
+            id = boltGroup.id,
+            boltDiaMm = boltGroup.boltDiaMm,
+            grade = boltGroup.grade,
+            pattern = boltGroup.pattern.map { BoltPoint2D(it.xMm, it.yMm) }
+        )
+    }
 
     val enrichedMeta = meta + mapOf("units" to normalizedUnits)
 
@@ -106,6 +132,7 @@ fun StructuralModelDto.toDomain(profileCatalog: ProfileCatalog): StructuralModel
         members = membersDomain,
         connections = connectionsDomain,
         plates = platesDomain,
+        boltGroups = boltGroupsDomain,
         meta = enrichedMeta
     )
 }

@@ -15,7 +15,8 @@
 - `OrientationMeta(rollAngleDeg?, camberMm?)`
 - `Plate(id, thickness, width, length)` — dimensions in mm.
 - `Connection(id, memberIds, plateIds?)`
-- `StructuralModel(id, nodes, members, connections = [], plates = [], meta = {})` (plates optional; variant B)
+- `BoltGroup(id, boltDiaMm, grade?, pattern = [])` — optional/reserved in v0.1.
+- `StructuralModel(id, nodes, members, connections = [], plates = [], boltGroups = [], meta = {})` (plates/bolt groups optional; variant B)
 
 ## Profiles
 
@@ -31,6 +32,7 @@
 - Units are required and fixed to `"mm"` in v0.1 (case-insensitive input, normalized to `"mm"`).
 - Members carry `profile` as a designation string in JSON; resolution happens via `ProfileCatalog`.
 - Optional `plates` array; `connection.plateIds` reference `plates.id` (variant B).
+- Optional `boltGroups` array; `connection.boltGroupIds` reference `boltGroups.id` (reserved v0.1).
 - Unknown JSON fields are ignored (`ignoreUnknownKeys = true`).
 
 ## Parsing & Validation API
@@ -43,8 +45,9 @@
   - Calls `validate` and throws `IllegalArgumentException` if invalid.
   - Validation checks:
     - unique node/member/plate ids,
+    - unique bolt group ids,
     - member endpoints exist,
-    - connections reference existing members/plates (variant B),
+    - connections reference existing members/plates/bolt groups (variant B),
     - profiles resolve through the catalog.
 
 ## Limitations (v0.1)

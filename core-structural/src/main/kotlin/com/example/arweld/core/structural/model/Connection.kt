@@ -9,5 +9,6 @@ import kotlinx.serialization.Serializable
 data class Connection(
     val id: String,
     val memberIds: List<String>,
-    val plateIds: List<String> = emptyList()
+    val plateIds: List<String> = emptyList(),
+    val boltGroupIds: List<String> = emptyList()
 )

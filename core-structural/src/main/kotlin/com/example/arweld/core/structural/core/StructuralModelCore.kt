@@ -50,6 +50,12 @@ class DefaultStructuralModelCore(
         }
         val plateIdSet = plateIds.toSet()
 
+        val boltGroupIds = model.boltGroups.map { it.id }
+        if (boltGroupIds.size != boltGroupIds.toSet().size) {
+            errors.add("Duplicate bolt group ids detected.")
+        }
+        val boltGroupIdSet = boltGroupIds.toSet()
+
         val connectionIds = model.connections.map { it.id }
         if (connectionIds.size != connectionIds.toSet().size) {
             errors.add("Duplicate connection ids detected.")
@@ -72,6 +78,10 @@ class DefaultStructuralModelCore(
             val missingPlates = connection.plateIds.filterNot { it in plateIdSet }
             if (missingPlates.isNotEmpty()) {
                 errors.add("Connection ${connection.id} references missing plates ${missingPlates.joinToString()}.")
+            }
+            val missingBoltGroups = connection.boltGroupIds.filterNot { it in boltGroupIdSet }
+            if (missingBoltGroups.isNotEmpty()) {
+                errors.add("Connection ${connection.id} references missing bolt groups ${missingBoltGroups.joinToString()}.")
             }
         }
 
