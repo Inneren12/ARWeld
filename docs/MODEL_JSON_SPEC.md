@@ -25,7 +25,7 @@ Required fields: `id`, `units`, `nodes`, `members`.
 - `members` — Array of member objects referencing node ids.
 - `boltGroups` — Optional array of bolt group definitions (reserved for v0.1; safe to omit).
 - `plates` — Optional array of plate definitions (can be omitted).
-- `connections` — Optional array describing how members/plates are grouped.
+- `connections` — Optional array describing how members/plates/bolt groups are grouped.
 - `meta` — Optional string map for auxiliary properties (e.g., source, revision).
 
 ## Nodes
