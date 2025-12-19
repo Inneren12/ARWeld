@@ -7,6 +7,7 @@ import com.example.arweld.core.structural.model.Node
 import com.example.arweld.core.structural.model.OrientationMeta
 import com.example.arweld.core.structural.model.Plate
 import com.example.arweld.core.structural.model.StructuralModel
+import com.example.arweld.core.structural.model.CORE_LENGTH_UNIT
 import com.example.arweld.core.structural.profiles.ProfileCatalog
 import com.example.arweld.core.structural.profiles.ProfileStandard
 import com.example.arweld.core.structural.profiles.parse.parseProfileString
@@ -58,7 +59,7 @@ data class ConnectionDto(
 @Serializable
 data class StructuralModelDto(
     val id: String,
-    val units: String = "mm",
+    val units: String,
     val nodes: List<NodeDto>,
     val members: List<MemberDto>,
     val connections: List<ConnectionDto> = emptyList(),
@@ -70,10 +71,11 @@ data class StructuralModelDto(
  * Maps DTO to domain StructuralModel while normalizing profile designations.
  */
 fun StructuralModelDto.toDomain(profileCatalog: ProfileCatalog): StructuralModel {
-    if (!units.equals("mm", ignoreCase = true)) {
+    if (!units.equals(CORE_LENGTH_UNIT, ignoreCase = true)) {
         throw IllegalArgumentException("Unsupported units '$units'. Only millimeters (mm) are supported in v0.1.")
     }
 
+    val normalizedUnits = CORE_LENGTH_UNIT
     val nodesDomain = nodes.map { Node(it.id, it.x, it.y, it.z) }
     val membersDomain = members.map { member ->
         val parsed = parseProfileString(member.profileDesignation)
@@ -96,7 +98,7 @@ fun StructuralModelDto.toDomain(profileCatalog: ProfileCatalog): StructuralModel
         connections.map { Connection(it.id, it.memberIds, it.plateIds) }
     val platesDomain = plates.map { Plate(it.id, it.thicknessMm, it.widthMm, it.lengthMm) }
 
-    val enrichedMeta = meta + mapOf("units" to units.lowercase())
+    val enrichedMeta = meta + mapOf("units" to normalizedUnits)
 
     return StructuralModel(
         id = id,
