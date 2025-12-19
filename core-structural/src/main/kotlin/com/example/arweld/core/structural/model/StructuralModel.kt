@@ -13,5 +13,6 @@ data class StructuralModel(
     val members: List<Member>,
     val connections: List<Connection> = emptyList(),
     val plates: List<Plate> = emptyList(),
+    val boltGroups: List<BoltGroup> = emptyList(),
     val meta: Map<String, String> = emptyMap()
 )

@@ -10,6 +10,7 @@ This specification defines the `model.json` payload consumed by `core-structural
   "units": "mm",
   "nodes": [ ... ],
   "members": [ ... ],
+  "boltGroups": [ ... ],
   "plates": [ ... ],
   "connections": [ ... ],
   "meta": { }
@@ -22,6 +23,7 @@ Required fields: `id`, `units`, `nodes`, `members`.
 - `units` — Must be `"mm"` in v0.1. Case-insensitive on input; normalized to `"mm"`.
 - `nodes` — Array of node objects.
 - `members` — Array of member objects referencing node ids.
+- `boltGroups` — Optional array of bolt group definitions (reserved for v0.1; safe to omit).
 - `plates` — Optional array of plate definitions (can be omitted).
 - `connections` — Optional array describing how members/plates are grouped.
 - `meta` — Optional string map for auxiliary properties (e.g., source, revision).
@@ -63,11 +65,31 @@ Required fields: `id`, `units`, `nodes`, `members`.
 ## Connections
 
 ```json
-{ "id": "C1", "memberIds": ["M1", "M2"], "plateIds": ["P1"] }
+{ "id": "C1", "memberIds": ["M1", "M2"], "plateIds": ["P1"], "boltGroupIds": ["BG1"] }
 ```
 
 - `memberIds` — Members participating in the connection.
 - `plateIds` — Optional plate references (empty if not used). References `plates.id`.
+- `boltGroupIds` — Optional bolt group references (empty if not used). References `boltGroups.id`.
+
+## BoltGroups (optional/reserved v0.1)
+
+```json
+{
+  "id": "BG1",
+  "boltDiaMm": 20.0,
+  "grade": "A325",
+  "pattern": [
+    { "xMm": -50.0, "yMm": 0.0 },
+    { "xMm": 50.0, "yMm": 0.0 }
+  ]
+}
+```
+
+- `boltDiaMm` — Bolt diameter in millimeters (mm).
+- `grade` — Optional bolt grade string.
+- `pattern` — Optional array of bolt points in local mm coordinates.
+- Bolt groups are optional/reserved in v0.1; safe to omit if not used.
 
 ## Validation Rules (v0.1)
 
@@ -76,7 +98,8 @@ Required fields: `id`, `units`, `nodes`, `members`.
 3. Every `member.nodeStartId` and `member.nodeEndId` must exist in `nodes`.
 4. Every `connection.memberIds` entry must exist in `members`.
 5. Every `connection.plateIds` entry must exist in `plates` (if provided).
-6. `profile` must resolve via `ProfileCatalog` (lookup after normalization).
+6. Every `connection.boltGroupIds` entry must exist in `boltGroups` (if provided).
+7. `profile` must resolve via `ProfileCatalog` (lookup after normalization).
 
 ## Minimal Example (no plates)
 
