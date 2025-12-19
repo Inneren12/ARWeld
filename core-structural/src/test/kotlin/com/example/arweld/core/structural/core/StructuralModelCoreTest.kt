@@ -1,12 +1,6 @@
 package com.example.arweld.core.structural.core
 
-import com.example.arweld.core.structural.model.Connection
-import com.example.arweld.core.structural.model.Member
-import com.example.arweld.core.structural.model.MemberKind
-import com.example.arweld.core.structural.model.Node
-import com.example.arweld.core.structural.model.StructuralModel
 import com.example.arweld.core.structural.profiles.ProfileCatalog
-import com.example.arweld.core.structural.profiles.ProfileStandard
 import com.example.arweld.core.structural.serialization.ModelJsonParser
 import com.example.arweld.core.structural.serialization.toDomain
 import com.google.common.truth.Truth.assertThat
@@ -29,8 +23,8 @@ class StructuralModelCoreTest {
         val model = core.loadModelFromJson(json)
         val validation = core.validate(model)
 
-        assertThat(model.nodes).isNotEmpty()
-        assertThat(model.members).isNotEmpty()
+        assertThat(model.nodes).hasSize(2)
+        assertThat(model.members).hasSize(1)
         assertThat(model.members.first().profile.designation).isEqualTo("W310x39")
         assertThat(validation.isValid).isTrue()
     }
@@ -54,6 +48,26 @@ class StructuralModelCoreTest {
         val validation = core.validate(model)
         assertThat(validation.isValid).isFalse()
         assertThat(validation.errors.any { it.contains("N2") }).isTrue()
+    }
+
+    @Test
+    fun `loadModelFromJson fails on missing node reference`() {
+        val invalidJson = """
+            {
+              "id": "bad_nodes_load",
+              "units": "mm",
+              "nodes": [{ "id": "N1", "x": 0.0, "y": 0.0, "z": 0.0 }],
+              "members": [
+                { "id": "M1", "kind": "BEAM", "profile": "W310x39", "nodeStartId": "N1", "nodeEndId": "N2" }
+              ]
+            }
+        """.trimIndent()
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            core.loadModelFromJson(invalidJson)
+        }
+
+        assertThat(exception.message).contains("missing nodeEndId")
     }
 
     @Test
@@ -137,33 +151,28 @@ class StructuralModelCoreTest {
 
     @Test
     fun `validate detects missing plate references`() {
-        val profile = catalog.findByDesignation("W310x39", ProfileStandard.CSA)
-            ?: error("Expected profile not found")
+        val json = """
+            {
+              "id": "missing_plate_refs",
+              "units": "mm",
+              "nodes": [
+                { "id": "N1", "x": 0.0, "y": 0.0, "z": 0.0 },
+                { "id": "N2", "x": 1000.0, "y": 0.0, "z": 0.0 }
+              ],
+              "members": [
+                { "id": "M1", "kind": "BEAM", "profile": "W310x39", "nodeStartId": "N1", "nodeEndId": "N2" }
+              ],
+              "connections": [
+                { "id": "C1", "memberIds": ["M1"], "plateIds": ["P404"] }
+              ],
+              "plates": []
+            }
+        """.trimIndent()
 
-        val model = StructuralModel(
-            id = "missing_plate_refs",
-            nodes = listOf(
-                Node("N1", 0.0, 0.0, 0.0),
-                Node("N2", 1000.0, 0.0, 0.0)
-            ),
-            members = listOf(
-                Member(
-                    id = "M1",
-                    kind = MemberKind.BEAM,
-                    profile = profile,
-                    nodeStartId = "N1",
-                    nodeEndId = "N2"
-                )
-            ),
-            connections = listOf(
-                Connection(id = "C1", memberIds = listOf("M1"), plateIds = listOf("P404"))
-            ),
-            plates = emptyList()
-        )
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            core.loadModelFromJson(json)
+        }
 
-        val validation = core.validate(model)
-
-        assertThat(validation.isValid).isFalse()
-        assertThat(validation.errors.any { it.contains("missing plates") }).isTrue()
+        assertThat(exception.message).contains("missing plates")
     }
 }

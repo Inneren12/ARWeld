@@ -14,8 +14,8 @@
 - `Member(id, kind, profileDesignation, nodeStartId, nodeEndId, orientation?)`
 - `OrientationMeta(rollAngleDeg?, camberMm?)`
 - `Plate(id, thicknessMm, widthMm, lengthMm)`
-- `Connection(id, memberIds, plateIds)`
-- `StructuralModel(id, nodes, members, connections = [], plates = [], meta = {})`
+- `Connection(id, memberIds, plateIds?)`
+- `StructuralModel(id, nodes, members, connections = [], plates = [], meta = {})` (plates optional; variant B)
 
 ## Profiles
 
@@ -27,10 +27,11 @@
 
 ## JSON Format
 
-- See `docs/MODEL_JSON_SPEC.md` for full schema.
-- Units are fixed to `"mm"` in v0.1.
+- See `docs/MODEL_JSON_SPEC.md` for full schema and examples.
+- Units are fixed to `"mm"` in v0.1 (case-insensitive input, normalized to `"mm"`).
 - Members carry `profile` as a designation string; resolution happens via `ProfileCatalog`.
-- Optional `plates` and `connections` arrays; `meta` is a string map for auxiliary info.
+- Optional `plates` and `connections` arrays; `connection.plateIds` reference `plates.id` (variant B).
+- Unknown JSON fields are ignored (`ignoreUnknownKeys = true`).
 
 ## Parsing & Validation API
 
@@ -43,7 +44,7 @@
   - Validation checks:
     - unique node/member ids,
     - member endpoints exist,
-    - connections reference existing members/plates,
+    - connections reference existing members/plates (variant B),
     - profiles resolve through the catalog.
 
 ## Limitations (v0.1)

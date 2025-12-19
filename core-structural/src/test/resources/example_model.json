@@ -1,0 +1,12 @@
+{
+  "id": "example_frame_01",
+  "units": "mm",
+  "nodes": [
+    { "id": "N1", "x": 0, "y": 0, "z": 0 },
+    { "id": "N2", "x": 6000, "y": 0, "z": 0 }
+  ],
+  "members": [
+    { "id": "M1", "kind": "BEAM", "profile": "W310x39", "nodeStartId": "N1", "nodeEndId": "N2" }
+  ],
+  "connections": []
+}
