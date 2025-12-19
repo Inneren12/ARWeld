@@ -5,6 +5,7 @@ import com.example.arweld.core.structural.model.Member
 import com.example.arweld.core.structural.model.MemberKind
 import com.example.arweld.core.structural.model.Node
 import com.example.arweld.core.structural.model.OrientationMeta
+import com.example.arweld.core.structural.model.Plate
 import com.example.arweld.core.structural.model.StructuralModel
 import com.example.arweld.core.structural.profiles.ProfileCatalog
 import com.example.arweld.core.structural.profiles.ProfileStandard
@@ -93,6 +94,7 @@ fun StructuralModelDto.toDomain(profileCatalog: ProfileCatalog): StructuralModel
     }
     val connectionsDomain =
         connections.map { Connection(it.id, it.memberIds, it.plateIds) }
+    val platesDomain = plates.map { Plate(it.id, it.thicknessMm, it.widthMm, it.lengthMm) }
 
     val enrichedMeta = meta + mapOf("units" to units.lowercase())
 
@@ -101,6 +103,7 @@ fun StructuralModelDto.toDomain(profileCatalog: ProfileCatalog): StructuralModel
         nodes = nodesDomain,
         members = membersDomain,
         connections = connectionsDomain,
+        plates = platesDomain,
         meta = enrichedMeta
     )
 }
