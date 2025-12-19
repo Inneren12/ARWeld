@@ -21,7 +21,7 @@ internal fun normalizeDesignation(
 
         ProfileType.PL -> canonicalizePlateDesignation(compact) ?: run {
             val body = removePrefixIgnoreCase(compact, "PL")
-            "PL${body.replace('X', 'x')}"
+            "PL ${body.replace('X', 'x')}"
         }
 
         ProfileType.C -> {

@@ -8,13 +8,17 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
+private const val DEFAULT_RESOURCE_NAME = "profiles.json"
+
 class ProfileCatalog(
     private val resourceLoader: CatalogResourceLoader = DefaultCatalogResourceLoader(),
-    extraProfiles: List<ProfileSpec> = emptyList()
+    extraProfiles: List<ProfileSpec> = emptyList(),
+    private val resourceName: String = DEFAULT_RESOURCE_NAME
 ) {
 
     private val index: Lazy<CatalogIndex> = lazy {
-        val resourceProfiles = CatalogResourceParser.parseAll(resourceLoader.loadCatalogResources())
+        val resourceProfiles = loadProfilesFromResource(resourceName)
+            ?: CatalogResourceParser.parseAll(resourceLoader.loadCatalogResources())
         buildIndex(resourceProfiles + extraProfiles)
     }
 
@@ -162,6 +166,23 @@ class ProfileCatalog(
             massKgPerM = massKgPerM
         )
     }
+
+    private fun loadProfilesFromResource(resourceName: String): List<ProfileSpec>? {
+        if (resourceName.isBlank()) {
+            return null
+        }
+        val classLoader = ProfileCatalog::class.java.classLoader
+        val stream = classLoader.getResourceAsStream(resourceName) ?: return null
+        val content = stream.bufferedReader().use { it.readText() }
+        return ProfilesJsonParser.parse(content)
+    }
+
+    companion object {
+        fun loadFromResource(
+            resourceName: String,
+            extraProfiles: List<ProfileSpec> = emptyList()
+        ): ProfileCatalog = ProfileCatalog(extraProfiles = extraProfiles, resourceName = resourceName)
+    }
 }
 
 private data class ProfileKey(
@@ -230,6 +251,84 @@ private object CatalogResourceParser {
         return specs
     }
 }
+
+@Serializable
+private data class ProfilesJsonDocument(
+    val version: String,
+    val standard: ProfileStandard,
+    val profiles: List<ProfilesJsonProfileDto>
+)
+
+@Serializable
+private data class ProfilesJsonProfileDto(
+    val type: ProfileType,
+    val designation: String,
+    val aliases: List<String> = emptyList(),
+    val massKgPerM: Double? = null,
+    val areaMm2: Double? = null,
+    val channelSeries: ChannelSeries? = null,
+    val dMm: Double? = null,
+    val bfMm: Double? = null,
+    val twMm: Double? = null,
+    val tfMm: Double? = null,
+    val kMm: Double? = null,
+    val rMm: Double? = null,
+    val hMm: Double? = null,
+    val bMm: Double? = null,
+    val tMm: Double? = null,
+    val cornerRadiusMm: Double? = null,
+    val leg1Mm: Double? = null,
+    val leg2Mm: Double? = null,
+    val wMm: Double? = null
+)
+
+private object ProfilesJsonParser {
+    private val json = Json { ignoreUnknownKeys = true }
+
+    fun parse(content: String): List<ProfileSpec> {
+        val document = json.decodeFromString<ProfilesJsonDocument>(content)
+        val errors = mutableListOf<String>()
+        val specs = mutableListOf<ProfileSpec>()
+
+        document.profiles.forEach { item ->
+            val dto = item.toCatalogItemDto()
+            val missing = dto.validate(item.type)
+            if (missing.isNotEmpty()) {
+                errors += "${item.designation}: missing ${missing.joinToString()}"
+            } else {
+                specs += dto.toSpec(document.standard, item.type)
+            }
+        }
+
+        if (errors.isNotEmpty()) {
+            throw IllegalStateException("Invalid profiles.json:\n" + errors.joinToString("\n"))
+        }
+
+        return specs
+    }
+}
+
+private fun ProfilesJsonProfileDto.toCatalogItemDto(): ProfileCatalogItemDto =
+    ProfileCatalogItemDto(
+        designation = designation,
+        aliases = aliases,
+        massKgPerM = massKgPerM,
+        areaMm2 = areaMm2,
+        channelSeries = channelSeries,
+        dMm = dMm,
+        bfMm = bfMm,
+        twMm = twMm,
+        tfMm = tfMm,
+        kMm = kMm,
+        rMm = rMm,
+        hMm = hMm,
+        bMm = bMm,
+        tMm = tMm,
+        cornerRadiusMm = cornerRadiusMm,
+        leg1Mm = leg1Mm,
+        leg2Mm = leg2Mm,
+        wMm = wMm
+    )
 
 @Serializable
 data class ProfileCatalogResourceDto(

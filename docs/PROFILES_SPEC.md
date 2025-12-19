@@ -1,38 +1,61 @@
-# Profile Catalog + OCR/BOM Normalization Spec
+# Profiles Specification (v0.1)
 
-This document describes the contract between OCR/BOM ingestion and the core-structural profile catalog. It is intentionally CSA-first but structured to support AISC additions later.
+This spec defines the supported steel profile designation formats, normalization rules, and the starter catalog used by `core-structural`.
 
 ## Supported profile types
-- **W** — Wide flange
-- **C / MC** — Channels; MC preserved when present in the source
-- **HSS** — Hollow structural sections
-- **L** — Angles
-- **PL** — Plates (parametric fallback)
 
-## Canonical format rules
-- Prefixes are uppercase (`W`, `C`, `MC`, `HSS`, `L`, `PL`).
-- Separators use lowercase `x` with no spaces (`W310x39`, `C200x17`).
-- HSS retains a single space after the prefix (`HSS 152x152x6.4`).
-- MC is preserved as the channel prefix when provided (e.g., `MC250x33`).
-- Fractions are preserved inside aliases (e.g., `HSS 6x6x1/4`).
+- **W** — wide-flange (W-shape)
+- **HSS** — hollow structural section (rectangular)
+- **C** — channel (C/MC series)
+- **L** — angle
+- **PL** — plate
 
-## Normalization for OCR/BOM strings
-- Trim whitespace; collapse separators like `X`, `×`, or spaced `x` into lowercase `x`.
-- Remove internal spaces unless required by the canonical (HSS retains one space after the prefix).
-- Preserve fraction tokens; if fractions or inch symbols are present, set `standardHint` to **AISC**; otherwise default to **CSA**.
-- Plate strings parse as `PL t x w` with optional `xL` length tokens ignored for catalog lookup.
+## Canonical designation strings
 
-## Lookup + fallback rules
-- `findByDesignation(raw, preferredStandard)` parses the input, then searches standards in order: `standardHint` (if any) → `preferredStandard` → other known standards.
-- Aliases are part of the index; collisions across designations are rejected to keep mappings unambiguous.
-- Plates: when no catalog entry exists, a parametric `PlateSpec` is synthesized from the plate regex using `t` and `w`.
+Canonical designations are the normalized strings stored in `model.json` (`members[].profile`) and the catalog (`profiles.json`).
 
-## Adding AISC catalogs later
-1. Drop new files under `resources/profiles/` (e.g., `catalog_aisc_w.json`).
-2. Append them to `resources/profiles/catalog_index.json`.
-3. Add aliases that map imperial/fractional notations to canonical metric-friendly forms as needed.
-4. No directory listing is used; the explicit index keeps loading JAR-safe.
+Examples:
 
-## Scope of OCR Stage 1
-- Stage 1 only normalizes BOM/spec strings to canonical designations plus standard hints.
-- Full drawing parsing, geometry extraction, or part-level relationships are **out of scope** for this stage.
+- **W**: `W310x39`
+- **HSS**: `HSS 6x6x3/8`
+- **PL**: `PL 10x250`
+- **C**: `C200x20`
+- **L**: `L4x4x3/8`
+
+## Normalization rules
+
+Normalization must match the behavior of `parseProfileString(...)` and `ProfileCatalog.findByDesignation(...)`.
+
+- **Type prefix**: always uppercase (`W`, `HSS`, `C`, `L`, `PL`).
+- **Whitespace**:
+  - `HSS` and `PL` canonical forms include a single space after the type prefix (`HSS 6x6x3/8`, `PL 10x250`).
+  - `W`, `C`, `L` canonical forms include no space (`W310x39`, `C200x20`, `L4x4x3/8`).
+- **Separators**: `x` is the only canonical separator (input may include spaces or `X`, which are normalized).
+- **Fractions**: fractional thickness/leg dimensions are preserved (e.g., `3/8`, `1/4`, `5/16`).
+- **Raw input**: the parser keeps the original raw string for error reporting, but all lookups use the canonical designation.
+
+## Units in ProfileSpec
+
+All profile geometry dimensions are stored in **millimeters (mm)**. Mass is stored as **kilograms per meter (kg/m)** when provided.
+
+## Starter catalog (v0.1)
+
+The v0.1 catalog lives at:
+
+- `core-structural/src/main/resources/profiles.json`
+
+Profiles included (must match canonical designations in the catalog):
+
+- `W200x27`
+- `W310x39`
+- `W360x33`
+- `W410x60`
+- `HSS 6x6x3/8`
+- `HSS 8x4x1/4`
+- `HSS 4x4x5/16`
+- `C200x20`
+- `C380x50`
+- `L4x4x3/8`
+- `L3x2x1/4`
+- `PL 10x250`
+- `PL 20x300`
