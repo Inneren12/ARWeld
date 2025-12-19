@@ -50,6 +50,11 @@ class DefaultStructuralModelCore(
         }
         val plateIdSet = plateIds.toSet()
 
+        val connectionIds = model.connections.map { it.id }
+        if (connectionIds.size != connectionIds.toSet().size) {
+            errors.add("Duplicate connection ids detected.")
+        }
+
         model.members.forEach { member ->
             if (member.nodeStartId !in nodeIdSet) {
                 errors.add("Member ${member.id} references missing nodeStartId ${member.nodeStartId}.")
