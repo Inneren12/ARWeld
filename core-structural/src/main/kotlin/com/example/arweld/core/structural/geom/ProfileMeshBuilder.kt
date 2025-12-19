@@ -37,26 +37,27 @@ object ProfileMeshBuilder {
         val halfBf = bf / 2f
         val halfTw = tw / 2f
 
-        // Build the I-shape contour (12 points, counter-clockwise from bottom-left)
+        // Build the I-shape contour (12 points, counter-clockwise when viewed from +Z)
+        // Start from bottom-right and go counter-clockwise
         val points = listOf(
-            // Bottom flange - left side
-            -halfBf to -halfD,
-            -halfBf to -halfD + tf,
-            // Web - left side
-            -halfTw to -halfD + tf,
-            -halfTw to halfD - tf,
-            // Top flange - left side
-            -halfBf to halfD - tf,
-            -halfBf to halfD,
-            // Top flange - right side
-            halfBf to halfD,
-            halfBf to halfD - tf,
-            // Web - right side
-            halfTw to halfD - tf,
-            halfTw to -halfD + tf,
             // Bottom flange - right side
+            halfBf to -halfD,
             halfBf to -halfD + tf,
-            halfBf to -halfD
+            // Web - right side
+            halfTw to -halfD + tf,
+            halfTw to halfD - tf,
+            // Top flange - right side
+            halfBf to halfD - tf,
+            halfBf to halfD,
+            // Top flange - left side
+            -halfBf to halfD,
+            -halfBf to halfD - tf,
+            // Web - left side
+            -halfTw to halfD - tf,
+            -halfTw to -halfD + tf,
+            // Bottom flange - left side
+            -halfBf to -halfD + tf,
+            -halfBf to -halfD
         )
 
         return ExtrusionBuilder().extrude(points, emptyList(), length)

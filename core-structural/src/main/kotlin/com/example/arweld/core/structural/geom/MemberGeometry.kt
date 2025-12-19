@@ -77,14 +77,26 @@ private fun generateMemberMesh(member: Member, nodeMap: Map<String, Node>): Memb
 /**
  * Build transformation matrix from local member coordinates to world coordinates.
  *
- * Local coordinates:
+ * **Matrix Convention:**
+ * - Column-major storage (OpenGL/Filament compatible)
+ * - Multiplication order: `A * B` means apply B first, then A
+ * - Transform application: `translation * rotation` applies rotation first, then translation
+ *
+ * **Local coordinates:**
  * - Member axis is +Z (from z=0 to z=length)
  * - Cross-section in XY plane centered at origin
+ * - Roll angle rotates around local Z axis (0° = default orientation)
  *
- * World coordinates:
+ * **World coordinates:**
  * - Member positioned from start to end
- * - Rotated to align +Z with member direction
- * - Additional roll rotation around member axis
+ * - Rotated to align local +Z with member direction in world space
+ * - Roll applied around member axis (in local coords before world transform)
+ *
+ * **Roll application:**
+ * - Roll is applied in LOCAL coordinates (around local Z axis = Vec3.Z_AXIS)
+ * - Multiplication: `rotation * rollRotation` applies roll first (in local space)
+ * - After roll, the basis rotation transforms local coords to world coords
+ * - Result: roll rotates around the member axis as expected
  */
 private fun buildMemberTransform(
     start: Vec3,

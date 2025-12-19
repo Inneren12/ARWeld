@@ -107,31 +107,114 @@ class ExtrusionBuilder {
         if (innerLoops.isEmpty()) {
             // Simple case: no holes, triangulate outer loop
             val triIndices = Triangulation.triangulate2D(outerLoop)
-            for (idx in triIndices) {
-                val vertexIdx = loopStarts[0] + baseOffset + idx
-                indices.add(vertexIdx)
-            }
-        } else {
-            // Complex case with holes: use simplified approach
-            // For v0.1, we'll use a simple fan from first vertex (works for convex regions)
-            // More robust: Constrained Delaunay or polygon with holes library
-            val center = loopStarts[0] + baseOffset
-            for (i in 1 until outerSize - 1) {
-                if (isTop) {
-                    // Top: reverse winding
-                    indices.add(loopStarts[0] + baseOffset + i + 1)
-                    indices.add(loopStarts[0] + baseOffset + i)
-                    indices.add(center)
-                } else {
-                    // Bottom: normal winding
-                    indices.add(center)
-                    indices.add(loopStarts[0] + baseOffset + i)
-                    indices.add(loopStarts[0] + baseOffset + i + 1)
+
+            // Triangulation produces CCW triangles (normal pointing +Z when viewed from +Z)
+            // For top cap (z=length, facing +Z): use as-is
+            // For bottom cap (z=0, facing -Z): reverse each triangle's winding
+            if (isTop) {
+                // Top cap: normal should point outward (+Z)
+                for (idx in triIndices) {
+                    val vertexIdx = loopStarts[0] + baseOffset + idx
+                    indices.add(vertexIdx)
+                }
+            } else {
+                // Bottom cap: normal should point outward (-Z), so reverse winding
+                var i = 0
+                while (i < triIndices.size) {
+                    val i0 = loopStarts[0] + baseOffset + triIndices[i]
+                    val i1 = loopStarts[0] + baseOffset + triIndices[i + 1]
+                    val i2 = loopStarts[0] + baseOffset + triIndices[i + 2]
+                    // Reverse the triangle: instead of (i0, i1, i2), emit (i0, i2, i1)
+                    indices.add(i0)
+                    indices.add(i2)
+                    indices.add(i1)
+                    i += 3
                 }
             }
+        } else {
+            // Complex case with holes: special handling for rectangular tubes (HSS)
+            // Check if we have a 4-sided outer and 4-sided inner (rectangular tube)
+            if (outerLoop.size == 4 && innerLoops.size == 1 && innerLoops[0].size == 4) {
+                // HSS case: generate ring caps connecting outer and inner rectangles
+                addRectangularRingCap(outerLoop, innerLoops[0], loopStarts, isTop)
+            } else {
+                // Fallback: simple fan from first vertex (works for convex regions)
+                // Note: This doesn't properly handle holes - for production, use proper triangulation
+                val center = loopStarts[0] + baseOffset
+                for (i in 1 until outerSize - 1) {
+                    if (isTop) {
+                        // Top: reverse winding
+                        indices.add(loopStarts[0] + baseOffset + i + 1)
+                        indices.add(loopStarts[0] + baseOffset + i)
+                        indices.add(center)
+                    } else {
+                        // Bottom: normal winding
+                        indices.add(center)
+                        indices.add(loopStarts[0] + baseOffset + i)
+                        indices.add(loopStarts[0] + baseOffset + i + 1)
+                    }
+                }
+            }
+        }
+    }
 
-            // Note: This simplified approach doesn't properly handle holes
-            // For production, use a proper polygon triangulation library
+    /**
+     * Generate ring cap for rectangular tube (HSS) by creating quads between outer and inner edges.
+     *
+     * For a 4-sided outer and 4-sided inner rectangle:
+     * - Outer loop is CCW: [0,1,2,3]
+     * - Inner loop is CW: [0,1,2,3]
+     * - Generate 4 quads (8 triangles) connecting corresponding edges
+     */
+    private fun addRectangularRingCap(
+        outerLoop: List<Pair<Float, Float>>,
+        innerLoop: List<Pair<Float, Float>>,
+        loopStarts: List<Int>,
+        isTop: Boolean
+    ) {
+        val outerSize = outerLoop.size
+        val baseOffset = if (isTop) outerSize else 0
+
+        val outerStart = loopStarts[0] + baseOffset
+        val innerStart = loopStarts[1] + baseOffset
+
+        // For each of the 4 sides, create a quad connecting outer edge to inner edge
+        // Outer loop (CCW): 0 -> 1 -> 2 -> 3 -> 0
+        // Inner loop (CW):  0 -> 1 -> 2 -> 3 -> 0
+        // For proper correspondence, we need to reverse inner indexing
+        for (i in 0 until 4) {
+            val outerCurr = outerStart + i
+            val outerNext = outerStart + (i + 1) % 4
+
+            // Inner loop is CW, so to match outer edge, we go in reverse
+            val innerCurr = innerStart + (4 - i) % 4
+            val innerNext = innerStart + (4 - i - 1 + 4) % 4
+
+            // Create quad: outerCurr -> outerNext -> innerNext -> innerCurr
+            // Split into two triangles with correct winding
+            if (isTop) {
+                // Top cap: normal points +Z (outward)
+                // Triangle 1: outerCurr, outerNext, innerNext
+                indices.add(outerCurr)
+                indices.add(outerNext)
+                indices.add(innerNext)
+
+                // Triangle 2: outerCurr, innerNext, innerCurr
+                indices.add(outerCurr)
+                indices.add(innerNext)
+                indices.add(innerCurr)
+            } else {
+                // Bottom cap: normal points -Z (outward)
+                // Reverse winding: Triangle 1: outerCurr, innerNext, outerNext
+                indices.add(outerCurr)
+                indices.add(innerNext)
+                indices.add(outerNext)
+
+                // Triangle 2: outerCurr, innerCurr, innerNext
+                indices.add(outerCurr)
+                indices.add(innerCurr)
+                indices.add(innerNext)
+            }
         }
     }
 }

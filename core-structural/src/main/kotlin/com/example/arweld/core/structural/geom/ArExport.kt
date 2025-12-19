@@ -44,19 +44,33 @@ data class ArElement(
 fun StructuralModel.exportForAR(): List<ArElement> {
     val elements = mutableListOf<ArElement>()
 
+    // Build member and node lookup maps for O(1) access
+    val memberMap = members.associateBy { it.id }
+    val nodeMap = nodes.associateBy { it.id }
+
     // Generate member elements
     val memberMeshes = generateMembersGeometry()
     for (mesh in memberMeshes) {
-        val member = members.find { it.id == mesh.memberId } ?: continue
+        val member = memberMap[mesh.memberId] ?: continue
 
         val meta = mutableMapOf<String, String>()
         meta["kind"] = member.kind.name
         meta["profile"] = member.profile.designation
         meta["type"] = member.profile.type.name
 
-        // Add length from AABB
-        val size = mesh.aabb.size()
-        val length = maxOf(size.x, size.y, size.z)
+        // Add length computed from node positions (robust for diagonal members)
+        val startNode = nodeMap[member.nodeStartId]
+        val endNode = nodeMap[member.nodeEndId]
+        val length = if (startNode != null && endNode != null) {
+            val dx = endNode.x - startNode.x
+            val dy = endNode.y - startNode.y
+            val dz = endNode.z - startNode.z
+            kotlin.math.sqrt(dx * dx + dy * dy + dz * dz).toFloat()
+        } else {
+            // Fallback to AABB if nodes not found (shouldn't happen)
+            val size = mesh.aabb.size()
+            maxOf(size.x, size.y, size.z)
+        }
         meta["lengthMm"] = "%.1f".format(length)
 
         elements.add(
@@ -100,9 +114,9 @@ fun StructuralModel.exportForAR(): List<ArElement> {
 
     // Generate plate elements (minimal implementation for v0.1)
     for (plate in plates) {
-        val t = plate.thicknessMm.toFloat()
-        val w = plate.widthMm?.toFloat() ?: 100f
-        val l = plate.lengthMm?.toFloat() ?: 100f
+        val t = plate.thickness.toFloat()
+        val w = plate.width.toFloat()
+        val l = plate.length.toFloat()
 
         // Simplified: plate at origin with identity transform
         // Future: proper placement based on connection geometry
@@ -118,9 +132,9 @@ fun StructuralModel.exportForAR(): List<ArElement> {
                 transform = Mat4.identity(),
                 aabb = aabb,
                 meta = mapOf(
-                    "thicknessMm" to "%.1f".format(t),
-                    "widthMm" to "%.1f".format(w),
-                    "lengthMm" to "%.1f".format(l)
+                    "thickness" to "%.1f".format(t),
+                    "width" to "%.1f".format(w),
+                    "length" to "%.1f".format(l)
                 )
             )
         )
