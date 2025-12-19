@@ -175,4 +175,31 @@ class StructuralModelCoreTest {
 
         assertThat(exception.message).contains("missing plates")
     }
+
+    @Test
+    fun `loadModelFromJson fails on duplicate connection ids`() {
+        val json = """
+            {
+              "id": "duplicate_connections",
+              "units": "mm",
+              "nodes": [
+                { "id": "N1", "x": 0.0, "y": 0.0, "z": 0.0 },
+                { "id": "N2", "x": 1000.0, "y": 0.0, "z": 0.0 }
+              ],
+              "members": [
+                { "id": "M1", "kind": "BEAM", "profile": "W310x39", "nodeStartId": "N1", "nodeEndId": "N2" }
+              ],
+              "connections": [
+                { "id": "C1", "memberIds": ["M1"] },
+                { "id": "C1", "memberIds": ["M1"] }
+              ]
+            }
+        """.trimIndent()
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            core.loadModelFromJson(json)
+        }
+
+        assertThat(exception.message).contains("Duplicate connection ids")
+    }
 }

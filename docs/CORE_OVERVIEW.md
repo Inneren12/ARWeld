@@ -10,10 +10,10 @@
 
 ## Key Models
 
-- `Node(id, xMm, yMm, zMm)` — coordinates in mm.
-- `Member(id, kind, profileDesignation, nodeStartId, nodeEndId, orientation?)`
+- `Node(id, x, y, z)` — coordinates in mm.
+- `Member(id, kind, profile: ProfileSpec, nodeStartId, nodeEndId, orientationMeta?)`
 - `OrientationMeta(rollAngleDeg?, camberMm?)`
-- `Plate(id, thicknessMm, widthMm, lengthMm)`
+- `Plate(id, thickness, width, length)` — dimensions in mm.
 - `Connection(id, memberIds, plateIds?)`
 - `StructuralModel(id, nodes, members, connections = [], plates = [], meta = {})` (plates optional; variant B)
 
@@ -28,9 +28,9 @@
 ## JSON Format
 
 - See `docs/MODEL_JSON_SPEC.md` for full schema and examples.
-- Units are fixed to `"mm"` in v0.1 (case-insensitive input, normalized to `"mm"`).
-- Members carry `profile` as a designation string; resolution happens via `ProfileCatalog`.
-- Optional `plates` and `connections` arrays; `connection.plateIds` reference `plates.id` (variant B).
+- Units are required and fixed to `"mm"` in v0.1 (case-insensitive input, normalized to `"mm"`).
+- Members carry `profile` as a designation string in JSON; resolution happens via `ProfileCatalog`.
+- Optional `plates` array; `connection.plateIds` reference `plates.id` (variant B).
 - Unknown JSON fields are ignored (`ignoreUnknownKeys = true`).
 
 ## Parsing & Validation API
@@ -42,7 +42,7 @@
   - Parses with `ModelJsonParser` (kotlinx-serialization, `ignoreUnknownKeys=true`).
   - Calls `validate` and throws `IllegalArgumentException` if invalid.
   - Validation checks:
-    - unique node/member ids,
+    - unique node/member/plate ids,
     - member endpoints exist,
     - connections reference existing members/plates (variant B),
     - profiles resolve through the catalog.
