@@ -4,7 +4,6 @@ import com.example.arweld.core.structural.profiles.parse.canonicalizePlateDesign
 import com.example.arweld.core.structural.profiles.parse.normalizeDesignation
 import com.example.arweld.core.structural.profiles.parse.parsePlateDimensions
 import com.example.arweld.core.structural.profiles.parse.parseProfileString
-import java.io.File
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -15,9 +14,7 @@ class ProfileCatalog(
 ) {
 
     private val index: Lazy<CatalogIndex> = lazy {
-        val resourceProfiles = resourceLoader.loadCatalogResources().flatMap { resource ->
-            CatalogResourceParser.parse(resource)
-        }
+        val resourceProfiles = CatalogResourceParser.parseAll(resourceLoader.loadCatalogResources())
         buildIndex(resourceProfiles + extraProfiles)
     }
 
@@ -32,13 +29,17 @@ class ProfileCatalog(
         val parsed = runCatching { parseProfileString(rawOrCanonical) }.getOrElse { return null }
         val normalizedDesignation = parsed.designation
 
-        val key = resolveProfileKey(normalizedDesignation, preferredStandard)
-        if (key != null) {
-            return index.value.specsByKey[key]
+        val searchStandards = buildSearchPriority(parsed.standardHint, preferredStandard)
+
+        searchStandards.forEach { standard ->
+            resolveProfileKey(normalizedDesignation, standard)?.let { key ->
+                return index.value.specsByKey[key]
+            }
         }
 
         if (parsed.type == ProfileType.PL) {
-            return createPlateSpecFromDesignation(normalizedDesignation, preferredStandard)
+            val plateStandard = parsed.standardHint ?: preferredStandard
+            return createPlateSpecFromDesignation(normalizedDesignation, plateStandard)
         }
 
         return null
@@ -57,25 +58,22 @@ class ProfileCatalog(
 
     private fun resolveProfileKey(
         normalizedDesignation: String,
-        preferredStandard: ProfileStandard
+        standard: ProfileStandard
     ): ProfileKey? {
         val catalog = index.value
 
-        val directPreferred = ProfileKey(preferredStandard, normalizedDesignation)
+        val directPreferred = ProfileKey(standard, normalizedDesignation)
         if (catalog.specsByKey.containsKey(directPreferred)) {
             return directPreferred
         }
 
         catalog.designationIndex[normalizedDesignation]
-            ?.firstOrNull { it.standard == preferredStandard }
+            ?.firstOrNull { it.standard == standard }
             ?.let { return it }
 
         catalog.aliasIndex[normalizedDesignation]
-            ?.firstOrNull { it.standard == preferredStandard }
+            ?.firstOrNull { it.standard == standard }
             ?.let { return it }
-
-        catalog.designationIndex[normalizedDesignation]?.firstOrNull()?.let { return it }
-        catalog.aliasIndex[normalizedDesignation]?.firstOrNull()?.let { return it }
 
         return null
     }
@@ -88,13 +86,21 @@ class ProfileCatalog(
 
         normalizedSpecs.forEach { spec ->
             val key = ProfileKey(spec.standard, spec.designation)
-            specsByKey.putIfAbsent(key, spec)
+            val existing = specsByKey[key]
+            if (existing != null && existing != spec) {
+                error("Profile collision for ${spec.designation} (${spec.standard})")
+            }
+            specsByKey[key] = existing ?: spec
 
             designationIndex.getOrPut(spec.designation) { mutableListOf() }
                 .add(key)
 
             spec.aliases.forEach { alias ->
-                aliasIndex.getOrPut(alias) { mutableListOf() }.add(key)
+                val aliasMappings = aliasIndex.getOrPut(alias) { mutableListOf() }
+                if (aliasMappings.any { specsByKey[it] != spec }) {
+                    error("Alias collision for $alias")
+                }
+                aliasMappings.add(key)
             }
         }
 
@@ -105,6 +111,21 @@ class ProfileCatalog(
             standards = normalizedSpecs.map { it.standard }.toSet(),
             types = normalizedSpecs.map { it.type }.toSet() + ProfileType.PL
         )
+    }
+
+    private fun buildSearchPriority(
+        standardHint: ProfileStandard?,
+        preferredStandard: ProfileStandard
+    ): List<ProfileStandard> {
+        val ordered = mutableListOf<ProfileStandard>()
+        if (standardHint != null) {
+            ordered += standardHint
+        }
+        if (preferredStandard !in ordered) {
+            ordered += preferredStandard
+        }
+        ordered.addAll(index.value.standards.filterNot { it in ordered })
+        return ordered
     }
 
     private fun ProfileSpec.normalize(): ProfileSpec {
@@ -167,36 +188,58 @@ interface CatalogResourceLoader {
 
 class DefaultCatalogResourceLoader : CatalogResourceLoader {
     override fun loadCatalogResources(): List<CatalogResource> {
-        val rootUrl = ProfileCatalog::class.java.getResource("/profiles") ?: return emptyList()
-        val rootFile = File(rootUrl.toURI())
-        if (!rootFile.exists() || !rootFile.isDirectory) return emptyList()
+        val classLoader = ProfileCatalog::class.java.classLoader
+        val indexStream = classLoader.getResourceAsStream("profiles/catalog_index.json")
+            ?: return emptyList()
 
-        return rootFile.listFiles { file ->
-            file.isFile && file.name.startsWith("catalog_") && file.name.endsWith(".json")
-        }?.map { file ->
-            CatalogResource(name = file.name, content = file.readText())
-        } ?: emptyList()
+        val indexJson = indexStream.bufferedReader().use { it.readText() }
+        val index = CatalogIndexDtoJson.decodeFromString<CatalogResourceIndexDto>(indexJson)
+
+        // TODO: no directory listing; JAR-safe
+        return index.files.mapNotNull { name ->
+            classLoader.getResourceAsStream("profiles/$name")?.use { stream ->
+                CatalogResource(name = name, content = stream.bufferedReader().use { it.readText() })
+            }
+        }
     }
 }
 
 private object CatalogResourceParser {
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun parse(resource: CatalogResource): List<ProfileSpec> {
-        val dto = json.decodeFromString<ProfileCatalogResourceDto>(resource.content)
-        return dto.items.map { it.toSpec(dto.standard, dto.type) }
+    fun parseAll(resources: List<CatalogResource>): List<ProfileSpec> {
+        val errors = mutableListOf<String>()
+        val specs = mutableListOf<ProfileSpec>()
+
+        resources.forEach { resource ->
+            val dto = json.decodeFromString<ProfileCatalogResourceDto>(resource.content)
+            dto.items.forEach { item ->
+                val missing = item.validate(dto.type)
+                if (missing.isNotEmpty()) {
+                    errors += "${resource.name} :: ${item.designation}: missing ${missing.joinToString()}"
+                } else {
+                    specs += item.toSpec(dto.standard, dto.type)
+                }
+            }
+        }
+
+        if (errors.isNotEmpty()) {
+            throw IllegalStateException("Invalid profile catalog resources:\n" + errors.joinToString("\n"))
+        }
+
+        return specs
     }
 }
 
 @Serializable
-private data class ProfileCatalogResourceDto(
+data class ProfileCatalogResourceDto(
     val standard: ProfileStandard,
     val type: ProfileType,
     val items: List<ProfileCatalogItemDto>
 )
 
 @Serializable
-private data class ProfileCatalogItemDto(
+data class ProfileCatalogItemDto(
     val designation: String,
     val aliases: List<String> = emptyList(),
     val massKgPerM: Double? = null,
@@ -219,6 +262,43 @@ private data class ProfileCatalogItemDto(
     val leg2Mm: Double? = null,
     val wMm: Double? = null
 )
+
+fun ProfileCatalogItemDto.validate(type: ProfileType): List<String> {
+    val missing = mutableListOf<String>()
+    when (type) {
+        ProfileType.W -> {
+            if (dMm == null) missing += "dMm"
+            if (bfMm == null) missing += "bfMm"
+            if (twMm == null) missing += "twMm"
+            if (tfMm == null) missing += "tfMm"
+        }
+
+        ProfileType.C -> {
+            if (dMm == null) missing += "dMm"
+            if (bfMm == null) missing += "bfMm"
+            if (twMm == null) missing += "twMm"
+            if (tfMm == null) missing += "tfMm"
+        }
+
+        ProfileType.HSS -> {
+            if (hMm == null) missing += "hMm"
+            if (bMm == null) missing += "bMm"
+            if (tMm == null) missing += "tMm"
+        }
+
+        ProfileType.L -> {
+            if (leg1Mm == null) missing += "leg1Mm"
+            if (leg2Mm == null) missing += "leg2Mm"
+            if (tMm == null) missing += "tMm"
+        }
+
+        ProfileType.PL -> {
+            if (tMm == null) missing += "tMm"
+            if (wMm == null && leg1Mm == null) missing += "wMm"
+        }
+    }
+    return missing
+}
 
 private fun ProfileCatalogItemDto.toSpec(
     standard: ProfileStandard,
@@ -297,3 +377,10 @@ private fun ProfileCatalogItemDto.toSpec(
 
 private fun inferChannelSeriesFromDesignation(designation: String): ChannelSeries =
     if (designation.trimStart().startsWith("MC", ignoreCase = true)) ChannelSeries.MC else ChannelSeries.C
+
+@Serializable
+private data class CatalogResourceIndexDto(
+    val files: List<String>
+)
+
+private val CatalogIndexDtoJson = Json { ignoreUnknownKeys = true }

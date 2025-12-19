@@ -1,40 +1,38 @@
-# PROFILES_SPEC — Profile catalog, designations, and OCR normalization (v1)
+# Profile Catalog + OCR/BOM Normalization Spec
+
+This document describes the contract between OCR/BOM ingestion and the core-structural profile catalog. It is intentionally CSA-first but structured to support AISC additions later.
 
 ## Supported profile types
-- **W** — Wide-flange shapes
-- **HSS** — Hollow structural sections (square/rectangular)
-- **C** — Channels (C/MC)
+- **W** — Wide flange
+- **C / MC** — Channels; MC preserved when present in the source
+- **HSS** — Hollow structural sections
 - **L** — Angles
-- **PL** — Plates (parametric)
+- **PL** — Plates (parametric fallback)
 
-## Canonical designation format (CSA v1)
-- Canonical designations are compact, lowercase `x` separators with no embedded spaces for W/C/L/PL and a single space after the prefix for HSS.
-- Examples (CSA): `W310x39`, `C200x17`, `L51x38x6.4`, `PL10x190`, `HSS 6x6x3/8`.
-- `parseProfileString` detects type prefixes (`W`, `HSS`, `C`/`MC`, `L`, `PL`) and produces a canonical designation that `ProfileCatalog` uses as the lookup key; `ProfileStandard.CSA` is the current default hint.
+## Canonical format rules
+- Prefixes are uppercase (`W`, `C`, `MC`, `HSS`, `L`, `PL`).
+- Separators use lowercase `x` with no spaces (`W310x39`, `C200x17`).
+- HSS retains a single space after the prefix (`HSS 152x152x6.4`).
+- MC is preserved as the channel prefix when provided (e.g., `MC250x33`).
+- Fractions are preserved inside aliases (e.g., `HSS 6x6x1/4`).
 
-## Normalization rules for OCR/BOM strings
-Normalization is applied before parsing and lookup so OCR/BOM text can be matched reliably:
-- **Whitespace:** collapse consecutive spaces and trim ends (e.g., `"W 310 x 39" → "W310x39"`).
-- **Separator:** convert `×`/`X` to lowercase `x` (e.g., `"C200×17" → "C200x17"`).
-- **Decimal comma:** convert digit-comma-digit to digit-dot-digit (e.g., `"6,4" → "6.4"` in `L51x38x6,4`).
-- **Prefix handling:** canonical output strips duplicated prefixes and re-applies the standard form (e.g., `"hss6x6x3/8" → "HSS 6x6x3/8"`, `"pl 10 x 190" → "PL10x190"`).
-- **Noise trimming:** leading/trailing OCR artifacts such as `| , ;` are dropped.
+## Normalization for OCR/BOM strings
+- Trim whitespace; collapse separators like `X`, `×`, or spaced `x` into lowercase `x`.
+- Remove internal spaces unless required by the canonical (HSS retains one space after the prefix).
+- Preserve fraction tokens; if fractions or inch symbols are present, set `standardHint` to **AISC**; otherwise default to **CSA**.
+- Plate strings parse as `PL t x w` with optional `xL` length tokens ignored for catalog lookup.
 
-## Parsing and catalog lookup flow
-1. **normalizeRawProfileInput(raw)** — applies separator, decimal, whitespace, and noise cleanup.
-2. **parseProfileString(raw)** — infers `ProfileType` from the prefix and emits a canonical designation plus `standardHint = CSA`.
-3. **ProfileCatalog.findByDesignation(raw, preferredStandard)** — normalizes the string again, resolves by designation and aliases within the requested standard, and falls back to cross-standard matches if needed.
+## Lookup + fallback rules
+- `findByDesignation(raw, preferredStandard)` parses the input, then searches standards in order: `standardHint` (if any) → `preferredStandard` → other known standards.
+- Aliases are part of the index; collisions across designations are rejected to keep mappings unambiguous.
+- Plates: when no catalog entry exists, a parametric `PlateSpec` is synthesized from the plate regex using `t` and `w`.
 
-## Plate (PL) as parametric shapes
-- Plates are generated on the fly from the normalized `PLt x w` body when no explicit catalog entry exists.
-- The fallback produces `PlateSpec(tMm = t, wMm = w, areaMm2 = t * w, massKgPerM = null)` using the caller’s `preferredStandard` so CSA plates resolve today and AISC plates can resolve later without new code.
+## Adding AISC catalogs later
+1. Drop new files under `resources/profiles/` (e.g., `catalog_aisc_w.json`).
+2. Append them to `resources/profiles/catalog_index.json`.
+3. Add aliases that map imperial/fractional notations to canonical metric-friendly forms as needed.
+4. No directory listing is used; the explicit index keeps loading JAR-safe.
 
-## Extending with AISC (planned)
-- Add JSON resources named `catalog_aisc_*.json` under `core-structural/src/main/resources/profiles/` (one per profile type) alongside CSA files.
-- Populate `aliases` to cover imperial-style labels (e.g., `W10x30`, `HSS 6x6x3/8`) that normalize to the same canonical designation used in the metric catalog entry.
-- Callers can request AISC-first lookups via `preferredStandard = ProfileStandard.AISC`; catalog resolution already honors the preferred standard before falling back to other matches.
-
-## Contract for OCR stage 1 (BOM/spec only)
-- OCR returns a designation string exactly as seen in the specification table (no geometry extraction from drawings).
-- Pipeline: `OCR text → normalize → parseProfileString → ProfileCatalog` lookup.
-- Full drawing parsing (geometry from plans) is **out of scope** for this stage.
+## Scope of OCR Stage 1
+- Stage 1 only normalizes BOM/spec strings to canonical designations plus standard hints.
+- Full drawing parsing, geometry extraction, or part-level relationships are **out of scope** for this stage.

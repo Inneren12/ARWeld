@@ -21,6 +21,17 @@
       "tfMm": 12.7,
       "massKgPerM": 28.0,
       "areaMm2": 3580.0
+    },
+    {
+      "designation": "MC250x33",
+      "aliases": ["MC250X33", "MC 250 x 33"],
+      "dMm": 250.0,
+      "bfMm": 90.0,
+      "twMm": 7.0,
+      "tfMm": 11.0,
+      "massKgPerM": 33.0,
+      "areaMm2": 4200.0,
+      "channelSeries": "MC"
     }
   ]
 }
