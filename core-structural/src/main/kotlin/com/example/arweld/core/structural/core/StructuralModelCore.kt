@@ -51,21 +51,12 @@ class DefaultStructuralModelCore(
             if (member.nodeEndId !in nodeIdSet) {
                 errors.add("Member ${member.id} references missing nodeEndId ${member.nodeEndId}.")
             }
-            if (profileCatalog.findByDesignation(member.profileDesignation) == null) {
-                errors.add("Profile '${member.profileDesignation}' not found for member ${member.id}.")
-            }
         }
 
         model.connections.forEach { connection ->
             val missingMembers = connection.memberIds.filterNot { it in memberIdSet }
             if (missingMembers.isNotEmpty()) {
                 errors.add("Connection ${connection.id} references missing members ${missingMembers.joinToString()}.")
-            }
-            val missingPlates = connection.plateIds.filterNot { plateId ->
-                model.plates.any { it.id == plateId }
-            }
-            if (missingPlates.isNotEmpty()) {
-                errors.add("Connection ${connection.id} references missing plates ${missingPlates.joinToString()}.")
             }
         }
 

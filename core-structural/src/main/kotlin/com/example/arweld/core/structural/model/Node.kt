@@ -5,13 +5,12 @@ import kotlinx.serialization.Serializable
 /**
  * Spatial node of the structural model.
  *
- * Coordinates are expressed in millimeters (mm) in the project-local
- * coordinate system.
+ * Coordinates are expressed in millimeters (mm) in the project-local coordinate system.
  */
 @Serializable
 data class Node(
     val id: String,
-    val xMm: Double,
-    val yMm: Double,
-    val zMm: Double
+    val x: Double,
+    val y: Double,
+    val z: Double
 )
