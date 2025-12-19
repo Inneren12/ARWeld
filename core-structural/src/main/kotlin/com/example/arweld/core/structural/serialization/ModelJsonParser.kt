@@ -5,7 +5,6 @@ import com.example.arweld.core.structural.model.Member
 import com.example.arweld.core.structural.model.MemberKind
 import com.example.arweld.core.structural.model.Node
 import com.example.arweld.core.structural.model.OrientationMeta
-import com.example.arweld.core.structural.model.Plate
 import com.example.arweld.core.structural.model.StructuralModel
 import com.example.arweld.core.structural.profiles.ProfileCatalog
 import com.example.arweld.core.structural.profiles.ProfileStandard
@@ -37,7 +36,7 @@ data class MemberDto(
     @SerialName("profile") val profileDesignation: String,
     val nodeStartId: String,
     val nodeEndId: String,
-    val orientation: OrientationMeta? = null
+    @SerialName("orientation") val orientationMeta: OrientationMeta? = null
 )
 
 @Serializable
@@ -77,22 +76,23 @@ fun StructuralModelDto.toDomain(profileCatalog: ProfileCatalog): StructuralModel
     val nodesDomain = nodes.map { Node(it.id, it.x, it.y, it.z) }
     val membersDomain = members.map { member ->
         val parsed = parseProfileString(member.profileDesignation)
-        val catalogDesignation = profileCatalog
-            .findByDesignation(parsed.designation, parsed.standardHint ?: ProfileStandard.CSA)
-            ?.designation
+        val profile = profileCatalog.findByDesignation(
+            parsed.designation,
+            parsed.standardHint ?: ProfileStandard.CSA
+        ) ?: throw IllegalArgumentException(
+            "Profile '${member.profileDesignation}' not found for member ${member.id}."
+        )
         Member(
             id = member.id,
             kind = member.kind,
-            profileDesignation = catalogDesignation ?: parsed.designation,
+            profile = profile,
             nodeStartId = member.nodeStartId,
             nodeEndId = member.nodeEndId,
-            orientation = member.orientation
+            orientationMeta = member.orientationMeta
         )
     }
     val connectionsDomain =
         connections.map { Connection(it.id, it.memberIds, it.plateIds) }
-    val platesDomain =
-        plates.map { Plate(it.id, it.thicknessMm, it.widthMm, it.lengthMm) }
 
     val enrichedMeta = meta + mapOf("units" to units.lowercase())
 
@@ -101,7 +101,6 @@ fun StructuralModelDto.toDomain(profileCatalog: ProfileCatalog): StructuralModel
         nodes = nodesDomain,
         members = membersDomain,
         connections = connectionsDomain,
-        plates = platesDomain,
         meta = enrichedMeta
     )
 }

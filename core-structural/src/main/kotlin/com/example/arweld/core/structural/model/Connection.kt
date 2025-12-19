@@ -3,16 +3,8 @@ package com.example.arweld.core.structural.model
 import kotlinx.serialization.Serializable
 
 /**
- * Plate definition; all dimensions in millimeters (mm).
+ * Connection references member/plate ids; no bolts or detailed hardware yet.
  */
-@Serializable
-data class Plate(
-    val id: String,
-    val thicknessMm: Double,
-    val widthMm: Double,
-    val lengthMm: Double
-)
-
 @Serializable
 data class Connection(
     val id: String,
