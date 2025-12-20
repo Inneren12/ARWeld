@@ -27,9 +27,18 @@ class GetQcBottleneckUseCase @Inject constructor(
         val now = System.currentTimeMillis()
         val allWorkItems = workItemDao.observeAll().first()
 
+        // Batch load all events for all work items (eliminates N+1 query)
+        val workItemIds = allWorkItems.map { it.id }
+        val allEventsEntities = eventDao.getByWorkItemIds(workItemIds)
+        val allEvents = allEventsEntities.map { it.toDomain() }
+
+        // Group events by workItemId
+        val eventsByWorkItem = allEvents.groupBy { it.workItemId }
+
         // Derive state for each work item and filter for READY_FOR_QC
         val bottlenecks = allWorkItems.mapNotNull { workItemEntity ->
-            val events = eventDao.getByWorkItemId(workItemEntity.id).map { it.toDomain() }
+            val events = eventsByWorkItem[workItemEntity.id] ?: emptyList()
+            // Events are already sorted by timestamp ASC from the DAO query
             val state = reduce(events)
 
             if (state.status == WorkStatus.READY_FOR_QC && state.readyForQcSince != null) {

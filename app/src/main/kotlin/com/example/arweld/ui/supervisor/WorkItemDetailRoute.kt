@@ -18,6 +18,9 @@ fun WorkItemDetailRoute(
         detail = uiState.detail,
         timeline = uiState.timeline,
         evidence = uiState.evidence,
+        isLoading = uiState.isLoading,
+        error = uiState.error,
+        onRefresh = { viewModel.refresh() },
         onNavigateBack = onNavigateBack
     )
 }

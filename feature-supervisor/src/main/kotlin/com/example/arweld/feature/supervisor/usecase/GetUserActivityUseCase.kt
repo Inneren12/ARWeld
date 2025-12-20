@@ -23,15 +23,14 @@ class GetUserActivityUseCase @Inject constructor(
 
         // For each user, get their last event
         val activities = allUsers.mapNotNull { userEntity ->
-            // Get last events for this user (ordered by timestamp DESC)
-            val userEvents = eventDao.getLastEventsByUser(userEntity.id)
+            // Get only the last event for this user (LIMIT 1, avoids pulling large lists)
+            val lastEventEntity = eventDao.getLastEventByUser(userEntity.id)
 
-            if (userEvents.isEmpty()) {
+            if (lastEventEntity == null) {
                 // User has no activity
                 null
             } else {
-                // Take the most recent event
-                val lastEventEntity = userEvents.first()
+                // Convert to domain event
                 val lastEvent = lastEventEntity.toDomain()
 
                 // Get work item code if available

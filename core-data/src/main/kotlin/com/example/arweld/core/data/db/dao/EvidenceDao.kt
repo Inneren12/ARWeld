@@ -19,4 +19,23 @@ interface EvidenceDao {
 
     @Query("SELECT * FROM evidence WHERE eventId = :eventId")
     suspend fun getByEventId(eventId: String): List<EvidenceEntity>
+
+    /**
+     * Batch query to fetch evidence for multiple events.
+     * Useful for loading evidence for a timeline without N+1 queries.
+     */
+    @Query("SELECT * FROM evidence WHERE eventId IN (:eventIds)")
+    suspend fun getByEventIds(eventIds: List<String>): List<EvidenceEntity>
+
+    /**
+     * Get all evidence associated with a work item.
+     * Joins with events table to find all evidence for events related to this work item.
+     */
+    @Query("""
+        SELECT e.* FROM evidence e
+        INNER JOIN events ev ON e.eventId = ev.id
+        WHERE ev.workItemId = :workItemId
+        ORDER BY e.createdAt ASC
+    """)
+    suspend fun getByWorkItemId(workItemId: String): List<EvidenceEntity>
 }
