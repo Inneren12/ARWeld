@@ -193,7 +193,10 @@ fun WorkItemDetailScreen(
                 item {
                     EvidenceGrid(
                         evidence = evidence,
-                        onEvidenceClick = { selectedEvidence = it }
+                        onEvidenceClick = {
+                            selectedEvidence = it
+                            onEvidenceClick(it)
+                        }
                     )
                 }
             }
