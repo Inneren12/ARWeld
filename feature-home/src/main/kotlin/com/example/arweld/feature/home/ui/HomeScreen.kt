@@ -30,6 +30,7 @@ fun HomeScreen(
     onNavigateToAssemblerQueue: () -> Unit = {},
     onNavigateToQcQueue: () -> Unit = {},
     onNavigateToScan: () -> Unit = {},
+    onNavigateToSupervisorDashboard: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -56,7 +57,8 @@ fun HomeScreen(
                     onNavigateToTimeline = onNavigateToTimeline,
                     onNavigateToAssemblerQueue = onNavigateToAssemblerQueue,
                     onNavigateToQcQueue = onNavigateToQcQueue,
-                    onNavigateToScan = onNavigateToScan
+                    onNavigateToScan = onNavigateToScan,
+                    onNavigateToSupervisorDashboard = onNavigateToSupervisorDashboard
                 )
             }
             is HomeUiState.Error -> {
@@ -83,7 +85,8 @@ private fun HomeContent(
     onNavigateToTimeline: () -> Unit,
     onNavigateToAssemblerQueue: () -> Unit,
     onNavigateToQcQueue: () -> Unit,
-    onNavigateToScan: () -> Unit
+    onNavigateToScan: () -> Unit,
+    onNavigateToSupervisorDashboard: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -165,6 +168,13 @@ private fun HomeContent(
             modifier = Modifier.fillMaxWidth(0.7f)
         ) {
             Text("Scan Code")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onNavigateToSupervisorDashboard,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("Supervisor Dashboard")
         }
     }
 }

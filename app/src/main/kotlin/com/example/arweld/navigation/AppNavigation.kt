@@ -17,6 +17,8 @@ import com.example.arweld.ui.work.QcStartRoute
 import com.example.arweld.ui.work.WorkItemSummaryRoute
 import com.example.arweld.feature.work.ui.TimelineScreen
 import com.example.arweld.ui.scanner.ScanCodeRoute
+import com.example.arweld.ui.supervisor.SupervisorDashboardRoute
+import com.example.arweld.ui.supervisor.WorkItemDetailRoute
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
@@ -113,6 +115,27 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             QcStartRoute(
                 navController = navController,
                 workItemId = workItemId,
+            )
+        }
+        composable(ROUTE_SUPERVISOR_DASHBOARD) {
+            SupervisorDashboardRoute(
+                onWorkItemClick = { workItemId ->
+                    navController.navigate(workItemDetailRoute(workItemId))
+                }
+            )
+        }
+        composable(
+            route = "$ROUTE_WORK_ITEM_DETAIL/{workItemId}",
+            arguments = listOf(
+                navArgument("workItemId") {
+                    type = NavType.StringType
+                }
+            )
+        ) {
+            WorkItemDetailRoute(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
             )
         }
     }
