@@ -29,4 +29,5 @@ include(":feature-home")
 include(":feature-work")
 include(":feature-scanner")
 include(":feature-arview")
+include(":feature-supervisor")
  
