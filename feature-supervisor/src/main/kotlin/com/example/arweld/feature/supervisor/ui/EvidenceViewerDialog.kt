@@ -9,6 +9,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -24,6 +28,7 @@ import com.example.arweld.core.domain.evidence.EvidenceKind
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.JsonPrimitive
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -68,6 +73,8 @@ fun EvidenceViewerDialog(
                 )
             }
         ) { paddingValues ->
+            var imageError by remember { mutableStateOf(false) }
+
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -96,14 +103,14 @@ fun EvidenceViewerDialog(
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit,
                                 onError = {
-                                    // Image failed to load
+                                    imageError = true
                                 }
                             )
                         }
                     }
 
                     // Show error message if image fails to load
-                    if (evidence.uri.isEmpty()) {
+                    if (evidence.uri.isBlank() || imageError) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
@@ -111,7 +118,11 @@ fun EvidenceViewerDialog(
                             )
                         ) {
                             Text(
-                                text = "Image preview unavailable - URI is empty",
+                                text = if (evidence.uri.isBlank()) {
+                                    "Preview failed - URI is empty"
+                                } else {
+                                    "Preview failed - Image could not be loaded"
+                                },
                                 modifier = Modifier.padding(16.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onErrorContainer
@@ -211,9 +222,14 @@ fun EvidenceViewerDialog(
                                 val metaObject = json.parseToJsonElement(evidence.metaJson).jsonObject
 
                                 metaObject.forEach { (key, value) ->
+                                    val displayValue = if (value is JsonPrimitive) {
+                                        value.content
+                                    } else {
+                                        value.toString()
+                                    }
                                     EvidenceProperty(
                                         label = formatMetaKey(key),
-                                        value = value.jsonPrimitive.content
+                                        value = displayValue
                                     )
                                 }
                             } catch (e: Exception) {

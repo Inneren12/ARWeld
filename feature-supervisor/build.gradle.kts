@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {

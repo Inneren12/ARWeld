@@ -83,7 +83,7 @@ class GetWorkItemDetailUseCase @Inject constructor(
                 eventDescription = formatEventDescription(event.type, actorName, event.actorRole.name),
                 payloadSummary = event.payloadJson
             )
-        }.sortedBy { it.timestamp }  // Sort chronologically
+        }.sortedWith(compareBy({ it.timestamp }, { it.eventId }))  // Stable sort: timestamp + id
     }
 
     private fun formatEventDescription(type: EventType, actorName: String, role: String): String {
