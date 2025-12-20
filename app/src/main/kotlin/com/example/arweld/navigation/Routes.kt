@@ -15,22 +15,17 @@ const val ROUTE_AR_VIEW = "ar_view"
 const val ROUTE_SUPERVISOR_DASHBOARD = "supervisor_dashboard"
 const val ROUTE_WORK_ITEM_DETAIL = "work_item_detail"
 
-fun workItemSummaryRoute(workItemId: String? = null): String {
-    return workItemId?.let { "$ROUTE_WORK_ITEM_SUMMARY?workItemId=${Uri.encode(it)}" } ?: ROUTE_WORK_ITEM_SUMMARY
-}
+fun workItemSummaryRoute(workItemId: String? = null): String =
+    workItemId?.let { "$ROUTE_WORK_ITEM_SUMMARY?workItemId=${Uri.encode(it)}" } ?: ROUTE_WORK_ITEM_SUMMARY
 
-fun arViewRoute(workItemId: String? = null): String {
-    return workItemId?.let { "$ROUTE_AR_VIEW?workItemId=${Uri.encode(it)}" } ?: ROUTE_AR_VIEW
-}
+fun arViewRoute(workItemId: String? = null): String =
+    workItemId?.let { "$ROUTE_AR_VIEW?workItemId=${Uri.encode(it)}" } ?: ROUTE_AR_VIEW
 
-fun qcStartRoute(workItemId: String): String {
-    return "$ROUTE_QC_START?workItemId=${Uri.encode(workItemId)}"
-}
+fun qcStartRoute(workItemId: String): String =
+    "$ROUTE_QC_START?workItemId=${Uri.encode(workItemId)}"
 
-fun qcChecklistRoute(workItemId: String): String {
-    return "$ROUTE_QC_CHECKLIST?workItemId=${Uri.encode(workItemId)}"
-}
+fun qcChecklistRoute(workItemId: String): String =
+    "$ROUTE_QC_CHECKLIST?workItemId=${Uri.encode(workItemId)}"
 
-fun workItemDetailRoute(workItemId: String): String {
-    return "$ROUTE_WORK_ITEM_DETAIL/${Uri.encode(workItemId)}"
-}
+fun workItemDetailRoute(workItemId: String): String =
+    "$ROUTE_WORK_ITEM_DETAIL/${Uri.encode(workItemId)}"
