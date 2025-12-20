@@ -65,47 +65,30 @@ class CalculateKpisUseCaseTest {
 
         whenever(workItemDao.observeAll()).thenReturn(flowOf(workItems))
 
-        // wi1: IN_PROGRESS (WORK_CLAIMED)
-        whenever(eventDao.getByWorkItemId("wi1")).thenReturn(
-            listOf(createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - 3600000))
+        // Mock batch query with all events for all work items
+        val allEvents = listOf(
+            // wi1: IN_PROGRESS (WORK_CLAIMED)
+            createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - 3600000),
+            // wi2: READY_FOR_QC (WORK_READY_FOR_QC)
+            createEventEntity("e2", "wi2", EventType.WORK_CLAIMED, now - 7200000),
+            createEventEntity("e3", "wi2", EventType.WORK_READY_FOR_QC, now - 1800000),
+            // wi3: QC_IN_PROGRESS (QC_STARTED)
+            createEventEntity("e4", "wi3", EventType.WORK_CLAIMED, now - 9000000),
+            createEventEntity("e5", "wi3", EventType.WORK_READY_FOR_QC, now - 5400000),
+            createEventEntity("e6", "wi3", EventType.QC_STARTED, now - 1200000),
+            // wi4: APPROVED (QC_PASSED)
+            createEventEntity("e7", "wi4", EventType.WORK_CLAIMED, now - 10800000),
+            createEventEntity("e8", "wi4", EventType.WORK_READY_FOR_QC, now - 7200000),
+            createEventEntity("e9", "wi4", EventType.QC_STARTED, now - 3600000),
+            createEventEntity("e10", "wi4", EventType.QC_PASSED, now - 1800000),
+            // wi5: REWORK_REQUIRED (QC_FAILED_REWORK)
+            createEventEntity("e11", "wi5", EventType.WORK_CLAIMED, now - 12600000),
+            createEventEntity("e12", "wi5", EventType.WORK_READY_FOR_QC, now - 9000000),
+            createEventEntity("e13", "wi5", EventType.QC_STARTED, now - 5400000),
+            createEventEntity("e14", "wi5", EventType.QC_FAILED_REWORK, now - 3600000)
         )
-
-        // wi2: READY_FOR_QC (WORK_READY_FOR_QC)
-        whenever(eventDao.getByWorkItemId("wi2")).thenReturn(
-            listOf(
-                createEventEntity("e2", "wi2", EventType.WORK_CLAIMED, now - 7200000),
-                createEventEntity("e3", "wi2", EventType.WORK_READY_FOR_QC, now - 1800000)
-            )
-        )
-
-        // wi3: QC_IN_PROGRESS (QC_STARTED)
-        whenever(eventDao.getByWorkItemId("wi3")).thenReturn(
-            listOf(
-                createEventEntity("e4", "wi3", EventType.WORK_CLAIMED, now - 9000000),
-                createEventEntity("e5", "wi3", EventType.WORK_READY_FOR_QC, now - 5400000),
-                createEventEntity("e6", "wi3", EventType.QC_STARTED, now - 1200000)
-            )
-        )
-
-        // wi4: APPROVED (QC_PASSED)
-        whenever(eventDao.getByWorkItemId("wi4")).thenReturn(
-            listOf(
-                createEventEntity("e7", "wi4", EventType.WORK_CLAIMED, now - 10800000),
-                createEventEntity("e8", "wi4", EventType.WORK_READY_FOR_QC, now - 7200000),
-                createEventEntity("e9", "wi4", EventType.QC_STARTED, now - 3600000),
-                createEventEntity("e10", "wi4", EventType.QC_PASSED, now - 1800000)
-            )
-        )
-
-        // wi5: REWORK_REQUIRED (QC_FAILED_REWORK)
-        whenever(eventDao.getByWorkItemId("wi5")).thenReturn(
-            listOf(
-                createEventEntity("e11", "wi5", EventType.WORK_CLAIMED, now - 12600000),
-                createEventEntity("e12", "wi5", EventType.WORK_READY_FOR_QC, now - 9000000),
-                createEventEntity("e13", "wi5", EventType.QC_STARTED, now - 5400000),
-                createEventEntity("e14", "wi5", EventType.QC_FAILED_REWORK, now - 3600000)
-            )
-        )
+        whenever(eventDao.getByWorkItemIds(listOf("wi1", "wi2", "wi3", "wi4", "wi5")))
+            .thenReturn(allEvents)
 
         // When
         val kpis = useCase()
@@ -127,29 +110,27 @@ class CalculateKpisUseCaseTest {
 
         whenever(workItemDao.observeAll()).thenReturn(flowOf(workItems))
 
+        // Mock batch query with all events for all work items
+        val allEvents = mutableListOf<EventEntity>()
+
         // 7 passed
         (1..7).forEach { i ->
-            whenever(eventDao.getByWorkItemId("wi$i")).thenReturn(
-                listOf(
-                    createEventEntity("e${i}a", "wi$i", EventType.WORK_CLAIMED, now - 7200000),
-                    createEventEntity("e${i}b", "wi$i", EventType.WORK_READY_FOR_QC, now - 3600000),
-                    createEventEntity("e${i}c", "wi$i", EventType.QC_STARTED, now - 1800000),
-                    createEventEntity("e${i}d", "wi$i", EventType.QC_PASSED, now - 900000)
-                )
-            )
+            allEvents.add(createEventEntity("e${i}a", "wi$i", EventType.WORK_CLAIMED, now - 7200000))
+            allEvents.add(createEventEntity("e${i}b", "wi$i", EventType.WORK_READY_FOR_QC, now - 3600000))
+            allEvents.add(createEventEntity("e${i}c", "wi$i", EventType.QC_STARTED, now - 1800000))
+            allEvents.add(createEventEntity("e${i}d", "wi$i", EventType.QC_PASSED, now - 900000))
         }
 
         // 3 failed
         (8..10).forEach { i ->
-            whenever(eventDao.getByWorkItemId("wi$i")).thenReturn(
-                listOf(
-                    createEventEntity("e${i}a", "wi$i", EventType.WORK_CLAIMED, now - 7200000),
-                    createEventEntity("e${i}b", "wi$i", EventType.WORK_READY_FOR_QC, now - 3600000),
-                    createEventEntity("e${i}c", "wi$i", EventType.QC_STARTED, now - 1800000),
-                    createEventEntity("e${i}d", "wi$i", EventType.QC_FAILED_REWORK, now - 900000)
-                )
-            )
+            allEvents.add(createEventEntity("e${i}a", "wi$i", EventType.WORK_CLAIMED, now - 7200000))
+            allEvents.add(createEventEntity("e${i}b", "wi$i", EventType.WORK_READY_FOR_QC, now - 3600000))
+            allEvents.add(createEventEntity("e${i}c", "wi$i", EventType.QC_STARTED, now - 1800000))
+            allEvents.add(createEventEntity("e${i}d", "wi$i", EventType.QC_FAILED_REWORK, now - 900000))
         }
+
+        whenever(eventDao.getByWorkItemIds((1..10).map { "wi$it" }))
+            .thenReturn(allEvents)
 
         // When
         val kpis = useCase()
@@ -176,29 +157,20 @@ class CalculateKpisUseCaseTest {
 
         whenever(workItemDao.observeAll()).thenReturn(flowOf(workItems))
 
-        // wi1: waiting 1 hour
-        whenever(eventDao.getByWorkItemId("wi1")).thenReturn(
-            listOf(
-                createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - twoHours),
-                createEventEntity("e2", "wi1", EventType.WORK_READY_FOR_QC, now - oneHour)
-            )
+        // Mock batch query with all events for all work items
+        val allEvents = listOf(
+            // wi1: waiting 1 hour
+            createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - twoHours),
+            createEventEntity("e2", "wi1", EventType.WORK_READY_FOR_QC, now - oneHour),
+            // wi2: waiting 2 hours
+            createEventEntity("e3", "wi2", EventType.WORK_CLAIMED, now - threeHours),
+            createEventEntity("e4", "wi2", EventType.WORK_READY_FOR_QC, now - twoHours),
+            // wi3: waiting 3 hours
+            createEventEntity("e5", "wi3", EventType.WORK_CLAIMED, now - 4 * oneHour),
+            createEventEntity("e6", "wi3", EventType.WORK_READY_FOR_QC, now - threeHours)
         )
-
-        // wi2: waiting 2 hours
-        whenever(eventDao.getByWorkItemId("wi2")).thenReturn(
-            listOf(
-                createEventEntity("e3", "wi2", EventType.WORK_CLAIMED, now - threeHours),
-                createEventEntity("e4", "wi2", EventType.WORK_READY_FOR_QC, now - twoHours)
-            )
-        )
-
-        // wi3: waiting 3 hours
-        whenever(eventDao.getByWorkItemId("wi3")).thenReturn(
-            listOf(
-                createEventEntity("e5", "wi3", EventType.WORK_CLAIMED, now - 4 * oneHour),
-                createEventEntity("e6", "wi3", EventType.WORK_READY_FOR_QC, now - threeHours)
-            )
-        )
+        whenever(eventDao.getByWorkItemIds(listOf("wi1", "wi2", "wi3")))
+            .thenReturn(allEvents)
 
         // When
         val kpis = useCase()

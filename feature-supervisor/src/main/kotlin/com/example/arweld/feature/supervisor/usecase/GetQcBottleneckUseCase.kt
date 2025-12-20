@@ -29,7 +29,15 @@ class GetQcBottleneckUseCase @Inject constructor(
 
         // Batch load all events for all work items (eliminates N+1 query)
         val workItemIds = allWorkItems.map { it.id }
-        val allEventsEntities = eventDao.getByWorkItemIds(workItemIds)
+
+        // Guard against empty list and chunk to prevent SQLite bind limit (999 max, use 900 for safety)
+        val allEventsEntities = if (workItemIds.isEmpty()) {
+            emptyList()
+        } else {
+            workItemIds.chunked(900).flatMap { chunk ->
+                eventDao.getByWorkItemIds(chunk)
+            }
+        }
         val allEvents = allEventsEntities.map { it.toDomain() }
 
         // Group events by workItemId

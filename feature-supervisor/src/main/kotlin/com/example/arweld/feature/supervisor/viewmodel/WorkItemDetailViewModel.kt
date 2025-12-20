@@ -1,5 +1,6 @@
 package com.example.arweld.feature.supervisor.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -28,9 +29,11 @@ class WorkItemDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val workItemId: String = checkNotNull(savedStateHandle["workItemId"]) {
-        "workItemId is required"
-    }
+    private val workItemId: String = Uri.decode(
+        checkNotNull(savedStateHandle["workItemId"]) {
+            "workItemId is required"
+        }
+    )
 
     private val _uiState = MutableStateFlow(WorkItemDetailUiState())
     val uiState: StateFlow<WorkItemDetailUiState> = _uiState.asStateFlow()
