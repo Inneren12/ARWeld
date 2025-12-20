@@ -47,23 +47,18 @@ class WorkItemDetailViewModel @Inject constructor(
                 val detail = getWorkItemDetailUseCase(workItemId)
                 val timeline = getWorkItemDetailUseCase.getTimeline(workItemId)
 
-                // Get all evidence for events in the timeline
-                val allEvidence = mutableListOf<Evidence>()
-                timeline.forEach { entry ->
-                    val eventEvidence = evidenceDao.getByEventId(entry.eventId)
-                    eventEvidence.forEach { evidenceEntity ->
-                        allEvidence.add(
-                            Evidence(
-                                id = evidenceEntity.id,
-                                eventId = evidenceEntity.eventId,
-                                kind = EvidenceKind.valueOf(evidenceEntity.kind),
-                                uri = evidenceEntity.uri,
-                                sha256 = evidenceEntity.sha256,
-                                metaJson = evidenceEntity.metaJson,
-                                createdAt = evidenceEntity.createdAt
-                            )
-                        )
-                    }
+                // Batch load all evidence for this work item (eliminates N+1 query)
+                val evidenceEntities = evidenceDao.getByWorkItemId(workItemId)
+                val allEvidence = evidenceEntities.map { evidenceEntity ->
+                    Evidence(
+                        id = evidenceEntity.id,
+                        eventId = evidenceEntity.eventId,
+                        kind = EvidenceKind.valueOf(evidenceEntity.kind),
+                        uri = evidenceEntity.uri,
+                        sha256 = evidenceEntity.sha256,
+                        metaJson = evidenceEntity.metaJson,
+                        createdAt = evidenceEntity.createdAt
+                    )
                 }
 
                 _uiState.update {

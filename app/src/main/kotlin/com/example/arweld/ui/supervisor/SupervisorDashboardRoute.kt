@@ -19,6 +19,9 @@ fun SupervisorDashboardRoute(
         bottleneckItems = uiState.bottleneckItems,
         userActivities = uiState.userActivities,
         bottleneckThresholdMs = uiState.bottleneckThresholdMs,
+        isLoading = uiState.isLoading,
+        error = uiState.error,
+        onRefresh = { viewModel.loadDashboard() },
         onBottleneckThresholdChange = { threshold ->
             viewModel.setBottleneckThreshold(threshold)
         },

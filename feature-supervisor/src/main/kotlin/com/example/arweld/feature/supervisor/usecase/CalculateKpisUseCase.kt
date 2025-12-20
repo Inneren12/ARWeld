@@ -21,9 +21,18 @@ class CalculateKpisUseCase @Inject constructor(
         // Get all work items
         val allWorkItems = workItemDao.observeAll().first()
 
+        // Batch load all events for all work items (eliminates N+1 query)
+        val workItemIds = allWorkItems.map { it.id }
+        val allEventsEntities = eventDao.getByWorkItemIds(workItemIds)
+        val allEvents = allEventsEntities.map { it.toDomain() }
+
+        // Group events by workItemId
+        val eventsByWorkItem = allEvents.groupBy { it.workItemId }
+
         // Derive state for each work item from events
         val states = allWorkItems.map { workItemEntity ->
-            val events = eventDao.getByWorkItemId(workItemEntity.id).map { it.toDomain() }
+            val events = eventsByWorkItem[workItemEntity.id] ?: emptyList()
+            // Events are already sorted by timestamp ASC from the DAO query
             reduce(events)
         }
 

@@ -28,6 +28,9 @@ fun WorkItemDetailScreen(
     detail: WorkItemDetail?,
     timeline: List<TimelineEntry>,
     evidence: List<Evidence>,
+    isLoading: Boolean = false,
+    error: String? = null,
+    onRefresh: () -> Unit = {},
     onNavigateBack: () -> Unit,
     onEvidenceClick: (Evidence) -> Unit = {},
     modifier: Modifier = Modifier
@@ -47,84 +50,140 @@ fun WorkItemDetailScreen(
             )
         }
     ) { paddingValues ->
-        if (detail == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
+        // Show error state
+        if (error != null) {
+            Column(
                 modifier = modifier
                     .fillMaxSize()
                     .padding(paddingValues)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Summary Section
-                item {
-                    SummarySection(detail = detail)
-                }
-
-                // Timeline Section
-                item {
-                    Text(
-                        text = "Timeline",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
                     )
-                }
-
-                if (timeline.isEmpty()) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "No timeline events",
-                                modifier = Modifier.padding(16.dp),
-                                style = MaterialTheme.typography.bodyMedium
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Error Loading Work Item",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Button(
+                            onClick = onRefresh,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
                             )
+                        ) {
+                            Text("Retry")
                         }
                     }
-                } else {
-                    items(timeline) { entry ->
-                        TimelineEntryCard(entry = entry)
-                    }
                 }
+            }
+            return@Scaffold
+        }
 
-                // Evidence Section
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
+        // Show loading state
+        if (isLoading || detail == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator()
                     Text(
-                        text = "Evidence",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        text = "Loading work item...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
+            return@Scaffold
+        }
 
-                if (evidence.isEmpty()) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "No evidence captured",
-                                modifier = Modifier.padding(16.dp),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                } else {
-                    item {
-                        EvidenceGrid(
-                            evidence = evidence,
-                            onEvidenceClick = onEvidenceClick
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Summary Section
+            item {
+                SummarySection(detail = detail)
+            }
+
+            // Timeline Section
+            item {
+                Text(
+                    text = "Timeline",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            if (timeline.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "No timeline events",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
+                }
+            } else {
+                items(timeline) { entry ->
+                    TimelineEntryCard(entry = entry)
+                }
+            }
+
+            // Evidence Section
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Evidence",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            if (evidence.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "No evidence captured",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            } else {
+                item {
+                    EvidenceGrid(
+                        evidence = evidence,
+                        onEvidenceClick = onEvidenceClick
+                    )
                 }
             }
         }
