@@ -35,6 +35,17 @@ fun WorkItemDetailScreen(
     onEvidenceClick: (Evidence) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    // State for selected evidence to show in viewer
+    var selectedEvidence by remember { mutableStateOf<Evidence?>(null) }
+
+    // Show evidence viewer dialog when evidence is selected
+    selectedEvidence?.let { evidence ->
+        EvidenceViewerDialog(
+            evidence = evidence,
+            onDismiss = { selectedEvidence = null }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -182,7 +193,7 @@ fun WorkItemDetailScreen(
                 item {
                     EvidenceGrid(
                         evidence = evidence,
-                        onEvidenceClick = onEvidenceClick
+                        onEvidenceClick = { selectedEvidence = it }
                     )
                 }
             }
