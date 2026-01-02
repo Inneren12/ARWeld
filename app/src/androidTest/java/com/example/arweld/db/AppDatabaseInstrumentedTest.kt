@@ -71,10 +71,12 @@ class AppDatabaseInstrumentedTest {
 
         val evidence = EvidenceEntity(
             id = "evidence-1",
+            workItemId = workItem.id,
             eventId = event.id,
             kind = "PHOTO",
             uri = "file://evidence/photo.jpg",
             sha256 = "sha-256",
+            sizeBytes = 1024,
             metaJson = null,
             createdAt = 3L,
         )

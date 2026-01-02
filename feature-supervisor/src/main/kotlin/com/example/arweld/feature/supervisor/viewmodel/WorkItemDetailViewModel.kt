@@ -51,14 +51,16 @@ class WorkItemDetailViewModel @Inject constructor(
                 val timeline = getWorkItemDetailUseCase.getTimeline(workItemId)
 
                 // Batch load all evidence for this work item (eliminates N+1 query)
-                val evidenceEntities = evidenceDao.getByWorkItemId(workItemId)
+                val evidenceEntities = evidenceDao.listByWorkItem(workItemId)
                 val allEvidence = evidenceEntities.map { evidenceEntity ->
                     Evidence(
                         id = evidenceEntity.id,
+                        workItemId = evidenceEntity.workItemId,
                         eventId = evidenceEntity.eventId,
                         kind = EvidenceKind.valueOf(evidenceEntity.kind),
                         uri = evidenceEntity.uri,
                         sha256 = evidenceEntity.sha256,
+                        sizeBytes = evidenceEntity.sizeBytes,
                         metaJson = evidenceEntity.metaJson,
                         createdAt = evidenceEntity.createdAt
                     )

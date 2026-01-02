@@ -98,10 +98,12 @@ class QcEvidencePolicyTest {
     ): Evidence {
         return Evidence(
             id = id,
+            workItemId = workItemId,
             eventId = "event-$id",
             kind = kind,
             uri = "file://$id",
             sha256 = "hash-$id",
+            sizeBytes = 1024L,
             metaJson = null,
             createdAt = createdAt,
         )

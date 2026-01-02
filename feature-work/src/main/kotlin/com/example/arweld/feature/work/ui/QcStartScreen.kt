@@ -31,6 +31,7 @@ fun QcStartScreen(
     codeArg: String?,
     onNavigateToAr: (String) -> Unit,
     onOpenChecklist: (String, String?) -> Unit,
+    onCapturePhoto: (String) -> Unit,
     onBackToQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -111,6 +112,11 @@ fun QcStartScreen(
                             uiState.zone?.let { zone ->
                                 Text(text = "Zone: $zone", style = MaterialTheme.typography.bodyMedium)
                             }
+                            Text(
+                                text = "Photos: ${uiState.evidenceCount}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
                         }
                     }
 
@@ -138,6 +144,14 @@ fun QcStartScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Перейти в AR")
+                    }
+
+                    Button(
+                        enabled = resolvedId != null && !uiState.actionInProgress,
+                        onClick = { resolvedId?.let(onCapturePhoto) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Сделать фото")
                     }
 
                     Button(

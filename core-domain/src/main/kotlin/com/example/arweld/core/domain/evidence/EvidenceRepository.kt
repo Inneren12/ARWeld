@@ -17,12 +17,13 @@ interface EvidenceRepository {
     /**
      * Persist a photo evidence file and return the stored metadata.
      */
-    suspend fun savePhoto(eventId: String, file: File): Evidence
+    suspend fun savePhoto(workItemId: String, eventId: String, file: File): Evidence
 
     /**
      * Persist an AR screenshot evidence file and return the stored metadata.
      */
     suspend fun saveArScreenshot(
+        workItemId: String,
         eventId: String,
         uri: Uri,
         meta: ArScreenshotMeta,
@@ -37,6 +38,11 @@ interface EvidenceRepository {
      * Fetch all evidence attached to the given event.
      */
     suspend fun getEvidenceForEvent(eventId: String): List<Evidence>
+
+    /**
+     * Fetch all evidence tied to a work item regardless of source event.
+     */
+    suspend fun getEvidenceForWorkItem(workItemId: String): List<Evidence>
 }
 
 @Serializable

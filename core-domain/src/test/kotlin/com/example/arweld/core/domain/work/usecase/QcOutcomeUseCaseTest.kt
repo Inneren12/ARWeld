@@ -251,10 +251,12 @@ class QcOutcomeUseCaseTest {
     private fun photoEvidence(eventId: String, createdAt: Long): Evidence {
         return Evidence(
             id = UUID.randomUUID().toString(),
+            workItemId = WORK_ITEM_ID,
             eventId = eventId,
             kind = EvidenceKind.PHOTO,
             uri = "file://evidence/photo.jpg",
             sha256 = "sha-photo",
+            sizeBytes = 2048L,
             metaJson = null,
             createdAt = createdAt,
         )
@@ -263,10 +265,12 @@ class QcOutcomeUseCaseTest {
     private fun arScreenshotEvidence(eventId: String, createdAt: Long): Evidence {
         return Evidence(
             id = UUID.randomUUID().toString(),
+            workItemId = WORK_ITEM_ID,
             eventId = eventId,
             kind = EvidenceKind.AR_SCREENSHOT,
             uri = "file://evidence/ar.png",
             sha256 = "sha-ar",
+            sizeBytes = 4096L,
             metaJson = """{"trackingState":"TRACKING"}""",
             createdAt = createdAt,
         )
@@ -304,11 +308,12 @@ private class FakeEvidenceRepository(
         evidenceStore.getOrPut(evidence.eventId) { mutableListOf() }.add(evidence)
     }
 
-    override suspend fun savePhoto(eventId: String, file: File): Evidence {
+    override suspend fun savePhoto(workItemId: String, eventId: String, file: File): Evidence {
         error("Not implemented in fake")
     }
 
     override suspend fun saveArScreenshot(
+        workItemId: String,
         eventId: String,
         uri: Uri,
         meta: ArScreenshotMeta,
@@ -322,6 +327,10 @@ private class FakeEvidenceRepository(
 
     override suspend fun getEvidenceForEvent(eventId: String): List<Evidence> {
         return evidenceStore[eventId]?.toList() ?: emptyList()
+    }
+
+    override suspend fun getEvidenceForWorkItem(workItemId: String): List<Evidence> {
+        return evidenceStore.values.flatten().filter { it.workItemId == workItemId }
     }
 }
 
