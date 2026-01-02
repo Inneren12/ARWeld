@@ -12,8 +12,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ArAlignmentPayload(
     val method: String,
-    val markerId: Int? = null,
+    val markerIds: List<Int> = emptyList(),
     val numPoints: Int? = null,
+    val alignmentScore: Double? = null,
+    val timestamp: Long,
     val worldPosition: Vector3Dto? = null,
     val worldRotationEuler: Vector3Dto? = null,
 )

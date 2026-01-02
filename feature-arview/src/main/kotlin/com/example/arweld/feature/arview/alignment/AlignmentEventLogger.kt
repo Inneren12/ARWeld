@@ -26,7 +26,7 @@ class AlignmentEventLogger @Inject constructor(
         logAlignment(
             workItemId = workItemId,
             method = "marker",
-            markerId = markerId,
+            markerIds = listOf(markerId),
             numPoints = null,
             transform = transform,
         )
@@ -35,8 +35,8 @@ class AlignmentEventLogger @Inject constructor(
     suspend fun logManualAlignment(workItemId: String?, numPoints: Int, transform: Pose3D) {
         logAlignment(
             workItemId = workItemId,
-            method = "manual_3pt",
-            markerId = null,
+            method = "manual",
+            markerIds = emptyList(),
             numPoints = numPoints,
             transform = transform,
         )
@@ -45,7 +45,7 @@ class AlignmentEventLogger @Inject constructor(
     private suspend fun logAlignment(
         workItemId: String?,
         method: String,
-        markerId: Int?,
+        markerIds: List<Int>,
         numPoints: Int?,
         transform: Pose3D,
     ) {
@@ -60,10 +60,13 @@ class AlignmentEventLogger @Inject constructor(
             return
         }
 
+        val timestamp = System.currentTimeMillis()
         val payload = ArAlignmentPayload(
             method = method,
-            markerId = markerId,
+            markerIds = markerIds,
             numPoints = numPoints,
+            alignmentScore = null,
+            timestamp = timestamp,
             worldPosition = transform.toPayloadPosition(),
             worldRotationEuler = transform.toPayloadEuler(),
         )
@@ -72,7 +75,7 @@ class AlignmentEventLogger @Inject constructor(
             id = UUID.randomUUID().toString(),
             workItemId = workItemId,
             type = EventType.AR_ALIGNMENT_SET,
-            timestamp = System.currentTimeMillis(),
+            timestamp = timestamp,
             actorId = user.id,
             actorRole = user.role,
             deviceId = resolveDeviceId(),
