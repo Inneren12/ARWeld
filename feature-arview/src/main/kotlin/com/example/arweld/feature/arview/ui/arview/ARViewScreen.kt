@@ -35,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.widget.Toast
+import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.feature.arview.R
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.feature.arview.arcore.ARViewController
@@ -143,6 +144,10 @@ fun ARViewScreen(
                         }
                     },
                 )
+                if (BuildConfig.DEBUG) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DebugMarkerButton(onTrigger = controller::triggerDebugMarkerDetection)
+                }
             }
             infoOverlay()
         }
@@ -230,5 +235,15 @@ private fun ScreenshotButton(
 ) {
     Button(onClick = onCapture, modifier = modifier) {
         Text(text = stringResource(id = R.string.capture_ar_screenshot))
+    }
+}
+
+@Composable
+private fun DebugMarkerButton(
+    onTrigger: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Button(onClick = onTrigger, modifier = modifier) {
+        Text(text = stringResource(id = R.string.simulate_marker_button))
     }
 }

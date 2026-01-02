@@ -22,7 +22,7 @@ import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Vector3
 import com.example.arweld.feature.arview.marker.DetectedMarker
 import com.example.arweld.feature.arview.marker.MarkerDetector
-import com.example.arweld.feature.arview.marker.StubMarkerDetector
+import com.example.arweld.feature.arview.marker.SimulatedMarkerDetector
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
 import com.example.arweld.feature.arview.alignment.RigidTransformSolver
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
@@ -69,7 +69,7 @@ class ARViewController(
     private val sessionManager = ARCoreSessionManager(context)
     private val modelLoader: ModelLoader = AndroidFilamentModelLoader(context)
     private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
-    private val markerDetector: MarkerDetector = StubMarkerDetector()
+    private val markerDetector: MarkerDetector = SimulatedMarkerDetector()
     private val markerPoseEstimator = MarkerPoseEstimator()
     private val zoneRegistry = ZoneRegistry()
     private val zoneAligner = ZoneAligner(zoneRegistry)
@@ -142,6 +142,10 @@ class ARViewController(
         sceneRenderer.destroy()
         sessionManager.onDestroy()
         detectorScope.cancel()
+    }
+
+    fun triggerDebugMarkerDetection() {
+        (markerDetector as? SimulatedMarkerDetector)?.triggerSimulatedDetection()
     }
 
     fun getView(): View = surfaceView
