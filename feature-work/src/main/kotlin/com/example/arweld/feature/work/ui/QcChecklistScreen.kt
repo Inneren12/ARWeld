@@ -17,35 +17,33 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.arweld.feature.work.viewmodel.ChecklistItemState
-import com.example.arweld.feature.work.viewmodel.QcChecklistItem
-import com.example.arweld.feature.work.viewmodel.QcChecklistViewModel
+import com.example.arweld.core.domain.work.model.QcCheckState
+import com.example.arweld.core.domain.work.model.QcChecklistItem
+import com.example.arweld.core.domain.work.model.QcChecklistResult
 
 @Composable
 fun QcChecklistScreen(
-    viewModel: QcChecklistViewModel,
-    onContinue: () -> Unit,
+    checklist: QcChecklistResult,
+    onUpdateItem: (String, QcCheckState) -> Unit,
+    onNavigateBack: () -> Unit,
+    onPass: (QcChecklistResult) -> Unit,
+    onFail: (QcChecklistResult) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val checklistResult by viewModel.checklistResult.collectAsState()
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = "QC Checklist") },
                 navigationIcon = {
-                    IconButton(onClick = onContinue) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
@@ -55,13 +53,25 @@ fun QcChecklistScreen(
             )
         },
         bottomBar = {
-            Button(
-                onClick = onContinue,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(text = "Продолжить → выбор PASS/FAIL")
+                Button(
+                    onClick = { onFail(checklist) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = "Отклонить")
+                }
+
+                Button(
+                    onClick = { onPass(checklist) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = "Подтвердить")
+                }
             }
         },
         modifier = modifier
@@ -73,11 +83,11 @@ fun QcChecklistScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(checklistResult.items) { item ->
+            items(checklist.items) { item ->
                 QcChecklistRow(
                     item = item,
                     onStateChange = { state ->
-                        viewModel.updateItemState(item.id, state)
+                        onUpdateItem(item.id, state)
                     }
                 )
             }
@@ -88,12 +98,12 @@ fun QcChecklistScreen(
 @Composable
 private fun QcChecklistRow(
     item: QcChecklistItem,
-    onStateChange: (ChecklistItemState) -> Unit,
+    onStateChange: (QcCheckState) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = item.title,
+                text = item.title ?: item.id,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -114,18 +124,18 @@ private fun QcChecklistRow(
             ) {
                 ChecklistOption(
                     label = "OK",
-                    selected = item.state == ChecklistItemState.OK,
-                    onClick = { onStateChange(ChecklistItemState.OK) }
+                    selected = item.state == QcCheckState.OK,
+                    onClick = { onStateChange(QcCheckState.OK) }
                 )
                 ChecklistOption(
                     label = "NOT OK",
-                    selected = item.state == ChecklistItemState.NOT_OK,
-                    onClick = { onStateChange(ChecklistItemState.NOT_OK) }
+                    selected = item.state == QcCheckState.NOT_OK,
+                    onClick = { onStateChange(QcCheckState.NOT_OK) }
                 )
                 ChecklistOption(
                     label = "N/A",
-                    selected = item.state == ChecklistItemState.NA,
-                    onClick = { onStateChange(ChecklistItemState.NA) }
+                    selected = item.state == QcCheckState.NA,
+                    onClick = { onStateChange(QcCheckState.NA) }
                 )
             }
         }
@@ -143,7 +153,7 @@ private fun ChecklistOption(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        RadioButton(
+        androidx.compose.material3.RadioButton(
             selected = selected,
             onClick = onClick,
         )

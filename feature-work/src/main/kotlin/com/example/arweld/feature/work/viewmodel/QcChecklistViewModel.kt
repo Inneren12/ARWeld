@@ -2,6 +2,9 @@ package com.example.arweld.feature.work.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import com.example.arweld.core.domain.work.model.QcCheckState
+import com.example.arweld.core.domain.work.model.QcChecklistItem
+import com.example.arweld.core.domain.work.model.QcChecklistResult
 import com.example.arweld.feature.work.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -9,49 +12,11 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * Holds QC checklist selections for the current inspection.
  */
-@HiltViewModel
-class QcChecklistViewModel @Inject constructor() : ViewModel() {
-
-    private val _checklistResult = MutableStateFlow(
-        QcChecklistResult(
-            items = defaultChecklistTemplates.map { template ->
-                template.toItem(state = ChecklistItemState.NA)
-            }
-        )
-    )
-    val checklistResult: StateFlow<QcChecklistResult> = _checklistResult.asStateFlow()
-
-    fun updateItemState(id: String, newState: ChecklistItemState) {
-        _checklistResult.value = _checklistResult.value.copy(
-            items = _checklistResult.value.items.map { item ->
-                if (item.id == id) item.copy(state = newState) else item
-            }
-        )
-    }
-}
-
-enum class ChecklistItemState {
-    OK,
-    NOT_OK,
-    NA,
-}
-
-data class QcChecklistItem(
-    val id: String,
-    val title: String,
-    val required: Boolean,
-    val description: String?,
-    val state: QcCheckState,
-)
-
-data class QcChecklistResult(
-    val items: List<QcChecklistItem>,
-)
-
 @HiltViewModel
 class QcChecklistViewModel @Inject constructor(
     @ApplicationContext private val context: Context,

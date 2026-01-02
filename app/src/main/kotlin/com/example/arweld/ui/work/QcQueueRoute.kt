@@ -23,7 +23,9 @@ fun QcQueueRoute(
 
     QcQueueScreen(
         uiState = uiState,
-        onStartInspection = { workItemId -> navController.navigate(qcStartRoute(workItemId)) },
+        onStartInspection = { workItemId, code ->
+            navController.navigate(qcStartRoute(workItemId, code))
+        },
         onRefresh = { viewModel.refresh() },
         onBack = { navController.popBackStack() }
     )

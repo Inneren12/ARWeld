@@ -9,6 +9,8 @@ const val ROUTE_ASSEMBLER_QUEUE = "assembler_queue"
 const val ROUTE_QC_QUEUE = "qc_queue"
 const val ROUTE_QC_CHECKLIST = "qc_checklist"
 const val ROUTE_QC_START = "qc_start"
+const val ROUTE_QC_PASS_CONFIRM = "qc_pass_confirm"
+const val ROUTE_QC_FAIL_REASON = "qc_fail_reason"
 const val ROUTE_SCAN_CODE = "scan_code"
 const val ROUTE_WORK_ITEM_SUMMARY = "work_item_summary"
 const val ROUTE_TIMELINE = "timeline"
@@ -19,13 +21,38 @@ const val ROUTE_WORK_ITEM_DETAIL = "work_item_detail"
 fun workItemSummaryRoute(workItemId: String): String =
     "$ROUTE_WORK_ITEM_SUMMARY?workItemId=${Uri.encode(workItemId)}"
 
-fun qcStartRoute(workItemId: String): String =
-    "$ROUTE_QC_START?workItemId=${Uri.encode(workItemId)}"
+fun qcStartRoute(workItemId: String, code: String? = null): String {
+    val codeParam = code?.let { "&code=${Uri.encode(it)}" } ?: ""
+    return "$ROUTE_QC_START?workItemId=${Uri.encode(workItemId)}$codeParam"
+}
 
-fun qcChecklistRoute(workItemId: String): String =
-    "$ROUTE_QC_CHECKLIST?workItemId=${Uri.encode(workItemId)}"
+fun qcChecklistRoute(workItemId: String, code: String? = null): String {
+    val codeParam = code?.let { "&code=${Uri.encode(it)}" } ?: ""
+    return "$ROUTE_QC_CHECKLIST?workItemId=${Uri.encode(workItemId)}$codeParam"
+}
+
+fun qcPassConfirmRoute(
+    workItemId: String,
+    checklist: String,
+    code: String? = null,
+): String {
+    val codeParam = code?.let { "&code=${Uri.encode(it)}" } ?: ""
+    val checklistParam = Uri.encode(checklist)
+    return "$ROUTE_QC_PASS_CONFIRM?workItemId=${Uri.encode(workItemId)}$codeParam&checklist=$checklistParam"
+}
+
+fun qcFailReasonRoute(
+    workItemId: String,
+    checklist: String,
+    code: String? = null,
+): String {
+    val codeParam = code?.let { "&code=${Uri.encode(it)}" } ?: ""
+    val checklistParam = Uri.encode(checklist)
+    return "$ROUTE_QC_FAIL_REASON?workItemId=${Uri.encode(workItemId)}$codeParam&checklist=$checklistParam"
+}
 
 fun arViewRoute(workItemId: String): String =
     "$ROUTE_AR_VIEW?workItemId=${Uri.encode(workItemId)}"
 
 fun workItemDetailRoute(workItemId: String): String =
+    "$ROUTE_WORK_ITEM_DETAIL/$workItemId"

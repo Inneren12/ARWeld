@@ -2,7 +2,6 @@ package com.example.arweld.feature.work.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,10 +28,9 @@ import com.example.arweld.feature.work.viewmodel.QcStartUiState
 fun QcStartScreen(
     workItemId: String?,
     uiState: QcStartUiState,
+    codeArg: String?,
     onNavigateToAr: (String) -> Unit,
-    onOpenChecklist: (String) -> Unit,
-    onPassQc: () -> Unit,
-    onFailQc: () -> Unit,
+    onOpenChecklist: (String, String?) -> Unit,
     onBackToQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -87,6 +85,7 @@ fun QcStartScreen(
 
             else -> {
                 val resolvedId = uiState.workItemId ?: workItemId
+                val resolvedCode = uiState.code ?: codeArg
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -104,9 +103,9 @@ fun QcStartScreen(
                             Spacer(modifier = Modifier.padding(4.dp))
                             Text(
                                 text = "ID: ${resolvedId ?: "Unknown"}",
-                                style = MaterialTheme.typography.bodyLarge
+                                style = MaterialTheme.typography.bodyLarge,
                             )
-                            uiState.code?.takeIf { it.isNotEmpty() }?.let { code ->
+                            resolvedCode?.takeIf { it.isNotEmpty() }?.let { code ->
                                 Text(text = "Code: $code", style = MaterialTheme.typography.bodyMedium)
                             }
                             uiState.zone?.let { zone ->
@@ -121,7 +120,7 @@ fun QcStartScreen(
                                 Text(
                                     text = "Evidence requirements",
                                     style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
                                 )
                                 uiState.policyReasons.forEach { reason ->
                                     Text(
@@ -143,13 +142,12 @@ fun QcStartScreen(
 
                     Button(
                         enabled = resolvedId != null,
-                        onClick = { resolvedId?.let(onOpenChecklist) },
+                        onClick = { resolvedId?.let { id -> onOpenChecklist(id, resolvedCode) } },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Заполнить чеклист")
                     }
 
-                    val buttonsEnabled = resolvedId != null && uiState.canCompleteQc && !uiState.actionInProgress
                     if (!uiState.canCompleteQc) {
                         Text(
                             text = "требуются AR-скрин и фото",
@@ -158,33 +156,12 @@ fun QcStartScreen(
                         )
                     }
 
-                    if (uiState.actionErrorMessage != null) {
+                    uiState.actionErrorMessage?.let { message ->
                         Text(
-                            text = uiState.actionErrorMessage,
+                            text = message,
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            enabled = buttonsEnabled,
-                            onClick = onPassQc,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(text = "PASS")
-                        }
-
-                        Button(
-                            enabled = buttonsEnabled,
-                            onClick = onFailQc,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(text = "FAIL")
-                        }
                     }
 
                     Button(
