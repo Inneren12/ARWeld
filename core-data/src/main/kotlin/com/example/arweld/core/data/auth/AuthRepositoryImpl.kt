@@ -45,6 +45,15 @@ class AuthRepositoryImpl @Inject constructor(
         return user
     }
 
+    override suspend fun availableUsers(): List<User> = userDao.getAll().map { it.toDomain() }
+
+    override suspend fun loginWithUserId(userId: String): User {
+        val user = userDao.getById(userId)?.toDomain()
+            ?: error("User $userId not found in local database")
+        cacheUser(user)
+        return user
+    }
+
     override suspend fun currentUser(): User? {
         cachedUser?.let { return it }
         val serializedUser = sharedPreferences.getString(KEY_CURRENT_USER, null) ?: return null

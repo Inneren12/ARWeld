@@ -2,8 +2,8 @@ package com.example.arweld.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.arweld.domain.auth.AuthRepository
-import com.example.arweld.domain.model.User
+import com.example.arweld.core.domain.auth.AuthRepository
+import com.example.arweld.core.domain.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -14,7 +14,7 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): UserEntity?
 
-    @Query("SELECT * FROM users")
+    @Query("SELECT * FROM users ORDER BY id")
     suspend fun getAll(): List<UserEntity>
 
     @Query("SELECT * FROM users WHERE role = :role AND isActive = 1 ORDER BY lastSeenAt DESC LIMIT 1")

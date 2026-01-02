@@ -18,6 +18,16 @@ interface AuthRepository {
     suspend fun loginMock(role: Role): User
 
     /**
+     * Returns the list of locally available users (seeded into Room on first launch).
+     */
+    suspend fun availableUsers(): List<User>
+
+    /**
+     * Logs in as a specific seeded user. Fails if the user is not present in the database.
+     */
+    suspend fun loginWithUserId(userId: String): User
+
+    /**
      * Returns the currently signed-in user, or null if none has been cached.
      */
     suspend fun currentUser(): User?

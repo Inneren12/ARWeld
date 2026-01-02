@@ -332,6 +332,12 @@ private class FakeAuthRepository(
         throw UnsupportedOperationException("Not used in fake")
     }
 
+    override suspend fun availableUsers(): List<User> = emptyList()
+
+    override suspend fun loginWithUserId(userId: String): User {
+        throw UnsupportedOperationException("Not used in fake")
+    }
+
     override suspend fun currentUser(): User? = user
 
     override suspend fun logout() {
