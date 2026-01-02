@@ -58,7 +58,9 @@ object DataModule {
             context,
             AppDatabase::class.java,
             "arweld.db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

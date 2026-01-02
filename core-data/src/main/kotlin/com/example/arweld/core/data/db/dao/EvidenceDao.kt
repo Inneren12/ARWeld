@@ -34,11 +34,8 @@ interface EvidenceDao {
      * Get all evidence associated with a work item.
      * Joins with events table to find all evidence for events related to this work item.
      */
-    @Query("""
-        SELECT e.* FROM evidence e
-        INNER JOIN events ev ON e.eventId = ev.id
-        WHERE ev.workItemId = :workItemId
-        ORDER BY e.createdAt ASC
-    """)
+    @Query(
+        "SELECT * FROM evidence WHERE workItemId = :workItemId ORDER BY createdAt ASC"
+    )
     suspend fun listByWorkItem(workItemId: String): List<EvidenceEntity>
 }

@@ -8,10 +8,12 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Evidence(
     val id: String,
+    val workItemId: String,
     val eventId: String,
     val kind: EvidenceKind,
     val uri: String,
     val sha256: String,
+    val sizeBytes: Long,
     val metaJson: String?,
     val createdAt: Long,
 )

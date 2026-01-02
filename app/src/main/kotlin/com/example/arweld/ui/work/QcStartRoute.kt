@@ -35,6 +35,7 @@ fun QcStartRoute(
         codeArg = code,
         onNavigateToAr = { id -> navController.navigate(arViewRoute(id)) },
         onOpenChecklist = { id, passedCode -> navController.navigate(qcChecklistRoute(id, passedCode)) },
+        onCapturePhoto = { id -> viewModel.capturePhoto(id) },
         onBackToQueue = {
             val popped = navController.popBackStack(ROUTE_QC_QUEUE, false)
             if (!popped) {

@@ -9,14 +9,19 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "evidence",
-    indices = [Index(value = ["eventId"])]
+    indices = [
+        Index(value = ["eventId"]),
+        Index(value = ["workItemId"]),
+    ]
 )
 data class EvidenceEntity(
     @PrimaryKey val id: String,
+    val workItemId: String,
     val eventId: String,
     val kind: String,
     val uri: String,
     val sha256: String,
+    val sizeBytes: Long,
     val metaJson: String?,
     val createdAt: Long,
 )

@@ -1,5 +1,6 @@
 package com.example.arweld.feature.work.viewmodel
 
+import androidx.core.net.toFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.arweld.core.domain.model.WorkItem
@@ -9,11 +10,13 @@ import com.example.arweld.core.domain.work.usecase.FailQcInput
 import com.example.arweld.core.domain.work.usecase.PassQcInput
 import com.example.arweld.core.domain.work.usecase.PassQcUseCase
 import com.example.arweld.core.domain.work.usecase.StartQcInspectionUseCase
+import com.example.arweld.core.domain.event.EventType
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.evidence.EvidenceRepository
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
 import com.example.arweld.core.domain.policy.QcEvidencePolicyResult
 import com.example.arweld.core.domain.work.model.QcChecklistResult
+import com.example.arweld.feature.work.camera.PhotoCaptureService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +36,7 @@ class QcStartViewModel @Inject constructor(
     private val qcEvidencePolicy: QcEvidencePolicy,
     private val passQcUseCase: PassQcUseCase,
     private val failQcUseCase: FailQcUseCase,
+    private val photoCaptureService: PhotoCaptureService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QcStartUiState(isLoading = true))
@@ -77,6 +81,8 @@ class QcStartViewModel @Inject constructor(
                     zone = payload.workItem.zone,
                     canCompleteQc = payload.policy.canComplete,
                     policyReasons = payload.policy.reasons,
+                    latestQcStartedEventId = payload.policy.latestQcStartedEventId,
+                    evidenceCount = payload.policy.evidenceCount,
                     errorMessage = null,
                 )
             }.onFailure { throwable ->
@@ -125,6 +131,8 @@ class QcStartViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         canCompleteQc = policy.canComplete,
                         policyReasons = policy.reasons,
+                        latestQcStartedEventId = policy.latestQcStartedEventId,
+                        evidenceCount = policy.evidenceCount,
                     )
                 }
                 .onFailure { throwable ->
@@ -133,6 +141,44 @@ class QcStartViewModel @Inject constructor(
                         policyReasons = listOf(
                             throwable.message ?: "Не удалось проверить требования доказательств",
                         ),
+                    )
+                }
+        }
+    }
+
+    fun capturePhoto(workItemId: String) {
+        val qcEventId = _uiState.value.latestQcStartedEventId
+            ?: run {
+                _uiState.value = _uiState.value.copy(
+                    actionErrorMessage = "Начните с QC_START для привязки фото",
+                )
+                return
+            }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(actionInProgress = true, actionErrorMessage = null)
+            runCatching {
+                val captureResult = photoCaptureService.capturePhoto()
+                evidenceRepository.savePhoto(
+                    workItemId = workItemId,
+                    eventId = qcEventId,
+                    file = captureResult.uri.toFile(),
+                )
+                loadPolicy(workItemId)
+            }
+                .onSuccess { policy ->
+                    _uiState.value = _uiState.value.copy(
+                        actionInProgress = false,
+                        canCompleteQc = policy.canComplete,
+                        policyReasons = policy.reasons,
+                        latestQcStartedEventId = policy.latestQcStartedEventId,
+                        evidenceCount = policy.evidenceCount,
+                    )
+                }
+                .onFailure { throwable ->
+                    _uiState.value = _uiState.value.copy(
+                        actionInProgress = false,
+                        actionErrorMessage = throwable.message ?: "Не удалось сохранить фото",
                     )
                 }
         }
@@ -171,13 +217,22 @@ class QcStartViewModel @Inject constructor(
     private suspend fun loadPolicy(workItemId: String): PolicySnapshot {
         val events = eventRepository.getEventsForWorkItem(workItemId)
         val evidence = events.flatMap { event -> evidenceRepository.getEvidenceForEvent(event.id) }
-        return when (val result = qcEvidencePolicy.check(workItemId, events, evidence)) {
+        val latestQcStartedEventId = events
+            .filter { it.type == EventType.QC_STARTED }
+            .maxByOrNull { it.timestamp }
+            ?.id
+        val evidenceCount = evidenceRepository.getEvidenceForWorkItem(workItemId).size
+        val policyResult = when (val result = qcEvidencePolicy.check(workItemId, events, evidence)) {
             QcEvidencePolicyResult.Ok -> PolicySnapshot(canComplete = true, reasons = emptyList())
             is QcEvidencePolicyResult.Failed -> PolicySnapshot(
                 canComplete = false,
                 reasons = result.reasons,
             )
         }
+        return policyResult.copy(
+            latestQcStartedEventId = latestQcStartedEventId,
+            evidenceCount = evidenceCount,
+        )
     }
 
     private data class LoadedPayload(
@@ -188,6 +243,8 @@ class QcStartViewModel @Inject constructor(
     private data class PolicySnapshot(
         val canComplete: Boolean,
         val reasons: List<String>,
+        val latestQcStartedEventId: String? = null,
+        val evidenceCount: Int = 0,
     )
 }
 data class QcStartUiState(
@@ -198,6 +255,8 @@ data class QcStartUiState(
     val zone: String? = null,
     val canCompleteQc: Boolean = false,
     val policyReasons: List<String> = emptyList(),
+    val latestQcStartedEventId: String? = null,
+    val evidenceCount: Int = 0,
     val actionErrorMessage: String? = null,
     val errorMessage: String? = null,
 )
