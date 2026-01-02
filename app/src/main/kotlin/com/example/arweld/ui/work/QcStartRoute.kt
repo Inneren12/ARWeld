@@ -16,6 +16,7 @@ import com.example.arweld.navigation.qcChecklistRoute
 fun QcStartRoute(
     navController: NavHostController,
     workItemId: String?,
+    code: String?,
     viewModel: QcStartViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -31,10 +32,9 @@ fun QcStartRoute(
     QcStartScreen(
         workItemId = workItemId,
         uiState = uiState,
+        codeArg = code,
         onNavigateToAr = { id -> navController.navigate(arViewRoute(id)) },
-        onOpenChecklist = { id -> navController.navigate(qcChecklistRoute(id)) },
-        onPassQc = { viewModel.onPassQc() },
-        onFailQc = { viewModel.onFailQc() },
+        onOpenChecklist = { id, passedCode -> navController.navigate(qcChecklistRoute(id, passedCode)) },
         onBackToQueue = {
             val popped = navController.popBackStack(ROUTE_QC_QUEUE, false)
             if (!popped) {

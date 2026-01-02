@@ -31,7 +31,7 @@ import com.example.arweld.feature.work.viewmodel.QcQueueUiState
 @Composable
 fun QcQueueScreen(
     uiState: QcQueueUiState,
-    onStartInspection: (String) -> Unit,
+    onStartInspection: (String, String) -> Unit,
     onRefresh: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -117,7 +117,7 @@ fun QcQueueScreen(
 @Composable
 private fun QcQueueItemCard(
     item: QcQueueItemUiModel,
-    onStartInspection: (String) -> Unit,
+    onStartInspection: (String, String) -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -140,7 +140,7 @@ private fun QcQueueItemCard(
             Text(text = waitingText, style = MaterialTheme.typography.bodySmall)
 
             Spacer(modifier = Modifier.padding(vertical = 8.dp))
-            Button(onClick = { onStartInspection(item.id) }) {
+            Button(onClick = { onStartInspection(item.id, item.code) }) {
                 Text(text = "Начать проверку")
             }
         }

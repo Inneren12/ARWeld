@@ -13,6 +13,8 @@ import com.example.arweld.ui.ar.ARViewRoute
 import com.example.arweld.ui.work.AssemblerQueueRoute
 import com.example.arweld.ui.work.QcQueueRoute
 import com.example.arweld.ui.work.QcChecklistRoute
+import com.example.arweld.ui.work.QcFailReasonRoute
+import com.example.arweld.ui.work.QcPassConfirmRoute
 import com.example.arweld.ui.work.QcStartRoute
 import com.example.arweld.ui.work.WorkItemSummaryRoute
 import com.example.arweld.feature.work.ui.TimelineScreen
@@ -48,9 +50,14 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             QcQueueRoute(navController = navController)
         }
         composable(
-            route = "$ROUTE_QC_CHECKLIST?workItemId={workItemId}",
+            route = "$ROUTE_QC_CHECKLIST?workItemId={workItemId}&code={code}",
             arguments = listOf(
                 navArgument("workItemId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("code") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
@@ -58,9 +65,11 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         ) { backStackEntry ->
             val workItemId = backStackEntry.arguments?.getString("workItemId")
+            val code = backStackEntry.arguments?.getString("code")
             QcChecklistRoute(
                 navController = navController,
                 workItemId = workItemId,
+                code = code,
             )
         }
         composable(ROUTE_SCAN_CODE) {
@@ -102,9 +111,14 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
         composable(
-            route = "$ROUTE_QC_START?workItemId={workItemId}",
+            route = "$ROUTE_QC_START?workItemId={workItemId}&code={code}",
             arguments = listOf(
                 navArgument("workItemId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("code") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
@@ -112,9 +126,71 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         ) { backStackEntry ->
             val workItemId = backStackEntry.arguments?.getString("workItemId")
+            val code = backStackEntry.arguments?.getString("code")
             QcStartRoute(
                 navController = navController,
                 workItemId = workItemId,
+                code = code,
+            )
+        }
+        composable(
+            route = "$ROUTE_QC_PASS_CONFIRM?workItemId={workItemId}&code={code}&checklist={checklist}",
+            arguments = listOf(
+                navArgument("workItemId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("code") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("checklist") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val workItemId = backStackEntry.arguments?.getString("workItemId")
+            val code = backStackEntry.arguments?.getString("code")
+            val checklistJson = backStackEntry.arguments?.getString("checklist")
+            QcPassConfirmRoute(
+                navController = navController,
+                workItemId = workItemId,
+                code = code,
+                checklistJson = checklistJson,
+            )
+        }
+        composable(
+            route = "$ROUTE_QC_FAIL_REASON?workItemId={workItemId}&code={code}&checklist={checklist}",
+            arguments = listOf(
+                navArgument("workItemId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("code") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("checklist") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val workItemId = backStackEntry.arguments?.getString("workItemId")
+            val code = backStackEntry.arguments?.getString("code")
+            val checklistJson = backStackEntry.arguments?.getString("checklist")
+            QcFailReasonRoute(
+                navController = navController,
+                workItemId = workItemId,
+                code = code,
+                checklistJson = checklistJson,
             )
         }
         composable(ROUTE_SUPERVISOR_DASHBOARD) {
