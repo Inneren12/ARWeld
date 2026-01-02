@@ -17,15 +17,18 @@ interface EvidenceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(evidence: List<EvidenceEntity>)
 
-    @Query("SELECT * FROM evidence WHERE eventId = :eventId")
-    suspend fun getByEventId(eventId: String): List<EvidenceEntity>
+    @Query("SELECT * FROM evidence WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): EvidenceEntity?
+
+    @Query("SELECT * FROM evidence WHERE eventId = :eventId ORDER BY createdAt ASC")
+    suspend fun listByEvent(eventId: String): List<EvidenceEntity>
 
     /**
      * Batch query to fetch evidence for multiple events.
      * Useful for loading evidence for a timeline without N+1 queries.
      */
     @Query("SELECT * FROM evidence WHERE eventId IN (:eventIds)")
-    suspend fun getByEventIds(eventIds: List<String>): List<EvidenceEntity>
+    suspend fun listByEvents(eventIds: List<String>): List<EvidenceEntity>
 
     /**
      * Get all evidence associated with a work item.
@@ -37,5 +40,5 @@ interface EvidenceDao {
         WHERE ev.workItemId = :workItemId
         ORDER BY e.createdAt ASC
     """)
-    suspend fun getByWorkItemId(workItemId: String): List<EvidenceEntity>
+    suspend fun listByWorkItem(workItemId: String): List<EvidenceEntity>
 }
