@@ -75,6 +75,6 @@ class EvidenceRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getEvidenceForEvent(eventId: String): List<Evidence> {
-        return evidenceDao.getByEventId(eventId).map { it.toDomain() }
+        return evidenceDao.listByEvent(eventId).map { it.toDomain() }
     }
 }
