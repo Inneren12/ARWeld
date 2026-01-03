@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +30,7 @@ import com.example.arweld.core.domain.evidence.EvidenceKind
 import com.example.arweld.feature.work.viewmodel.QcStartUiState
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun QcStartScreen(
     workItemId: String?,
     uiState: QcStartUiState,
