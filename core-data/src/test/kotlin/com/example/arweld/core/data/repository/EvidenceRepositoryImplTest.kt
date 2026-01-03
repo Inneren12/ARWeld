@@ -4,17 +4,22 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.core.net.toUri
 import com.example.arweld.core.data.db.AppDatabase
 import com.example.arweld.core.data.file.computeSha256
 import com.example.arweld.core.domain.auth.AuthRepository
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.event.EventType
+import com.example.arweld.core.domain.evidence.ArScreenshotMeta
+import com.example.arweld.core.domain.evidence.EvidenceKind
 import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.model.User
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
 import java.io.File
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -81,6 +86,43 @@ class EvidenceRepositoryImplTest {
         assertEquals(EventType.EVIDENCE_CAPTURED, capturedEvent.type)
         assertEquals(FIXED_TIME, capturedEvent.timestamp)
         assertTrue(requireNotNull(capturedEvent.payloadJson).contains(evidence.id))
+    }
+
+    @Test
+    fun saveArScreenshot_hashesFileAndAppendsMetaToEvent() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val screenshotFile = File(context.cacheDir, "ar_screenshot.png").apply {
+            writeText("ar-screenshot-bytes")
+        }
+        val meta = ArScreenshotMeta(
+            markerIds = listOf(1, 2, 3),
+            trackingState = "TRACKING",
+            alignmentQualityScore = 0.9f,
+            distanceToMarker = null,
+        )
+
+        val evidence = evidenceRepository.saveArScreenshot(
+            workItemId = WORK_ITEM_ID,
+            eventId = QC_EVENT_ID,
+            uri = screenshotFile.toUri(),
+            meta = meta,
+        )
+
+        assertEquals(WORK_ITEM_ID, evidence.workItemId)
+        assertEquals(QC_EVENT_ID, evidence.eventId)
+        assertEquals(EvidenceKind.AR_SCREENSHOT, evidence.kind)
+        assertEquals(screenshotFile.length(), evidence.sizeBytes)
+        assertEquals(computeSha256(screenshotFile), evidence.sha256)
+        assertEquals(Json.encodeToString(meta), evidence.metaJson)
+        assertNotNull(database.evidenceDao().getById(evidence.id))
+
+        val events = eventRepository.getEventsForWorkItem(WORK_ITEM_ID)
+        assertEquals(1, events.size)
+        val capturedEvent = events.first()
+        assertEquals(EventType.EVIDENCE_CAPTURED, capturedEvent.type)
+        val payload = requireNotNull(capturedEvent.payloadJson)
+        assertTrue(payload.contains("\"AR_SCREENSHOT\""))
+        assertTrue(payload.contains("trackingQuality"))
     }
 
     private companion object {

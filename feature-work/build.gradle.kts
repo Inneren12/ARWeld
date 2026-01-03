@@ -42,6 +42,7 @@ dependencies {
     // Core modules
     implementation(project(":core-domain"))
     implementation(project(":core-data"))
+    implementation(project(":feature-arview"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)

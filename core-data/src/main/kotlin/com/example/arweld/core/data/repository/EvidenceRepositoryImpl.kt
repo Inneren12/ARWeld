@@ -55,7 +55,7 @@ class EvidenceRepositoryImpl @Inject constructor(
             createdAt = createdAt,
         )
 
-        persistEvidence(evidence)
+        persistEvidence(evidence, meta = null)
         return evidence
     }
 
@@ -80,7 +80,7 @@ class EvidenceRepositoryImpl @Inject constructor(
             createdAt = createdAt,
         )
 
-        persistEvidence(evidence)
+        persistEvidence(evidence, meta)
         return evidence
     }
 
@@ -103,12 +103,18 @@ class EvidenceRepositoryImpl @Inject constructor(
             .eachCount()
     }
 
-    private suspend fun persistEvidence(evidence: Evidence) {
+    private suspend fun persistEvidence(
+        evidence: Evidence,
+        meta: ArScreenshotMeta?,
+    ) {
         saveEvidence(evidence)
-        appendEvidenceCapturedEvent(evidence)
+        appendEvidenceCapturedEvent(evidence, meta)
     }
 
-    private suspend fun appendEvidenceCapturedEvent(evidence: Evidence) {
+    private suspend fun appendEvidenceCapturedEvent(
+        evidence: Evidence,
+        arMeta: ArScreenshotMeta?,
+    ) {
         val user = authRepository.currentUser() ?: error("User must be logged in")
         val payload = EvidenceCapturedPayload(
             evidenceId = evidence.id,
@@ -118,6 +124,10 @@ class EvidenceRepositoryImpl @Inject constructor(
             fileName = evidence.uri.substringAfterLast('/'),
             uri = evidence.uri,
             sizeBytes = evidence.sizeBytes,
+            timestamp = evidence.createdAt,
+            markerIds = arMeta?.markerIds,
+            trackingQuality = arMeta?.trackingState,
+            alignmentScore = arMeta?.alignmentQualityScore,
         )
 
         val event = Event(
@@ -144,4 +154,8 @@ private data class EvidenceCapturedPayload(
     val fileName: String,
     val uri: String,
     val sizeBytes: Long,
+    val timestamp: Long,
+    val markerIds: List<Int>?,
+    val trackingQuality: String?,
+    val alignmentScore: Float?,
 )
