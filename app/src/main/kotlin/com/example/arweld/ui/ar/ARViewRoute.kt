@@ -44,8 +44,7 @@ fun ARViewRoute(
             savedStateHandle?.set(AR_SCREENSHOT_REQUEST_KEY, false)
             navController.popBackStack()
         },
+        infoOverlay = { /* Placeholder for overlay content (tracking/debug info) */ },
         onScreenshotCaptured = onScreenshotCaptured,
-    ) {
-        // Placeholder for overlay content (tracking/debug info)
-    }
+    )
 }

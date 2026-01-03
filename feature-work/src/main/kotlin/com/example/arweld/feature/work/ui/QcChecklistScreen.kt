@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -30,6 +31,7 @@ import com.example.arweld.core.domain.work.model.QcChecklistItem
 import com.example.arweld.core.domain.work.model.QcChecklistResult
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun QcChecklistScreen(
     checklist: QcChecklistResult,
     onUpdateItem: (String, QcCheckState) -> Unit,

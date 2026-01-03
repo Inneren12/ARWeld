@@ -57,7 +57,7 @@ class ARSceneRenderer(
     private val choreographer = Choreographer.getInstance()
     private val frameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
-            renderFrame()
+            renderFrame(frameTimeNanos)
             if (rendering) {
                 choreographer.postFrameCallback(this)
             }
@@ -131,7 +131,7 @@ class ARSceneRenderer(
         }
     }
 
-    private fun renderFrame() {
+    private fun renderFrame(frameTimeNanos: Long) {
         val swapChain = swapChain ?: return
         val session = sessionManager.session ?: return
         try {
@@ -141,7 +141,7 @@ class ARSceneRenderer(
             processQueuedHitTests(frame)
             updateCamera(frame)
             updateModelTransform()
-            if (renderer.beginFrame(swapChain)) {
+            if (renderer.beginFrame(swapChain, frameTimeNanos)) {
                 renderer.render(view)
                 renderer.endFrame()
             }
@@ -265,34 +265,57 @@ private fun Camera.setCustomProjectionCompat(
 ) {
     val intType = Int::class.javaPrimitiveType
     val dblArrType = DoubleArray::class.java
+
     for (m in javaClass.methods) {
         if (m.name != "setCustomProjection") continue
         val p = m.parameterTypes
+
         val ok = runCatching {
             when (p.size) {
-                // setCustomProjection(double[] proj, int offset, double near, double far)
+                // (double[] proj, int offset, double near, double far)
                 4 -> when {
                     p[0] == dblArrType && p[1] == intType -> {
                         m.invoke(this, projection, 0, near, far); true
                     }
-                    // setCustomProjection(double[] proj, double[] invProj, double near, double far)
+                    // (double[] proj, double[] invProj, double near, double far)
                     p[0] == dblArrType && p[1] == dblArrType -> {
                         m.invoke(this, projection, projectionInverse, near, far); true
                     }
                     else -> false
                 }
-                // setCustomProjection(double[] proj, int offset, int w, int h, double near, double far)
-                6 -> if (
-                    p[0] == dblArrType &&
-                    p[1] == intType &&
-                    p[2] == intType &&
-                    p[3] == intType
-                ) {
-                    m.invoke(this, projection, 0, viewportWidth, viewportHeight, near, far); true
+
+                // (double[] proj, double[] invProj, int offset, double near, double far)
+                5 -> if (p[0] == dblArrType && p[1] == dblArrType && p[2] == intType) {
+                    m.invoke(this, projection, projectionInverse, 0, near, far); true
                 } else false
+
+                // (double[] proj, int offset, int w, int h, double near, double far)
+                6 -> when {
+                    p[0] == dblArrType && p[1] == intType && p[2] == intType && p[3] == intType -> {
+                        m.invoke(this, projection, 0, viewportWidth, viewportHeight, near, far); true
+                    }
+                    // (double[] proj, double[] invProj, int w, int h, double near, double far)
+                    p[0] == dblArrType && p[1] == dblArrType && p[2] == intType && p[3] == intType -> {
+                        m.invoke(this, projection, projectionInverse, viewportWidth, viewportHeight, near, far); true
+                    }
+                    else -> false
+                }
+
+                // (double[] proj, double[] invProj, int offset, int w, int h, double near, double far)
+                7 -> if (
+                    p[0] == dblArrType &&
+                    p[1] == dblArrType &&
+                    p[2] == intType &&
+                    p[3] == intType &&
+                    p[4] == intType
+                ) {
+                    m.invoke(this, projection, projectionInverse, 0, viewportWidth, viewportHeight, near, far); true
+                } else false
+
                 else -> false
             }
         }.getOrDefault(false)
+
         if (ok) return
     }
 }
@@ -300,9 +323,11 @@ private fun Camera.setCustomProjectionCompat(
 private fun Camera.setModelMatrixCompat(modelMatrix: DoubleArray) {
     val intType = Int::class.javaPrimitiveType
     val dblArrType = DoubleArray::class.java
+
     for (m in javaClass.methods) {
         if (m.name != "setModelMatrix") continue
         val p = m.parameterTypes
+
         val ok = runCatching {
             when (p.size) {
                 // setModelMatrix(double[] m)
@@ -312,68 +337,7 @@ private fun Camera.setModelMatrixCompat(modelMatrix: DoubleArray) {
                 else -> false
             }
         }.getOrDefault(false)
-        if (ok) return
-    }
-}
 
-// --- Filament API compatibility (different versions expose different signatures) ---
-private fun Camera.setCustomProjectionCompat(
-    projection: DoubleArray,
-    projectionInverse: DoubleArray,
-    near: Double,
-    far: Double,
-    viewportWidth: Int,
-    viewportHeight: Int,
-) {
-    val intType = Int::class.javaPrimitiveType
-    val dblArrType = DoubleArray::class.java
-    for (m in javaClass.methods) {
-        if (m.name != "setCustomProjection") continue
-        val p = m.parameterTypes
-        val ok = runCatching {
-            when (p.size) {
-                // setCustomProjection(double[] proj, int offset, double near, double far)
-                4 -> when {
-                    p[0] == dblArrType && p[1] == intType -> {
-                        m.invoke(this, projection, 0, near, far); true
-                    }
-                    // setCustomProjection(double[] proj, double[] invProj, double near, double far)
-                    p[0] == dblArrType && p[1] == dblArrType -> {
-                        m.invoke(this, projection, projectionInverse, near, far); true
-                    }
-                    else -> false
-                }
-                // setCustomProjection(double[] proj, int offset, int w, int h, double near, double far)
-                6 -> if (
-                    p[0] == dblArrType &&
-                    p[1] == intType &&
-                    p[2] == intType &&
-                    p[3] == intType
-                ) {
-                    m.invoke(this, projection, 0, viewportWidth, viewportHeight, near, far); true
-                } else false
-                else -> false
-            }
-        }.getOrDefault(false)
-        if (ok) return
-    }
-}
-
-private fun Camera.setModelMatrixCompat(modelMatrix: DoubleArray) {
-    val intType = Int::class.javaPrimitiveType
-    val dblArrType = DoubleArray::class.java
-    for (m in javaClass.methods) {
-        if (m.name != "setModelMatrix") continue
-        val p = m.parameterTypes
-        val ok = runCatching {
-            when (p.size) {
-                // setModelMatrix(double[] m)
-                1 -> if (p[0] == dblArrType) { m.invoke(this, modelMatrix); true } else false
-                // setModelMatrix(double[] m, int offset)
-                2 -> if (p[0] == dblArrType && p[1] == intType) { m.invoke(this, modelMatrix, 0); true } else false
-                else -> false
-            }
-        }.getOrDefault(false)
         if (ok) return
     }
 }

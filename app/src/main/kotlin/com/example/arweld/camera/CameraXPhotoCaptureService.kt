@@ -15,6 +15,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import com.example.arweld.feature.work.camera.PhotoCaptureResult
 import com.example.arweld.feature.work.camera.PhotoCaptureService
+import com.example.arweld.di.MainDispatcher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.util.concurrent.ExecutorService
@@ -133,7 +134,8 @@ private class ImmediateLifecycleOwner : LifecycleOwner {
         lifecycleRegistry.handleLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_CREATE)
     }
 
-    override fun getLifecycle(): androidx.lifecycle.Lifecycle = lifecycleRegistry
+    override val lifecycle: androidx.lifecycle.Lifecycle
+        get() = lifecycleRegistry
 
     fun start() {
         lifecycleRegistry.handleLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_START)
