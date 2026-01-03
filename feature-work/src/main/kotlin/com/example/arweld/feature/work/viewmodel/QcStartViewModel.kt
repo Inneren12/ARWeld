@@ -18,6 +18,7 @@ import com.example.arweld.core.domain.evidence.EvidenceRepository
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
 import com.example.arweld.core.domain.work.model.QcChecklistResult
 import com.example.arweld.feature.work.camera.PhotoCaptureService
+import com.example.arweld.feature.arview.arcore.ArScreenshotRegistry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -183,6 +184,56 @@ class QcStartViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         actionInProgress = false,
                         actionErrorMessage = throwable.message ?: "Не удалось сохранить фото",
+                    )
+                }
+        }
+    }
+
+    fun captureArScreenshot(workItemId: String) {
+        val qcEventId = _uiState.value.latestQcStartedEventId
+            ?: run {
+                _uiState.value = _uiState.value.copy(
+                    actionErrorMessage = "Начните с QC_START для привязки скриншота",
+                )
+                return
+            }
+
+        val screenshotService = ArScreenshotRegistry.current()
+        if (screenshotService == null) {
+            _uiState.value = _uiState.value.copy(
+                actionErrorMessage = "AR просмотр не активен для скриншота",
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(actionInProgress = true, actionErrorMessage = null)
+            runCatching {
+                val uri = screenshotService.captureArScreenshotToFile(workItemId)
+                val meta = screenshotService.currentScreenshotMeta()
+                evidenceRepository.saveArScreenshot(
+                    workItemId = workItemId,
+                    eventId = qcEventId,
+                    uri = uri,
+                    meta = meta,
+                )
+                loadPolicy(workItemId)
+            }
+                .onSuccess { policy ->
+                    _uiState.value = _uiState.value.copy(
+                        actionInProgress = false,
+                        canCompleteQc = policy.canComplete,
+                        missingEvidence = policy.missingEvidence,
+                        latestQcStartedEventId = policy.latestQcStartedEventId,
+                        evidenceCount = policy.evidenceCount,
+                        evidenceCounts = policy.evidenceCounts,
+                    )
+                }
+                .onFailure { throwable ->
+                    _uiState.value = _uiState.value.copy(
+                        actionInProgress = false,
+                        actionErrorMessage = throwable.message
+                            ?: "Не удалось сохранить AR скриншот",
                     )
                 }
         }

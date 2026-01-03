@@ -36,6 +36,7 @@ fun QcStartScreen(
     onNavigateToAr: (String) -> Unit,
     onOpenChecklist: (String, String?) -> Unit,
     onCapturePhoto: (String) -> Unit,
+    onCaptureArScreenshot: (String) -> Unit,
     onBackToQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -149,6 +150,14 @@ fun QcStartScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Сделать фото")
+                    }
+
+                    Button(
+                        enabled = resolvedId != null && !uiState.actionInProgress,
+                        onClick = { resolvedId?.let(onCaptureArScreenshot) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Capture AR Screenshot")
                     }
 
                     Button(

@@ -15,6 +15,7 @@ import android.view.View
 import android.view.WindowManager
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
+import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.core.domain.spatial.AlignmentPoint
 import com.example.arweld.core.domain.spatial.AlignmentSample
 import com.example.arweld.core.domain.spatial.CameraIntrinsics
@@ -26,6 +27,7 @@ import com.example.arweld.feature.arview.marker.SimulatedMarkerDetector
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
 import com.example.arweld.feature.arview.alignment.RigidTransformSolver
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
+import com.example.arweld.feature.arview.arcore.ArScreenshotRegistry
 import com.example.arweld.feature.arview.pose.MarkerPoseEstimator
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
@@ -102,6 +104,7 @@ class ARViewController(
 
     fun onCreate() {
         Log.d(TAG, "ARViewController onCreate")
+        ArScreenshotRegistry.register(this)
         sceneRenderer.setFrameListener(::onFrame)
         sceneRenderer.setHitTestResultListener(::onHitTestResult)
         surfaceView.setOnTouchListener { _, event ->
@@ -134,6 +137,7 @@ class ARViewController(
 
     fun onDestroy() {
         Log.d(TAG, "ARViewController onDestroy")
+        ArScreenshotRegistry.unregister(this)
         testNodeModel?.let {
             modelLoader.destroyModel(it)
             testNodeModel = null
@@ -298,10 +302,23 @@ class ARViewController(
         }
     }
 
-    override suspend fun captureArScreenshot(): Uri {
+    override suspend fun captureArScreenshotToFile(workItemId: String): Uri {
         val bitmap = copySurfaceBitmap()
-        val outputFile = saveBitmap(bitmap)
+        val outputFile = saveBitmap(bitmap, workItemId)
         return outputFile.toUri()
+    }
+
+    override fun currentScreenshotMeta(): ArScreenshotMeta {
+        val markerIds = _markerWorldPoses.value.keys.toList()
+        val trackingQuality = _trackingStatus.value.quality.name
+        val alignmentScore = if (modelAligned.get()) 1f else 0f
+
+        return ArScreenshotMeta(
+            markerIds = markerIds,
+            trackingState = trackingQuality,
+            alignmentQualityScore = alignmentScore,
+            distanceToMarker = null,
+        )
     }
 
     private suspend fun copySurfaceBitmap(): Bitmap {
@@ -326,12 +343,12 @@ class ARViewController(
         }
     }
 
-    private suspend fun saveBitmap(bitmap: Bitmap): File = withContext(Dispatchers.IO) {
-        val directory = File(surfaceView.context.filesDir, "evidence/ar_screenshots")
+    private suspend fun saveBitmap(bitmap: Bitmap, workItemId: String): File = withContext(Dispatchers.IO) {
+        val directory = File(surfaceView.context.filesDir, "evidence")
         if (!directory.exists()) {
             directory.mkdirs()
         }
-        val file = File(directory, "ar_screenshot_${System.currentTimeMillis()}.png")
+        val file = File(directory, "${workItemId}_${System.currentTimeMillis()}.png")
         FileOutputStream(file).use { outputStream ->
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
         }
