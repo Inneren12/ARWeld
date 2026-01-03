@@ -12,9 +12,6 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.After
 import org.junit.Test
-import org.robolectric.annotation.Config
-
-@Config(manifest = Config.NONE)
 class AuthRepositoryImplTest {
 
     private lateinit var context: Context

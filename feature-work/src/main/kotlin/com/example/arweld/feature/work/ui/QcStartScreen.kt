@@ -157,7 +157,7 @@ fun QcStartScreen(
                         onClick = { resolvedId?.let(onCaptureArScreenshot) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(text = "Capture AR Screenshot")
+                        Text(text = "Capture AR screenshot")
                     }
 
                     Button(
