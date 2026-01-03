@@ -1,5 +1,6 @@
 package com.example.arweld.feature.work.viewmodel
 
+import android.net.Uri
 import androidx.core.net.toFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,7 @@ import com.example.arweld.core.domain.work.usecase.PassQcInput
 import com.example.arweld.core.domain.work.usecase.PassQcUseCase
 import com.example.arweld.core.domain.work.usecase.StartQcInspectionUseCase
 import com.example.arweld.core.domain.work.usecase.QcDecisionResult
+import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.core.domain.evidence.EvidenceKind
 import com.example.arweld.core.domain.event.EventType
 import com.example.arweld.core.domain.event.EventRepository
@@ -18,7 +20,7 @@ import com.example.arweld.core.domain.evidence.EvidenceRepository
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
 import com.example.arweld.core.domain.work.model.QcChecklistResult
 import com.example.arweld.feature.work.camera.PhotoCaptureService
-import com.example.arweld.feature.arview.arcore.ArScreenshotRegistry
+import com.example.arweld.feature.work.model.ArScreenshotResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -189,7 +191,7 @@ class QcStartViewModel @Inject constructor(
         }
     }
 
-    fun captureArScreenshot(workItemId: String) {
+    fun onArScreenshotCaptured(workItemId: String, result: ArScreenshotResult) {
         val qcEventId = _uiState.value.latestQcStartedEventId
             ?: run {
                 _uiState.value = _uiState.value.copy(
@@ -198,19 +200,24 @@ class QcStartViewModel @Inject constructor(
                 return
             }
 
-        val screenshotService = ArScreenshotRegistry.current()
-        if (screenshotService == null) {
+        val uri = runCatching { Uri.parse(result.uriString) }.getOrNull()
+        if (uri == null) {
             _uiState.value = _uiState.value.copy(
-                actionErrorMessage = "AR просмотр не активен для скриншота",
+                actionErrorMessage = "Не удалось получить AR скриншот",
             )
             return
         }
 
+        val meta = ArScreenshotMeta(
+            markerIds = result.markerIds,
+            trackingState = result.trackingState.ifEmpty { "UNKNOWN" },
+            alignmentQualityScore = result.alignmentQualityScore,
+            distanceToMarker = result.distanceToMarker,
+        )
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = true, actionErrorMessage = null)
             runCatching {
-                val uri = screenshotService.captureArScreenshotToFile(workItemId)
-                val meta = screenshotService.currentScreenshotMeta()
                 evidenceRepository.saveArScreenshot(
                     workItemId = workItemId,
                     eventId = qcEventId,

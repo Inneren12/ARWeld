@@ -1,5 +1,7 @@
 package com.example.arweld.feature.arview.ui.arview
 
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,10 +36,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import android.widget.Toast
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.event.EventType
 import com.example.arweld.core.domain.evidence.EvidenceRepository
+import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.feature.arview.R
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
@@ -58,6 +60,7 @@ fun ARViewScreen(
     workItemId: String? = null,
     onBack: () -> Unit,
     infoOverlay: @Composable () -> Unit = {},
+    onScreenshotCaptured: ((Uri, ArScreenshotMeta) -> Unit)? = null,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -149,21 +152,27 @@ fun ARViewScreen(
                                 context.getString(R.string.capture_ar_screenshot_error)
                             } else {
                                 runCatching {
-                                    val qcStartEventId = eventRepository
-                                        .getEventsForWorkItem(workItemId)
-                                        .filter { it.type == EventType.QC_STARTED }
-                                        .maxByOrNull { it.timestamp }
-                                        ?.id
-                                        ?: error("QC start event missing")
-
                                     val uri = controller.captureArScreenshotToFile(workItemId)
                                     val meta = controller.currentScreenshotMeta()
-                                    evidenceRepository.saveArScreenshot(
-                                        workItemId = workItemId,
-                                        eventId = qcStartEventId,
-                                        uri = uri,
-                                        meta = meta,
-                                    )
+                                    val screenshotHandler = onScreenshotCaptured
+
+                                    if (screenshotHandler != null) {
+                                        screenshotHandler(uri, meta)
+                                    } else {
+                                        val qcStartEventId = eventRepository
+                                            .getEventsForWorkItem(workItemId)
+                                            .filter { it.type == EventType.QC_STARTED }
+                                            .maxByOrNull { it.timestamp }
+                                            ?.id
+                                            ?: error("QC start event missing")
+
+                                        evidenceRepository.saveArScreenshot(
+                                            workItemId = workItemId,
+                                            eventId = qcStartEventId,
+                                            uri = uri,
+                                            meta = meta,
+                                        )
+                                    }
 
                                     context.getString(
                                         R.string.capture_ar_screenshot_success,
@@ -173,7 +182,10 @@ fun ARViewScreen(
                                     context.getString(R.string.capture_ar_screenshot_error)
                                 }
                             }
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+                            if (onScreenshotCaptured == null) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
                 )
