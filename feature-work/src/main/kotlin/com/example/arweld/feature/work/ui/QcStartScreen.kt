@@ -2,12 +2,15 @@ package com.example.arweld.feature.work.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.arweld.core.domain.evidence.EvidenceKind
 import com.example.arweld.feature.work.viewmodel.QcStartUiState
 
 @Composable
@@ -113,30 +117,23 @@ fun QcStartScreen(
                                 Text(text = "Zone: $zone", style = MaterialTheme.typography.bodyMedium)
                             }
                             Text(
-                                text = "Photos: ${uiState.evidenceCount}",
+                                text = "Evidence: ${uiState.evidenceCount}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
                             )
                         }
                     }
 
-                    if (uiState.policyReasons.isNotEmpty()) {
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = "Evidence requirements",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                uiState.policyReasons.forEach { reason ->
-                                    Text(
-                                        text = "• $reason",
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    EvidenceChecklist(
+                        evidenceCounts = uiState.evidenceCounts,
+                        missingEvidence = uiState.missingEvidence,
+                    )
+
+                    Text(
+                        text = "Need: 1 photo + 1 AR screenshot",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
                     Button(
                         enabled = resolvedId != null,
@@ -164,7 +161,7 @@ fun QcStartScreen(
 
                     if (!uiState.canCompleteQc) {
                         Text(
-                            text = "требуются AR-скрин и фото",
+                            text = missingEvidenceMessage(uiState.missingEvidence),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
                         )
@@ -188,4 +185,71 @@ fun QcStartScreen(
             }
         }
     }
+}
+
+@Composable
+private fun EvidenceChecklist(
+    evidenceCounts: Map<EvidenceKind, Int>,
+    missingEvidence: Set<EvidenceKind>,
+    modifier: Modifier = Modifier,
+) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "Evidence checklist",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            EvidenceRow(
+                label = "Photo",
+                count = evidenceCounts[EvidenceKind.PHOTO] ?: 0,
+            )
+            EvidenceRow(
+                label = "AR screenshot",
+                count = evidenceCounts[EvidenceKind.AR_SCREENSHOT] ?: 0,
+            )
+            if (missingEvidence.isNotEmpty()) {
+                Text(
+                    text = missingEvidenceMessage(missingEvidence),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EvidenceRow(label: String, count: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(text = "x$count", style = MaterialTheme.typography.bodySmall)
+            if (count > 0) {
+                Icon(
+                    imageVector = Icons.Filled.CheckCircle,
+                    contentDescription = "$label captured",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "$label missing",
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
+private fun missingEvidenceMessage(missingEvidence: Set<EvidenceKind>): String {
+    if (missingEvidence.isEmpty()) return ""
+    val parts = mutableListOf<String>()
+    if (EvidenceKind.PHOTO in missingEvidence) parts.add("Фото отсутствует")
+    if (EvidenceKind.AR_SCREENSHOT in missingEvidence) parts.add("Нет AR скриншота")
+    return parts.joinToString(separator = "; ")
 }

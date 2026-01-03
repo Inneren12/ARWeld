@@ -103,7 +103,9 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideQcEvidencePolicy(): QcEvidencePolicy = QcEvidencePolicy()
+    fun provideQcEvidencePolicy(
+        evidenceRepository: EvidenceRepository,
+    ): QcEvidencePolicy = QcEvidencePolicy(evidenceRepository)
 
     @Provides
     @Singleton

@@ -10,11 +10,12 @@ import com.example.arweld.core.domain.work.usecase.FailQcInput
 import com.example.arweld.core.domain.work.usecase.PassQcInput
 import com.example.arweld.core.domain.work.usecase.PassQcUseCase
 import com.example.arweld.core.domain.work.usecase.StartQcInspectionUseCase
+import com.example.arweld.core.domain.work.usecase.QcDecisionResult
+import com.example.arweld.core.domain.evidence.EvidenceKind
 import com.example.arweld.core.domain.event.EventType
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.evidence.EvidenceRepository
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
-import com.example.arweld.core.domain.policy.QcEvidencePolicyResult
 import com.example.arweld.core.domain.work.model.QcChecklistResult
 import com.example.arweld.feature.work.camera.PhotoCaptureService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -80,9 +81,10 @@ class QcStartViewModel @Inject constructor(
                     code = payload.workItem.code,
                     zone = payload.workItem.zone,
                     canCompleteQc = payload.policy.canComplete,
-                    policyReasons = payload.policy.reasons,
+                    missingEvidence = payload.policy.missingEvidence,
                     latestQcStartedEventId = payload.policy.latestQcStartedEventId,
                     evidenceCount = payload.policy.evidenceCount,
+                    evidenceCounts = payload.policy.evidenceCounts,
                     errorMessage = null,
                 )
             }.onFailure { throwable ->
@@ -130,17 +132,18 @@ class QcStartViewModel @Inject constructor(
                 .onSuccess { policy ->
                     _uiState.value = _uiState.value.copy(
                         canCompleteQc = policy.canComplete,
-                        policyReasons = policy.reasons,
+                        missingEvidence = policy.missingEvidence,
                         latestQcStartedEventId = policy.latestQcStartedEventId,
                         evidenceCount = policy.evidenceCount,
+                        evidenceCounts = policy.evidenceCounts,
                     )
                 }
                 .onFailure { throwable ->
                     _uiState.value = _uiState.value.copy(
                         canCompleteQc = false,
-                        policyReasons = listOf(
-                            throwable.message ?: "Не удалось проверить требования доказательств",
-                        ),
+                        missingEvidence = REQUIRED_KINDS,
+                        actionErrorMessage = throwable.message
+                            ?: "Не удалось проверить требования доказательств",
                     )
                 }
         }
@@ -170,9 +173,10 @@ class QcStartViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         actionInProgress = false,
                         canCompleteQc = policy.canComplete,
-                        policyReasons = policy.reasons,
+                        missingEvidence = policy.missingEvidence,
                         latestQcStartedEventId = policy.latestQcStartedEventId,
                         evidenceCount = policy.evidenceCount,
+                        evidenceCounts = policy.evidenceCounts,
                     )
                 }
                 .onFailure { throwable ->
@@ -184,12 +188,12 @@ class QcStartViewModel @Inject constructor(
         }
     }
 
-    private fun performQcOutcome(block: suspend (String) -> Unit) {
+    private fun performQcOutcome(block: suspend (String) -> QcDecisionResult) {
         val workItemId = _uiState.value.workItemId ?: return
         viewModelScope.launch {
             if (!_uiState.value.canCompleteQc) {
                 _uiState.value = _uiState.value.copy(
-                    actionErrorMessage = "требуются AR-скрин и фото",
+                    actionErrorMessage = missingEvidenceMessage(_uiState.value.missingEvidence),
                 )
                 return@launch
             }
@@ -200,9 +204,20 @@ class QcStartViewModel @Inject constructor(
             )
 
             runCatching { block(workItemId) }
-                .onSuccess {
-                    refreshPolicy(workItemId)
-                    _uiState.value = _uiState.value.copy(actionInProgress = false)
+                .onSuccess { result ->
+                    when (result) {
+                        is QcDecisionResult.MissingEvidence -> _uiState.value = _uiState.value.copy(
+                            actionInProgress = false,
+                            canCompleteQc = false,
+                            missingEvidence = result.missing,
+                            actionErrorMessage = missingEvidenceMessage(result.missing),
+                        )
+
+                        QcDecisionResult.Success -> {
+                            refreshPolicy(workItemId)
+                            _uiState.value = _uiState.value.copy(actionInProgress = false)
+                        }
+                    }
                 }
                 .onFailure { throwable ->
                     _uiState.value = _uiState.value.copy(
@@ -216,22 +231,19 @@ class QcStartViewModel @Inject constructor(
 
     private suspend fun loadPolicy(workItemId: String): PolicySnapshot {
         val events = eventRepository.getEventsForWorkItem(workItemId)
-        val evidence = events.flatMap { event -> evidenceRepository.getEvidenceForEvent(event.id) }
         val latestQcStartedEventId = events
             .filter { it.type == EventType.QC_STARTED }
             .maxByOrNull { it.timestamp }
             ?.id
-        val evidenceCount = evidenceRepository.getEvidenceForWorkItem(workItemId).size
-        val policyResult = when (val result = qcEvidencePolicy.check(workItemId, events, evidence)) {
-            QcEvidencePolicyResult.Ok -> PolicySnapshot(canComplete = true, reasons = emptyList())
-            is QcEvidencePolicyResult.Failed -> PolicySnapshot(
-                canComplete = false,
-                reasons = result.reasons,
-            )
-        }
-        return policyResult.copy(
+        val evidenceCounts = evidenceRepository.countsByKindForWorkItem(workItemId)
+        val policyState = qcEvidencePolicy.evaluate(workItemId)
+
+        return PolicySnapshot(
+            canComplete = policyState.satisfied,
+            missingEvidence = policyState.missing,
             latestQcStartedEventId = latestQcStartedEventId,
-            evidenceCount = evidenceCount,
+            evidenceCount = evidenceCounts.values.sum(),
+            evidenceCounts = evidenceCounts,
         )
     }
 
@@ -242,10 +254,24 @@ class QcStartViewModel @Inject constructor(
 
     private data class PolicySnapshot(
         val canComplete: Boolean,
-        val reasons: List<String>,
+        val missingEvidence: Set<EvidenceKind>,
         val latestQcStartedEventId: String? = null,
         val evidenceCount: Int = 0,
+        val evidenceCounts: Map<EvidenceKind, Int> = emptyMap(),
     )
+
+    private fun missingEvidenceMessage(missing: Set<EvidenceKind>): String {
+        if (missing.isEmpty()) return ""
+        val parts = missing.map {
+            when (it) {
+                EvidenceKind.PHOTO -> "Фото отсутствует"
+                EvidenceKind.AR_SCREENSHOT -> "AR скриншот отсутствует"
+                EvidenceKind.VIDEO -> "Видео отсутствует"
+                EvidenceKind.MEASUREMENT -> "Нет замеров"
+            }
+        }
+        return parts.joinToString(separator = "; ")
+    }
 }
 data class QcStartUiState(
     val isLoading: Boolean = false,
@@ -254,9 +280,12 @@ data class QcStartUiState(
     val code: String? = null,
     val zone: String? = null,
     val canCompleteQc: Boolean = false,
-    val policyReasons: List<String> = emptyList(),
+    val missingEvidence: Set<EvidenceKind> = REQUIRED_KINDS,
     val latestQcStartedEventId: String? = null,
     val evidenceCount: Int = 0,
+    val evidenceCounts: Map<EvidenceKind, Int> = emptyMap(),
     val actionErrorMessage: String? = null,
     val errorMessage: String? = null,
 )
+
+private val REQUIRED_KINDS = setOf(EvidenceKind.PHOTO, EvidenceKind.AR_SCREENSHOT)

@@ -2,9 +2,12 @@ package com.example.arweld.feature.work.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.arweld.core.domain.evidence.EvidenceKind
+import com.example.arweld.core.domain.policy.QcEvidencePolicy
 import com.example.arweld.core.domain.work.model.QcChecklistResult
 import com.example.arweld.core.domain.work.usecase.FailQcInput
 import com.example.arweld.core.domain.work.usecase.FailQcUseCase
+import com.example.arweld.core.domain.work.usecase.QcDecisionResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +19,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class QcFailReasonViewModel @Inject constructor(
     private val failQcUseCase: FailQcUseCase,
+    private val qcEvidencePolicy: QcEvidencePolicy,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QcFailReasonUiState())
@@ -37,6 +41,8 @@ class QcFailReasonViewModel @Inject constructor(
             code = code,
             checklist = checklist,
         )
+
+        viewModelScope.launch { refreshPolicy(workItemId) }
     }
 
     fun updateReasonsInput(value: String) {
@@ -66,6 +72,13 @@ class QcFailReasonViewModel @Inject constructor(
             return
         }
 
+        if (!_uiState.value.policySatisfied) {
+            _uiState.update {
+                it.copy(errorMessage = missingEvidenceMessage(_uiState.value.missingEvidence))
+            }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
@@ -85,8 +98,21 @@ class QcFailReasonViewModel @Inject constructor(
                         comment = _uiState.value.comment.takeIf { comment -> comment.isNotBlank() },
                     ),
                 )
-            }.onSuccess {
-                _uiState.update { it.copy(isSubmitting = false, completed = true) }
+            }.onSuccess { result ->
+                when (result) {
+                    is QcDecisionResult.MissingEvidence -> _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            policySatisfied = false,
+                            missingEvidence = result.missing,
+                            errorMessage = missingEvidenceMessage(result.missing),
+                        )
+                    }
+
+                    QcDecisionResult.Success -> _uiState.update {
+                        it.copy(isSubmitting = false, completed = true)
+                    }
+                }
             }.onFailure { throwable ->
                 _uiState.update {
                     it.copy(
@@ -96,6 +122,25 @@ class QcFailReasonViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private suspend fun refreshPolicy(workItemId: String) {
+        val state = qcEvidencePolicy.evaluate(workItemId)
+        _uiState.update {
+            it.copy(
+                policySatisfied = state.satisfied,
+                missingEvidence = state.missing,
+                errorMessage = null,
+            )
+        }
+    }
+
+    private fun missingEvidenceMessage(missing: Set<EvidenceKind>): String {
+        if (missing.isEmpty()) return ""
+        val parts = mutableListOf<String>()
+        if (EvidenceKind.PHOTO in missing) parts.add("Добавьте фото")
+        if (EvidenceKind.AR_SCREENSHOT in missing) parts.add("Добавьте AR скриншот")
+        return parts.joinToString(separator = "; ", prefix = "Не хватает: ")
     }
 }
 
@@ -110,4 +155,6 @@ data class QcFailReasonUiState(
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
     val completed: Boolean = false,
+    val policySatisfied: Boolean = false,
+    val missingEvidence: Set<EvidenceKind> = emptySet(),
 )

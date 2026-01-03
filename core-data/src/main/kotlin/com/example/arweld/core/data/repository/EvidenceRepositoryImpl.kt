@@ -97,6 +97,12 @@ class EvidenceRepositoryImpl @Inject constructor(
         return evidenceDao.listByWorkItem(workItemId).map { it.toDomain() }
     }
 
+    override suspend fun countsByKindForWorkItem(workItemId: String): Map<EvidenceKind, Int> {
+        return evidenceDao.listByWorkItem(workItemId)
+            .groupingBy { EvidenceKind.valueOf(it.kind) }
+            .eachCount()
+    }
+
     private suspend fun persistEvidence(evidence: Evidence) {
         saveEvidence(evidence)
         appendEvidenceCapturedEvent(evidence)

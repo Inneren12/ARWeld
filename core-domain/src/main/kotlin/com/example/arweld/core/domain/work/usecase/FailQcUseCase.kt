@@ -36,14 +36,13 @@ class FailQcUseCase(
 
     suspend operator fun invoke(
         input: FailQcInput,
-    ) {
+    ): QcDecisionResult {
+        val policyState = qcEvidencePolicy.evaluate(input.workItemId)
+        if (!policyState.satisfied) {
+            return QcDecisionResult.MissingEvidence(policyState.missing)
+        }
+
         val events = eventRepository.getEventsForWorkItem(input.workItemId)
-        ensureEvidencePolicySatisfied(
-            workItemId = input.workItemId,
-            events = events,
-            evidenceRepository = evidenceRepository,
-            qcEvidencePolicy = qcEvidencePolicy,
-        )
 
         val inspector = authRepository.currentUser() ?: error("User must be logged in")
         require(inspector.role == Role.QC) { "Only QC inspectors can mark fail" }
@@ -60,6 +59,8 @@ class FailQcUseCase(
         )
 
         eventRepository.appendEvent(event)
+
+        return QcDecisionResult.Success
     }
 
     private fun buildPayloadJson(input: FailQcInput): String {

@@ -133,9 +133,17 @@ fun QcFailReasonScreen(
                         )
                     }
 
+                    if (!uiState.policySatisfied) {
+                        Text(
+                            text = "Need: 1 photo + 1 AR screenshot",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+
                     Button(
                         onClick = onSubmit,
-                        enabled = !uiState.isSubmitting,
+                        enabled = !uiState.isSubmitting && uiState.policySatisfied,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         if (uiState.isSubmitting) {
