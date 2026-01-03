@@ -102,7 +102,13 @@ fun reduce(events: List<Event>): WorkItemState {
                 readyForQcSince = null,
             )
 
-            EventType.AR_ALIGNMENT_SET, EventType.EVIDENCE_CAPTURED -> state
+            EventType.ISSUE_CREATED -> state
+            // ISSUE_CREATED doesn't change derived lifecycle/QC state;
+            // it is still captured via lastEvent below.
+
+            EventType.AR_ALIGNMENT_SET,
+            EventType.EVIDENCE_CAPTURED,
+            EventType.ISSUE_CREATED -> state
         }
 
         updated.copy(lastEvent = event)

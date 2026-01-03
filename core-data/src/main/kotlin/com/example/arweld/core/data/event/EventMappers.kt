@@ -5,7 +5,7 @@ import com.example.arweld.core.domain.event.Event
 import com.example.arweld.core.domain.event.EventType
 import com.example.arweld.core.domain.model.Role
 
-internal fun EventEntity.toDomain(): Event = Event(
+fun EventEntity.toDomain(): Event = Event(
     id = id,
     workItemId = workItemId,
     type = EventType.valueOf(type),

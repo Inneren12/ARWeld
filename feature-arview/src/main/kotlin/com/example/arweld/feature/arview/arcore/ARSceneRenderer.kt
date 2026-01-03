@@ -9,6 +9,8 @@ import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.arcore.toArCorePose
 import com.google.android.filament.Engine
+import com.google.android.filament.EntityManager
+import com.google.android.filament.Camera
 import com.google.android.filament.LightManager
 import com.google.android.filament.Renderer
 import com.google.android.filament.Scene
@@ -19,6 +21,7 @@ import com.google.android.filament.utils.Utils
 import com.google.ar.core.Anchor
 import com.google.ar.core.Frame
 import com.google.ar.core.Pose
+import com.google.ar.core.Session
 import com.google.ar.core.TrackingState
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -34,7 +37,8 @@ class ARSceneRenderer(
 
     private val renderer: Renderer = engine.createRenderer()
     private val scene: Scene = engine.createScene()
-    private val camera = engine.createCamera()
+    private val cameraEntity = EntityManager.get().create()
+    private val camera = engine.createCamera(cameraEntity)
     private val view: View = engine.createView().apply {
         scene = this@ARSceneRenderer.scene
         camera = this@ARSceneRenderer.camera
@@ -95,6 +99,7 @@ class ARSceneRenderer(
         engine.destroyRenderer(renderer)
         engine.destroyView(view)
         engine.destroyCameraComponent(camera.entity)
+        EntityManager.get().destroy(cameraEntity)
     }
 
     fun setTestModel(model: LoadedModel) {
@@ -110,7 +115,7 @@ class ARSceneRenderer(
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        swapChain = engine.createSwapChain(holder.surface)
+        swapChain = engine.createSwapChain(holder.surface, 0L)
         view.viewport = Viewport(0, 0, surfaceView.width, surfaceView.height)
     }
 
@@ -132,11 +137,14 @@ class ARSceneRenderer(
         try {
             val frame = session.update()
             notifyFrameListeners(frame)
-            ensureAnchor(frame)
+            ensureAnchor(frame, session)
             processQueuedHitTests(frame)
             updateCamera(frame)
             updateModelTransform()
-            renderer.render(swapChain, view)
+            if (renderer.beginFrame(swapChain)) {
+                renderer.render(view)
+                renderer.endFrame()
+            }
         } catch (error: Exception) {
             Log.w(TAG, "Failed to render AR frame", error)
         }
@@ -170,11 +178,11 @@ class ARSceneRenderer(
         }
     }
 
-    private fun ensureAnchor(frame: Frame) {
+    private fun ensureAnchor(frame: Frame, session: Session) {
         if (anchor != null || testModel == null) return
         if (frame.camera.trackingState != TrackingState.TRACKING) return
         val forwardPose = frame.camera.pose.compose(Pose.makeTranslation(0f, 0f, -DEFAULT_Z_OFFSET_METERS))
-        anchor = frame.session.createAnchor(forwardPose)
+        anchor = session.createAnchor(forwardPose)
     }
 
     private fun updateCamera(frame: Frame) {
@@ -188,8 +196,24 @@ class ARSceneRenderer(
         val cameraModelMatrix = FloatArray(16)
         Matrix.invertM(cameraModelMatrix, 0, viewMatrix, 0)
 
-        camera.setCustomProjection(projection, NEAR_PLANE.toDouble(), FAR_PLANE.toDouble())
-        camera.setModelMatrix(cameraModelMatrix)
+        val projectionInv = FloatArray(16)
+        if (!Matrix.invertM(projectionInv, 0, projection, 0)) {
+            Matrix.setIdentityM(projectionInv, 0)
+        }
+
+        val projectionD = DoubleArray(16) { i -> projection[i].toDouble() }
+        val projectionInvD = DoubleArray(16) { i -> projectionInv[i].toDouble() }
+        val cameraModelD = DoubleArray(16) { i -> cameraModelMatrix[i].toDouble() }
+
+        camera.setCustomProjectionCompat(
+            projection = projectionD,
+            projectionInverse = projectionInvD,
+            near = NEAR_PLANE.toDouble(),
+            far = FAR_PLANE.toDouble(),
+            viewportWidth = surfaceView.width,
+            viewportHeight = surfaceView.height,
+        )
+        camera.setModelMatrixCompat(cameraModelD)
     }
 
     private fun updateModelTransform() {
@@ -227,5 +251,129 @@ class ARSceneRenderer(
         private const val MODEL_SCALE = 0.25f
         private const val NEAR_PLANE = 0.1f
         private const val FAR_PLANE = 100f
+    }
+}
+
+// --- Filament API compatibility (different versions expose different signatures) ---
+private fun Camera.setCustomProjectionCompat(
+    projection: DoubleArray,
+    projectionInverse: DoubleArray,
+    near: Double,
+    far: Double,
+    viewportWidth: Int,
+    viewportHeight: Int,
+) {
+    val intType = Int::class.javaPrimitiveType
+    val dblArrType = DoubleArray::class.java
+    for (m in javaClass.methods) {
+        if (m.name != "setCustomProjection") continue
+        val p = m.parameterTypes
+        val ok = runCatching {
+            when (p.size) {
+                // setCustomProjection(double[] proj, int offset, double near, double far)
+                4 -> when {
+                    p[0] == dblArrType && p[1] == intType -> {
+                        m.invoke(this, projection, 0, near, far); true
+                    }
+                    // setCustomProjection(double[] proj, double[] invProj, double near, double far)
+                    p[0] == dblArrType && p[1] == dblArrType -> {
+                        m.invoke(this, projection, projectionInverse, near, far); true
+                    }
+                    else -> false
+                }
+                // setCustomProjection(double[] proj, int offset, int w, int h, double near, double far)
+                6 -> if (
+                    p[0] == dblArrType &&
+                    p[1] == intType &&
+                    p[2] == intType &&
+                    p[3] == intType
+                ) {
+                    m.invoke(this, projection, 0, viewportWidth, viewportHeight, near, far); true
+                } else false
+                else -> false
+            }
+        }.getOrDefault(false)
+        if (ok) return
+    }
+}
+
+private fun Camera.setModelMatrixCompat(modelMatrix: DoubleArray) {
+    val intType = Int::class.javaPrimitiveType
+    val dblArrType = DoubleArray::class.java
+    for (m in javaClass.methods) {
+        if (m.name != "setModelMatrix") continue
+        val p = m.parameterTypes
+        val ok = runCatching {
+            when (p.size) {
+                // setModelMatrix(double[] m)
+                1 -> if (p[0] == dblArrType) { m.invoke(this, modelMatrix); true } else false
+                // setModelMatrix(double[] m, int offset)
+                2 -> if (p[0] == dblArrType && p[1] == intType) { m.invoke(this, modelMatrix, 0); true } else false
+                else -> false
+            }
+        }.getOrDefault(false)
+        if (ok) return
+    }
+}
+
+// --- Filament API compatibility (different versions expose different signatures) ---
+private fun Camera.setCustomProjectionCompat(
+    projection: DoubleArray,
+    projectionInverse: DoubleArray,
+    near: Double,
+    far: Double,
+    viewportWidth: Int,
+    viewportHeight: Int,
+) {
+    val intType = Int::class.javaPrimitiveType
+    val dblArrType = DoubleArray::class.java
+    for (m in javaClass.methods) {
+        if (m.name != "setCustomProjection") continue
+        val p = m.parameterTypes
+        val ok = runCatching {
+            when (p.size) {
+                // setCustomProjection(double[] proj, int offset, double near, double far)
+                4 -> when {
+                    p[0] == dblArrType && p[1] == intType -> {
+                        m.invoke(this, projection, 0, near, far); true
+                    }
+                    // setCustomProjection(double[] proj, double[] invProj, double near, double far)
+                    p[0] == dblArrType && p[1] == dblArrType -> {
+                        m.invoke(this, projection, projectionInverse, near, far); true
+                    }
+                    else -> false
+                }
+                // setCustomProjection(double[] proj, int offset, int w, int h, double near, double far)
+                6 -> if (
+                    p[0] == dblArrType &&
+                    p[1] == intType &&
+                    p[2] == intType &&
+                    p[3] == intType
+                ) {
+                    m.invoke(this, projection, 0, viewportWidth, viewportHeight, near, far); true
+                } else false
+                else -> false
+            }
+        }.getOrDefault(false)
+        if (ok) return
+    }
+}
+
+private fun Camera.setModelMatrixCompat(modelMatrix: DoubleArray) {
+    val intType = Int::class.javaPrimitiveType
+    val dblArrType = DoubleArray::class.java
+    for (m in javaClass.methods) {
+        if (m.name != "setModelMatrix") continue
+        val p = m.parameterTypes
+        val ok = runCatching {
+            when (p.size) {
+                // setModelMatrix(double[] m)
+                1 -> if (p[0] == dblArrType) { m.invoke(this, modelMatrix); true } else false
+                // setModelMatrix(double[] m, int offset)
+                2 -> if (p[0] == dblArrType && p[1] == intType) { m.invoke(this, modelMatrix, 0); true } else false
+                else -> false
+            }
+        }.getOrDefault(false)
+        if (ok) return
     }
 }

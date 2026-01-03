@@ -9,5 +9,6 @@ private const val UNKNOWN_DEVICE_ID = "unknown-device"
 
 @Singleton
 class AndroidDeviceInfoProvider @Inject constructor() : DeviceInfoProvider {
-    override val deviceId: String = Build.MODEL.ifBlank { UNKNOWN_DEVICE_ID }
+    override fun provideDeviceId(): String =
+        Build.MODEL.ifBlank { UNKNOWN_DEVICE_ID }
 }

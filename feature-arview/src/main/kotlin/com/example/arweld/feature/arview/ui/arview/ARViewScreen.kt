@@ -1,5 +1,6 @@
 package com.example.arweld.feature.arview.ui.arview
 
+import android.content.pm.ApplicationInfo
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
@@ -38,7 +39,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.arweld.core.domain.evidence.ArScreenshotMeta
-import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.feature.arview.R
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.feature.arview.arcore.ARViewController
@@ -68,6 +68,9 @@ fun ARViewScreen(
             context.applicationContext,
             AlignmentEventLoggerEntryPoint::class.java,
         ).alignmentEventLogger()
+    }
+    val isDebuggable = remember(context) {
+        (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
     val scope = rememberCoroutineScope()
     val controller = remember(alignmentEventLogger, workItemId, context) {
@@ -166,7 +169,7 @@ fun ARViewScreen(
                         }
                     },
                 )
-                if (BuildConfig.DEBUG) {
+                if (isDebuggable) {
                     Spacer(modifier = Modifier.height(8.dp))
                     DebugMarkerButton(onTrigger = controller::triggerDebugMarkerDetection)
                 }

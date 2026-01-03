@@ -1,7 +1,6 @@
 package com.example.arweld.feature.supervisor.ui
 
 import android.net.Uri
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -27,7 +26,6 @@ import com.example.arweld.core.domain.evidence.Evidence
 import com.example.arweld.core.domain.evidence.EvidenceKind
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.JsonPrimitive
 import java.text.SimpleDateFormat
 import java.util.*
@@ -83,6 +81,27 @@ fun EvidenceViewerDialog(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // --- Metadata parsing (must NOT wrap composables in try/catch) ---
+                val metaJsonRaw = evidence.metaJson?.trim()
+                val metaJsonForDisplay = metaJsonRaw?.takeUnless {
+                    it.isBlank() || it == "null" || it == "{}"
+                }
+                val parsedMetaEntries: List<Pair<String, String>>? = remember(metaJsonForDisplay) {
+                    val raw = metaJsonForDisplay ?: return@remember null
+                    runCatching {
+                        val json = Json { ignoreUnknownKeys = true }
+                        val metaObject = json.parseToJsonElement(raw).jsonObject
+                        metaObject.map { (key, value) ->
+                            val displayValue = if (value is JsonPrimitive) {
+                                value.content
+                            } else {
+                                value.toString()
+                            }
+                            key to displayValue
+                        }
+                    }.getOrNull()
+                }
+
                 // Image preview section
                 if (evidence.kind == EvidenceKind.PHOTO || evidence.kind == EvidenceKind.AR_SCREENSHOT) {
                     Card(
@@ -200,7 +219,7 @@ fun EvidenceViewerDialog(
                 }
 
                 // Metadata section
-                if (!evidence.metaJson.isNullOrEmpty() && evidence.metaJson != "null" && evidence.metaJson != "{}") {
+                if (metaJsonForDisplay != null) {
                     Card(
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -216,25 +235,17 @@ fun EvidenceViewerDialog(
 
                             Divider()
 
-                            // Parse and display metadata
-                            try {
-                                val json = Json { ignoreUnknownKeys = true }
-                                val metaObject = json.parseToJsonElement(evidence.metaJson).jsonObject
-
-                                metaObject.forEach { (key, value) ->
-                                    val displayValue = if (value is JsonPrimitive) {
-                                        value.content
-                                    } else {
-                                        value.toString()
-                                    }
+                            val entries = parsedMetaEntries
+                            if (entries != null) {
+                                entries.forEach { (key, displayValue) ->
                                     EvidenceProperty(
                                         label = formatMetaKey(key),
                                         value = displayValue
                                     )
                                 }
-                            } catch (e: Exception) {
+                            } else {
                                 Text(
-                                    text = "Raw metadata: ${evidence.metaJson}",
+                                    text = "Raw metadata: $metaJsonForDisplay",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

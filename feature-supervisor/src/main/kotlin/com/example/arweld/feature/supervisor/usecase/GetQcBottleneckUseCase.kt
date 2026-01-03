@@ -56,7 +56,7 @@ class GetQcBottleneckUseCase @Inject constructor(
                 if (waitTimeMs >= thresholdMs) {
                     // Get assignee name if available
                     val assigneeName = state.currentAssigneeId?.let { userId ->
-                        userDao.getUserById(userId)?.displayName
+                        userDao.getById(userId)?.userNameCompat(fallback = userId)
                     }
 
                     BottleneckItem(

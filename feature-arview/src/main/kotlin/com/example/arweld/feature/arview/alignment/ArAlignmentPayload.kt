@@ -6,7 +6,6 @@ import kotlin.math.asin
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.sign
-import kotlin.math.toDegrees
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -52,8 +51,8 @@ private fun Quaternion.toEulerDegrees(): Vector3Dto {
     val yaw = atan2(sinYCosP, cosYCosP)
 
     return Vector3Dto(
-        x = toDegrees(roll),
-        y = toDegrees(pitch),
-        z = toDegrees(yaw),
+        x = Math.toDegrees(roll),
+        y = Math.toDegrees(pitch),
+        z = Math.toDegrees(yaw),
     )
 }

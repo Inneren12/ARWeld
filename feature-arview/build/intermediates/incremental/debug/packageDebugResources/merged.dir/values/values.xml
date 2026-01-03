@@ -7,6 +7,7 @@
     <string name="capture_ar_screenshot_success">AR screenshot saved: %1$s</string>
     <string name="manual_align_button">Manual align (tap 3 points)</string>
     <string name="manual_align_progress">Collected %1$d/3 points</string>
+    <string name="simulate_marker_button">Simulate marker</string>
     <string name="tracking_ok">Tracking OK</string>
     <string name="tracking_poor">Tracking poor</string>
     <string name="tracking_unstable">Tracking unstable</string>

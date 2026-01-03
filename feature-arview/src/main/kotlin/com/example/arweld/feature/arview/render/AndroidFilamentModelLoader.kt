@@ -6,6 +6,7 @@ import com.google.android.filament.Engine
 import com.google.android.filament.EntityManager
 import com.google.android.filament.utils.Utils
 import com.google.android.filament.gltfio.AssetLoader
+import com.google.android.filament.gltfio.FilamentAsset
 import com.google.android.filament.gltfio.ResourceLoader
 import com.google.android.filament.gltfio.UbershaderProvider
 import java.nio.ByteBuffer
@@ -32,24 +33,24 @@ class AndroidFilamentModelLoader(
 
     override suspend fun loadGlbFromAssets(assetPath: String): LoadedModel = withContext(dispatcher) {
         val buffer = readAsset(assetPath)
-        val asset = assetLoader.createAssetFromBinary(buffer)
+        val asset = assetLoader.createAssetFromBinaryCompat(buffer)
             ?: throw IllegalArgumentException("Unable to parse GLB at $assetPath")
 
         resourceLoader.loadResources(asset)
-        asset.releaseSourceData()
+        asset.releaseSourceDataCompat()
 
         LoadedModel(
             engine = engine,
             asset = asset,
         ).also {
-            Log.d(TAG, "Loaded GLB asset: $assetPath with ${asset.entities.size} entities")
+            Log.d(TAG, "Loaded GLB asset: $assetPath with ${asset.entitiesCountCompat()} entities")
         }
     }
 
     override fun destroyModel(model: LoadedModel) {
         runCatching {
-            resourceLoader.destroyAsset(model.asset)
-            assetLoader.destroyAsset(model.asset)
+            resourceLoader.destroyAssetCompat(model.asset)
+            assetLoader.destroyAssetCompat(model.asset)
         }.onFailure { error ->
             Log.w(TAG, "Failed to destroy model", error)
         }
@@ -68,5 +69,58 @@ class AndroidFilamentModelLoader(
 
     companion object {
         private const val TAG = "AndroidFilamentModelLoader"
+    }
+}
+
+private fun AssetLoader.createAssetFromBinaryCompat(buffer: ByteBuffer): FilamentAsset? {
+    val methods = javaClass.methods.filter { it.name == "createAssetFromBinary" }
+    for (m in methods) {
+        val candidate = runCatching {
+            when (m.parameterTypes.size) {
+                1 -> m.invoke(this, buffer)
+                2 -> m.invoke(this, buffer, buffer.remaining())
+                else -> null
+            }
+        }.getOrNull()
+        if (candidate is FilamentAsset) return candidate
+    }
+    return null
+}
+
+private fun AssetLoader.destroyAssetCompat(asset: FilamentAsset) {
+    val methods = javaClass.methods.filter { it.name == "destroyAsset" && it.parameterTypes.size == 1 }
+    for (m in methods) {
+        runCatching { m.invoke(this, asset) }
+            .onSuccess { return }
+    }
+}
+
+private fun ResourceLoader.destroyAssetCompat(asset: FilamentAsset) {
+    // Filament versions differ: some have destroyAsset(), some rely on destroyResources()
+    val methods = javaClass.methods.filter {
+        (it.name == "destroyAsset" || it.name == "destroyResources") && it.parameterTypes.size == 1
+    }
+    for (m in methods) {
+        runCatching { m.invoke(this, asset) }
+            .onSuccess { return }
+    }
+}
+
+private fun FilamentAsset.releaseSourceDataCompat() {
+    val method = javaClass.methods.firstOrNull {
+        it.name == "releaseSourceData" && it.parameterTypes.isEmpty()
+    }
+    runCatching { method?.invoke(this) }.getOrNull()
+}
+
+private fun FilamentAsset.entitiesCountCompat(): Int {
+    val method = javaClass.methods.firstOrNull {
+        it.name == "getEntities" && it.parameterTypes.isEmpty()
+    } ?: return 0
+    val result = runCatching { method.invoke(this) }.getOrNull()
+    return when (result) {
+        is IntArray -> result.size
+        is Array<*> -> result.size
+        else -> 0
     }
 }

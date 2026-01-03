@@ -34,7 +34,7 @@ class GetWorkItemDetailUseCase @Inject constructor(
 
         // Get assignee name if available
         val assigneeName = state.currentAssigneeId?.let { userId ->
-            userDao.getUserById(userId)?.displayName
+            userDao.getById(userId)?.userNameCompat(fallback = userId)
         }
 
         // Find last event timestamp
@@ -71,7 +71,7 @@ class GetWorkItemDetailUseCase @Inject constructor(
 
         // For each event, get actor name and create timeline entry
         return events.map { event ->
-            val actorName = userDao.getUserById(event.actorId)?.displayName ?: "Unknown"
+            val actorName = userDao.getById(event.actorId)?.userNameCompat(fallback = "Unknown") ?: "Unknown"
 
             TimelineEntry(
                 eventId = event.id,

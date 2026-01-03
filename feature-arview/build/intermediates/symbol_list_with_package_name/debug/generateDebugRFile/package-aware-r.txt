@@ -7,6 +7,7 @@ string capture_ar_screenshot_error
 string capture_ar_screenshot_success
 string manual_align_button
 string manual_align_progress
+string simulate_marker_button
 string tracking_ok
 string tracking_poor
 string tracking_unstable
