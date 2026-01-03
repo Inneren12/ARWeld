@@ -23,6 +23,7 @@ import com.example.arweld.feature.work.camera.PhotoCaptureService
 import com.example.arweld.feature.work.model.ArScreenshotResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import java.lang.System
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -210,9 +211,10 @@ class QcStartViewModel @Inject constructor(
 
         val meta = ArScreenshotMeta(
             markerIds = result.markerIds,
-            trackingState = result.trackingState.ifEmpty { "UNKNOWN" },
+            trackingState = result.trackingState.ifEmpty { "OK" },
             alignmentQualityScore = result.alignmentQualityScore,
             distanceToMarker = result.distanceToMarker,
+            timestamp = if (result.capturedAtMillis > 0) result.capturedAtMillis else System.currentTimeMillis(),
         )
 
         viewModelScope.launch {

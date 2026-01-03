@@ -78,7 +78,10 @@ class EvidenceRepositoryImplTest {
         assertEquals(QC_EVENT_ID, evidence.eventId)
         assertEquals(photoFile.length(), evidence.sizeBytes)
         assertEquals(computeSha256(photoFile), evidence.sha256)
-        assertNotNull(database.evidenceDao().getById(evidence.id))
+        val stored = database.evidenceDao().getById(evidence.id)
+        assertNotNull(stored)
+        assertEquals(WORK_ITEM_ID, stored?.workItemId)
+        assertEquals(photoFile.length(), stored?.sizeBytes)
 
         val events = eventRepository.getEventsForWorkItem(WORK_ITEM_ID)
         assertEquals(1, events.size)
@@ -99,6 +102,7 @@ class EvidenceRepositoryImplTest {
             trackingState = "TRACKING",
             alignmentQualityScore = 0.9f,
             distanceToMarker = null,
+            timestamp = FIXED_TIME,
         )
 
         val evidence = evidenceRepository.saveArScreenshot(

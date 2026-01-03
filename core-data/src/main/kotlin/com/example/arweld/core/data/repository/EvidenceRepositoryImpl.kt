@@ -128,6 +128,7 @@ class EvidenceRepositoryImpl @Inject constructor(
             markerIds = arMeta?.markerIds,
             trackingQuality = arMeta?.trackingState,
             alignmentScore = arMeta?.alignmentQualityScore,
+            screenshotTimestamp = arMeta?.timestamp,
         )
 
         val event = Event(
@@ -158,4 +159,5 @@ private data class EvidenceCapturedPayload(
     val markerIds: List<Int>?,
     val trackingQuality: String?,
     val alignmentScore: Float?,
+    val screenshotTimestamp: Long?,
 )

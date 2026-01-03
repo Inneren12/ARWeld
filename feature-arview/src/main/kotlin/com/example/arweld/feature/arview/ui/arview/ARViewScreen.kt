@@ -36,9 +36,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.arweld.core.domain.event.EventRepository
-import com.example.arweld.core.domain.event.EventType
-import com.example.arweld.core.domain.evidence.EvidenceRepository
 import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.feature.arview.R
@@ -71,14 +68,6 @@ fun ARViewScreen(
         ).alignmentEventLogger()
     }
     val scope = rememberCoroutineScope()
-    val evidenceEntryPoint = remember(context) {
-        EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            EvidenceCaptureEntryPoint::class.java,
-        )
-    }
-    val evidenceRepository = remember(evidenceEntryPoint) { evidenceEntryPoint.evidenceRepository() }
-    val eventRepository = remember(evidenceEntryPoint) { evidenceEntryPoint.eventRepository() }
     val controller = remember(alignmentEventLogger, workItemId, context) {
         ARViewController(
             context = context,
@@ -148,44 +137,30 @@ fun ARViewScreen(
                 ScreenshotButton(
                     onCapture = {
                         scope.launch {
-                            val message = if (workItemId == null) {
+                            if (onScreenshotCaptured == null || workItemId == null) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.capture_ar_screenshot_error),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                                return@launch
+                            }
+
+                            val message = runCatching {
+                                val uri = controller.captureArScreenshotToFile(workItemId)
+                                val meta = controller.currentScreenshotMeta()
+
+                                onScreenshotCaptured.invoke(uri, meta)
+
+                                context.getString(
+                                    R.string.capture_ar_screenshot_success,
+                                    uri.lastPathSegment,
+                                )
+                            }.getOrElse {
                                 context.getString(R.string.capture_ar_screenshot_error)
-                            } else {
-                                runCatching {
-                                    val uri = controller.captureArScreenshotToFile(workItemId)
-                                    val meta = controller.currentScreenshotMeta()
-                                    val screenshotHandler = onScreenshotCaptured
-
-                                    if (screenshotHandler != null) {
-                                        screenshotHandler(uri, meta)
-                                    } else {
-                                        val qcStartEventId = eventRepository
-                                            .getEventsForWorkItem(workItemId)
-                                            .filter { it.type == EventType.QC_STARTED }
-                                            .maxByOrNull { it.timestamp }
-                                            ?.id
-                                            ?: error("QC start event missing")
-
-                                        evidenceRepository.saveArScreenshot(
-                                            workItemId = workItemId,
-                                            eventId = qcStartEventId,
-                                            uri = uri,
-                                            meta = meta,
-                                        )
-                                    }
-
-                                    context.getString(
-                                        R.string.capture_ar_screenshot_success,
-                                        uri.lastPathSegment,
-                                    )
-                                }.getOrElse {
-                                    context.getString(R.string.capture_ar_screenshot_error)
-                                }
                             }
 
-                            if (onScreenshotCaptured == null) {
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            }
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                         }
                     },
                 )
@@ -203,13 +178,6 @@ fun ARViewScreen(
 @InstallIn(SingletonComponent::class)
 internal interface AlignmentEventLoggerEntryPoint {
     fun alignmentEventLogger(): AlignmentEventLogger
-}
-
-@EntryPoint
-@InstallIn(SingletonComponent::class)
-internal interface EvidenceCaptureEntryPoint {
-    fun evidenceRepository(): EvidenceRepository
-    fun eventRepository(): EventRepository
 }
 
 @Composable
