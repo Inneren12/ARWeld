@@ -1,60 +1,30 @@
 package com.example.arweld.core.domain.policy
 
-import com.example.arweld.core.domain.evidence.Evidence
 import com.example.arweld.core.domain.evidence.EvidenceKind
-import com.example.arweld.core.domain.event.Event
-import com.example.arweld.core.domain.event.EventType
+import com.example.arweld.core.domain.evidence.EvidenceRepository
 
-/**
- * Policy guard that validates QC evidence requirements before allowing pass/fail decisions.
- */
-class QcEvidencePolicy {
+class QcEvidencePolicy(
+    private val evidenceRepository: EvidenceRepository,
+) {
 
-    fun check(
-        workItemId: String,
-        events: List<Event>,
-        evidenceList: List<Evidence>,
-    ): QcEvidencePolicyResult {
-        val requiredEvidence = listOf(
-            EvidenceRequirement(
-                kind = EvidenceKind.AR_SCREENSHOT,
-                reason = "Capture at least one AR screenshot after QC start.",
-            ),
-            EvidenceRequirement(
-                kind = EvidenceKind.PHOTO,
-                reason = "Capture at least one photo after QC start.",
-            ),
+    data class PolicyState(
+        val satisfied: Boolean,
+        val missing: Set<EvidenceKind>,
+    )
+
+    suspend fun evaluate(workItemId: String): PolicyState {
+        val counts = evidenceRepository.countsByKindForWorkItem(workItemId)
+        val missing = REQUIRED_KINDS.filter { kind -> (counts[kind] ?: 0) <= 0 }.toSet()
+        return PolicyState(
+            satisfied = missing.isEmpty(),
+            missing = missing,
         )
+    }
 
-        val qcStartedAt = events
-            .asSequence()
-            .filter { it.workItemId == workItemId && it.type == EventType.QC_STARTED }
-            .maxByOrNull { it.timestamp }
-            ?.timestamp
-            ?: return QcEvidencePolicyResult.Failed(
-                listOf("QC_STARTED event is required before evaluating evidence for work item $workItemId."),
-            )
-
-        val evidenceAfterQcStart = evidenceList.filter { it.createdAt >= qcStartedAt }
-
-        val missingReasons = requiredEvidence
-            .filter { requirement -> evidenceAfterQcStart.none { it.kind == requirement.kind } }
-            .map { it.reason }
-
-        return if (missingReasons.isEmpty()) {
-            QcEvidencePolicyResult.Ok
-        } else {
-            QcEvidencePolicyResult.Failed(missingReasons)
-        }
+    companion object {
+        private val REQUIRED_KINDS = setOf(
+            EvidenceKind.PHOTO,
+            EvidenceKind.AR_SCREENSHOT,
+        )
     }
 }
-
-sealed class QcEvidencePolicyResult {
-    object Ok : QcEvidencePolicyResult()
-    data class Failed(val reasons: List<String>) : QcEvidencePolicyResult()
-}
-
-private data class EvidenceRequirement(
-    val kind: EvidenceKind,
-    val reason: String,
-)

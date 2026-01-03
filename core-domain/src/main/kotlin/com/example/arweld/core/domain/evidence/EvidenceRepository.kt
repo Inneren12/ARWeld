@@ -43,6 +43,11 @@ interface EvidenceRepository {
      * Fetch all evidence tied to a work item regardless of source event.
      */
     suspend fun getEvidenceForWorkItem(workItemId: String): List<Evidence>
+
+    /**
+     * Returns a count of evidence items for the given work item grouped by kind.
+     */
+    suspend fun countsByKindForWorkItem(workItemId: String): Map<EvidenceKind, Int>
 }
 
 @Serializable

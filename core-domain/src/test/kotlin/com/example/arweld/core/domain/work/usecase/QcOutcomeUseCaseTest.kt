@@ -12,7 +12,6 @@ import com.example.arweld.core.domain.event.EventType
 import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.model.User
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
-import com.example.arweld.core.domain.policy.QcEvidencePolicyException
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
 import com.example.arweld.core.domain.work.model.QcCheckState
@@ -26,7 +25,7 @@ import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QcOutcomeUseCaseTest {
@@ -39,36 +38,35 @@ class QcOutcomeUseCaseTest {
     )
     private val timeProvider = TimeProvider { 2_000L }
     private val deviceInfoProvider = DeviceInfoProvider { "device-123" }
-    private val qcEvidencePolicy = QcEvidencePolicy()
+    private val fakeEvidenceRepository = FakeEvidenceRepository()
+    private val qcEvidencePolicy = QcEvidencePolicy(fakeEvidenceRepository)
 
     @Test
     fun `pass QC throws when evidence policy fails`() = runBlocking {
         val workItemId = "work-1"
         val qcStarted = qcStartedEvent(workItemId)
         val eventRepository = FakeEventRepository(mutableListOf(qcStarted))
-        val evidenceRepository = FakeEvidenceRepository()
         val authRepository = FakeAuthRepository(qcUser)
 
         val useCase = PassQcUseCase(
             eventRepository = eventRepository,
-            evidenceRepository = evidenceRepository,
+            evidenceRepository = fakeEvidenceRepository,
             authRepository = authRepository,
             timeProvider = timeProvider,
             deviceInfoProvider = deviceInfoProvider,
             qcEvidencePolicy = qcEvidencePolicy,
         )
 
-        assertThrows(QcEvidencePolicyException::class.java) {
-            runBlocking {
-                useCase(
-                    PassQcInput(
-                        workItemId = workItemId,
-                        checklist = sampleChecklist(),
-                        comment = "missing evidence",
-                    ),
-                )
-            }
+        val result = runBlocking {
+            useCase(
+                PassQcInput(
+                    workItemId = workItemId,
+                    checklist = sampleChecklist(),
+                    comment = "missing evidence",
+                ),
+            )
         }
+        assertTrue(result is QcDecisionResult.MissingEvidence)
         val events = eventRepository.getEventsForWorkItem(workItemId)
         assertEquals(1, events.size) // Only QC_STARTED remains
     }
@@ -78,31 +76,29 @@ class QcOutcomeUseCaseTest {
         val workItemId = "work-1"
         val qcStarted = qcStartedEvent(workItemId)
         val eventRepository = FakeEventRepository(mutableListOf(qcStarted))
-        val evidenceRepository = FakeEvidenceRepository()
         val authRepository = FakeAuthRepository(qcUser)
 
         val useCase = FailQcUseCase(
             eventRepository = eventRepository,
-            evidenceRepository = evidenceRepository,
+            evidenceRepository = fakeEvidenceRepository,
             authRepository = authRepository,
             timeProvider = timeProvider,
             deviceInfoProvider = deviceInfoProvider,
             qcEvidencePolicy = qcEvidencePolicy,
         )
 
-        assertThrows(QcEvidencePolicyException::class.java) {
-            runBlocking {
-                useCase(
-                    FailQcInput(
-                        workItemId = workItemId,
-                        checklist = sampleChecklist(),
-                        reasons = listOf("missing evidence"),
-                        priority = 1,
-                        comment = "missing evidence",
-                    ),
-                )
-            }
+        val result = runBlocking {
+            useCase(
+                FailQcInput(
+                    workItemId = workItemId,
+                    checklist = sampleChecklist(),
+                    reasons = listOf("missing evidence"),
+                    priority = 1,
+                    comment = "missing evidence",
+                ),
+            )
         }
+        assertTrue(result is QcDecisionResult.MissingEvidence)
 
         val events = eventRepository.getEventsForWorkItem(workItemId)
         assertEquals(1, events.size) // Only QC_STARTED remains
@@ -113,7 +109,7 @@ class QcOutcomeUseCaseTest {
         val workItemId = "work-2"
         val qcStarted = qcStartedEvent(workItemId)
         val eventRepository = FakeEventRepository(mutableListOf(qcStarted))
-        val evidenceRepository = FakeEvidenceRepository(
+        fakeEvidenceRepository.seedEvidence(
             mapOf(
                 qcStarted.id to listOf(
                     photoEvidence(eventId = qcStarted.id, createdAt = 1_500L),
@@ -125,7 +121,7 @@ class QcOutcomeUseCaseTest {
 
         val useCase = PassQcUseCase(
             eventRepository = eventRepository,
-            evidenceRepository = evidenceRepository,
+            evidenceRepository = fakeEvidenceRepository,
             authRepository = authRepository,
             timeProvider = timeProvider,
             deviceInfoProvider = deviceInfoProvider,
@@ -169,7 +165,7 @@ class QcOutcomeUseCaseTest {
         val workItemId = "work-3"
         val qcStarted = qcStartedEvent(workItemId)
         val eventRepository = FakeEventRepository(mutableListOf(qcStarted))
-        val evidenceRepository = FakeEvidenceRepository(
+        fakeEvidenceRepository.seedEvidence(
             mapOf(
                 qcStarted.id to listOf(
                     photoEvidence(eventId = qcStarted.id, createdAt = 1_200L),
@@ -181,7 +177,7 @@ class QcOutcomeUseCaseTest {
 
         val useCase = FailQcUseCase(
             eventRepository = eventRepository,
-            evidenceRepository = evidenceRepository,
+            evidenceRepository = fakeEvidenceRepository,
             authRepository = authRepository,
             timeProvider = timeProvider,
             deviceInfoProvider = deviceInfoProvider,
@@ -297,12 +293,14 @@ private class FakeEventRepository(
     }
 }
 
-private class FakeEvidenceRepository(
-    initialEvidence: Map<String, List<Evidence>> = emptyMap(),
-) : EvidenceRepository {
+private class FakeEvidenceRepository : EvidenceRepository {
 
-    private val evidenceStore: MutableMap<String, MutableList<Evidence>> =
-        initialEvidence.mapValues { it.value.toMutableList() }.toMutableMap()
+    private val evidenceStore: MutableMap<String, MutableList<Evidence>> = mutableMapOf()
+
+    fun seedEvidence(initialEvidence: Map<String, List<Evidence>>) {
+        evidenceStore.clear()
+        evidenceStore.putAll(initialEvidence.mapValues { it.value.toMutableList() })
+    }
 
     override suspend fun saveEvidence(evidence: Evidence) {
         evidenceStore.getOrPut(evidence.eventId) { mutableListOf() }.add(evidence)
@@ -331,6 +329,14 @@ private class FakeEvidenceRepository(
 
     override suspend fun getEvidenceForWorkItem(workItemId: String): List<Evidence> {
         return evidenceStore.values.flatten().filter { it.workItemId == workItemId }
+    }
+
+    override suspend fun countsByKindForWorkItem(workItemId: String): Map<EvidenceKind, Int> {
+        return evidenceStore.values
+            .flatten()
+            .filter { it.workItemId == workItemId }
+            .groupingBy { it.kind }
+            .eachCount()
     }
 }
 

@@ -1,111 +1,77 @@
 package com.example.arweld.core.domain.policy
 
-import com.example.arweld.core.domain.evidence.Evidence
 import com.example.arweld.core.domain.evidence.EvidenceKind
-import com.example.arweld.core.domain.event.Event
-import com.example.arweld.core.domain.event.EventType
-import com.example.arweld.core.domain.model.Role
+import com.example.arweld.core.domain.evidence.EvidenceRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class QcEvidencePolicyTest {
 
-    private val policy = QcEvidencePolicy()
+    private val evidenceRepository = FakeEvidenceRepository()
+    private val policy = QcEvidencePolicy(evidenceRepository)
 
     @Test
-    fun `fails when QC_STARTED is missing`() {
-        val result = policy.check(
-            workItemId = "work-1",
-            events = emptyList(),
-            evidenceList = emptyList(),
-        )
+    fun `policy fails when both evidence types are missing`() {
+        val state = runBlockingEvaluate("work-1")
 
-        assertTrue(result is QcEvidencePolicyResult.Failed)
-        val reasons = (result as QcEvidencePolicyResult.Failed).reasons
-        assertEquals(
-            listOf("QC_STARTED event is required before evaluating evidence for work item work-1."),
-            reasons,
-        )
+        assertFalse(state.satisfied)
+        assertEquals(setOf(EvidenceKind.PHOTO, EvidenceKind.AR_SCREENSHOT), state.missing)
     }
 
     @Test
-    fun `requires AR screenshot and photo after QC start`() {
-        val qcStarted = event(
-            id = "e1",
-            workItemId = "work-1",
-            type = EventType.QC_STARTED,
-            timestamp = 1_000L,
+    fun `policy fails when one evidence type is missing`() {
+        evidenceRepository.seedCounts(
+            mapOf(EvidenceKind.PHOTO to 1)
         )
 
-        val result = policy.check(
-            workItemId = "work-1",
-            events = listOf(qcStarted),
-            evidenceList = listOf(
-                evidence("ar-before", EvidenceKind.AR_SCREENSHOT, createdAt = 500L),
-                evidence("photo-after", EvidenceKind.PHOTO, createdAt = 1_500L),
-            ),
-        )
+        val state = runBlockingEvaluate("work-2")
 
-        assertTrue(result is QcEvidencePolicyResult.Failed)
-        val reasons = (result as QcEvidencePolicyResult.Failed).reasons
-        assertEquals(listOf("Capture at least one AR screenshot after QC start."), reasons)
+        assertFalse(state.satisfied)
+        assertEquals(setOf(EvidenceKind.AR_SCREENSHOT), state.missing)
     }
 
     @Test
-    fun `passes when both evidence types captured after QC start`() {
-        val qcStarted = event(
-            id = "e1",
-            workItemId = "work-1",
-            type = EventType.QC_STARTED,
-            timestamp = 1_000L,
+    fun `policy passes when both evidence types are present`() {
+        evidenceRepository.seedCounts(
+            mapOf(
+                EvidenceKind.PHOTO to 2,
+                EvidenceKind.AR_SCREENSHOT to 1,
+            )
         )
 
-        val result = policy.check(
-            workItemId = "work-1",
-            events = listOf(qcStarted),
-            evidenceList = listOf(
-                evidence("ar-after", EvidenceKind.AR_SCREENSHOT, createdAt = 1_500L),
-                evidence("photo-after", EvidenceKind.PHOTO, createdAt = 1_600L),
-            ),
-        )
+        val state = runBlockingEvaluate("work-3")
 
-        assertTrue(result is QcEvidencePolicyResult.Ok)
+        assertTrue(state.satisfied)
+        assertTrue(state.missing.isEmpty())
     }
 
-    private fun event(
-        id: String,
+    private fun runBlockingEvaluate(workItemId: String): QcEvidencePolicy.PolicyState {
+        return kotlinx.coroutines.runBlocking { policy.evaluate(workItemId) }
+    }
+}
+
+private class FakeEvidenceRepository : EvidenceRepository {
+    private var counts: Map<EvidenceKind, Int> = emptyMap()
+
+    fun seedCounts(values: Map<EvidenceKind, Int>) {
+        counts = values
+    }
+
+    override suspend fun saveEvidence(evidence: com.example.arweld.core.domain.evidence.Evidence) = Unit
+    override suspend fun savePhoto(workItemId: String, eventId: String, file: java.io.File) =
+        error("Not needed")
+    override suspend fun saveArScreenshot(
         workItemId: String,
-        type: EventType,
-        timestamp: Long,
-    ): Event {
-        return Event(
-            id = id,
-            workItemId = workItemId,
-            type = type,
-            timestamp = timestamp,
-            actorId = "user-1",
-            actorRole = Role.QC,
-            deviceId = "device-1",
-            payloadJson = null,
-        )
-    }
+        eventId: String,
+        uri: android.net.Uri,
+        meta: com.example.arweld.core.domain.evidence.ArScreenshotMeta,
+    ) = error("Not needed")
+    override suspend fun saveAll(evidenceList: List<com.example.arweld.core.domain.evidence.Evidence>) = Unit
+    override suspend fun getEvidenceForEvent(eventId: String) = emptyList<com.example.arweld.core.domain.evidence.Evidence>()
+    override suspend fun getEvidenceForWorkItem(workItemId: String) =
+        emptyList<com.example.arweld.core.domain.evidence.Evidence>()
 
-    private fun evidence(
-        id: String,
-        kind: EvidenceKind,
-        createdAt: Long,
-    ): Evidence {
-        return Evidence(
-            id = id,
-            workItemId = workItemId,
-            eventId = "event-$id",
-            kind = kind,
-            uri = "file://$id",
-            sha256 = "hash-$id",
-            sizeBytes = 1024L,
-            metaJson = null,
-            createdAt = createdAt,
-        )
-    }
+    override suspend fun countsByKindForWorkItem(workItemId: String): Map<EvidenceKind, Int> = counts
 }
