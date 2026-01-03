@@ -8,5 +8,9 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         database.execSQL("ALTER TABLE evidence ADD COLUMN workItemId TEXT NOT NULL DEFAULT ''")
         database.execSQL("ALTER TABLE evidence ADD COLUMN sizeBytes INTEGER NOT NULL DEFAULT 0")
         database.execSQL("CREATE INDEX IF NOT EXISTS index_evidence_workItemId ON evidence(workItemId)")
+        database.execSQL(
+            "UPDATE evidence SET workItemId = (SELECT workItemId FROM events WHERE events.id = evidence.eventId LIMIT 1) " +
+                "WHERE workItemId = ''"
+        )
     }
 }

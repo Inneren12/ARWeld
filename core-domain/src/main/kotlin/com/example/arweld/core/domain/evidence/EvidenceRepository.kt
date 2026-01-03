@@ -56,4 +56,5 @@ data class ArScreenshotMeta(
     val trackingState: String,
     val alignmentQualityScore: Float,
     val distanceToMarker: Float?,
+    val timestamp: Long,
 )

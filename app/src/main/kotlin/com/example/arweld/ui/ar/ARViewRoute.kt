@@ -28,6 +28,7 @@ fun ARViewRoute(
                     trackingState = meta.trackingState,
                     alignmentQualityScore = meta.alignmentQualityScore,
                     distanceToMarker = meta.distanceToMarker,
+                    capturedAtMillis = meta.timestamp,
                 ),
             )
             savedStateHandle?.set(AR_SCREENSHOT_REQUEST_KEY, false)

@@ -318,6 +318,7 @@ class ARViewController(
             trackingState = trackingQuality,
             alignmentQualityScore = alignmentScore,
             distanceToMarker = null,
+            timestamp = System.currentTimeMillis(),
         )
     }
 
