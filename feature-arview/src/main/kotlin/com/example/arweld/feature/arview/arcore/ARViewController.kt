@@ -89,6 +89,7 @@ class ARViewController(
     private val lastMarkerTimestampNs = AtomicReference<Long>(0L)
     private val lastAlignmentSetNs = AtomicLong(0L)
     private var lastQualityChangeNs: Long = 0L
+    private var lastManualResetNs: Long = 0L
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
@@ -255,10 +256,33 @@ class ARViewController(
         manualAlignmentPoints.clear()
         modelAligned.set(false)
         _alignmentScore.value = 0f
+        lastManualResetNs = System.nanoTime()
         _manualAlignmentState.value = ManualAlignmentState(
             isActive = true,
             sample = AlignmentSample(emptyList()),
             statusMessage = "Tap 3 reference points to align manually",
+        )
+    }
+
+    fun resetManualAlignment() {
+        manualAlignmentPoints.clear()
+        modelAligned.set(false)
+        _alignmentScore.value = 0f
+        lastManualResetNs = System.nanoTime()
+        _manualAlignmentState.value = ManualAlignmentState(
+            isActive = true,
+            sample = AlignmentSample(emptyList()),
+            statusMessage = "Manual alignment reset. Tap 3 reference points again",
+        )
+    }
+
+    fun cancelManualAlignment() {
+        manualAlignmentPoints.clear()
+        lastManualResetNs = 0L
+        _manualAlignmentState.value = ManualAlignmentState(
+            isActive = false,
+            sample = AlignmentSample(emptyList()),
+            statusMessage = "Manual alignment cancelled",
         )
     }
 
@@ -438,6 +462,7 @@ class ARViewController(
         private const val TEST_NODE_ASSET_PATH = "models/test_node.glb"
         private const val DEFAULT_MARKER_SIZE_METERS = 0.12f
         private const val REQUIRED_POINTS = 3
+        // Reference points chosen from test_node.glb: origin and two 20cm offsets along X/Y on the base plane
         private val MODEL_REFERENCE_POINTS = listOf(
             Vector3(0.0, 0.0, 0.0),
             Vector3(0.2, 0.0, 0.0),
@@ -481,14 +506,33 @@ class ARViewController(
         val recentMarkerSeen = hasMarker ||
             frameTimestampNs - lastMarkerTimestampNs.get() <= RECENT_MARKER_TIMEOUT_NS
 
+        val now = System.nanoTime()
+        val recentAlignmentSet = now - lastAlignmentSetNs.get() <= RECENT_ALIGNMENT_HORIZON_NS
+        val alignmentIsFresh = recentAlignmentSet && _alignmentScore.value >= 0.8f
+
+        val manualModeActive = _manualAlignmentState.value.isActive
+        val resetRecently = manualModeActive && now - lastManualResetNs <= RECENT_ALIGNMENT_HORIZON_NS
+
         val desiredStatus = when {
             trackingState != TrackingState.TRACKING -> TrackingStatus(
                 quality = TrackingQuality.POOR,
                 reason = "Camera tracking ${trackingState.name.lowercase()}",
             )
+            resetRecently -> TrackingStatus(
+                quality = TrackingQuality.WARNING,
+                reason = "Collecting manual alignment points",
+            )
             recentMarkerSeen -> TrackingStatus(
                 quality = TrackingQuality.GOOD,
                 reason = "Marker lock stable",
+            )
+            alignmentIsFresh && featurePoints >= MIN_FEATURE_POINTS_WARNING -> TrackingStatus(
+                quality = TrackingQuality.GOOD,
+                reason = "Manual alignment locked",
+            )
+            recentAlignmentSet -> TrackingStatus(
+                quality = TrackingQuality.WARNING,
+                reason = "Alignment set, waiting for more features",
             )
             featurePoints >= MIN_FEATURE_POINTS_WARNING -> TrackingStatus(
                 quality = TrackingQuality.WARNING,
