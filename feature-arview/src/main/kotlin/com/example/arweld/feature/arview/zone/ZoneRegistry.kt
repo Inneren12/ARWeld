@@ -10,7 +10,17 @@ class ZoneRegistry(
     private val zones: Map<String, ZoneTransform> = DEFAULT_ZONES,
 ) {
 
+    private val alignedZones: MutableMap<String, Pose3D> = mutableMapOf()
+
     fun get(markerId: String): ZoneTransform? = zones[markerId]
+
+    @Synchronized
+    fun recordAlignment(markerId: String, worldZonePose: Pose3D) {
+        alignedZones[markerId] = worldZonePose
+    }
+
+    @Synchronized
+    fun lastAlignedPose(): Pose3D? = alignedZones.values.lastOrNull()
 
     companion object {
         private val TEST_ZONE = ZoneTransform(

@@ -17,6 +17,10 @@ class ZoneAligner(
         markerId: String,
     ): Pose3D? {
         val zoneTransform = zoneRegistry.get(markerId) ?: return null
-        return markerPoseWorld * zoneTransform.tMarkerZone
+        return (markerPoseWorld * zoneTransform.tMarkerZone).also { worldPose ->
+            zoneRegistry.recordAlignment(markerId, worldPose)
+        }
     }
+
+    fun lastAlignedPose(): Pose3D? = zoneRegistry.lastAlignedPose()
 }

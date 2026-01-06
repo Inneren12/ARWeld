@@ -83,6 +83,7 @@ fun ARViewScreen(
     val errorMessage = controller.errorMessage.collectAsState()
     val manualState by controller.manualAlignmentState.collectAsState()
     val trackingStatus by controller.trackingStatus.collectAsState()
+    val alignmentScore by controller.alignmentScore.collectAsState()
 
     LaunchedEffect(controller) {
         controller.loadTestNodeModel()
@@ -137,6 +138,12 @@ fun ARViewScreen(
             ) {
                 TrackingIndicator(
                     status = trackingStatus,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = stringResource(id = R.string.alignment_score_label, alignmentScore.toDouble()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 ScreenshotButton(
