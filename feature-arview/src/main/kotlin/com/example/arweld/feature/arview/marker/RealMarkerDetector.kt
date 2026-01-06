@@ -38,11 +38,15 @@ class RealMarkerDetector(
 
     override fun detectMarkers(frame: Frame): List<DetectedMarker> {
         val now = SystemClock.elapsedRealtime()
-        if (now - lastDetectionMs.get() < minIntervalMs) return emptyList()
+        if (now - lastDetectionMs.get() < minIntervalMs) {
+            Log.v(TAG, "Skipping detection; throttled to $minIntervalMs ms")
+            return emptyList()
+        }
 
         val image = try {
             frame.acquireCameraImage()
         } catch (notReady: NotYetAvailableException) {
+            Log.v(TAG, "Camera image not yet available for marker detection")
             return emptyList()
         } catch (error: Exception) {
             Log.w(TAG, "Failed to acquire camera image", error)
