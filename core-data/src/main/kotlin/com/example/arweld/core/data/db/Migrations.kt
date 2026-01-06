@@ -14,3 +14,12 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         )
     }
 }
+
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_work_items_code ON work_items(code)")
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_events_workItemId_timestamp ON events(workItemId, timestamp)"
+        )
+    }
+}

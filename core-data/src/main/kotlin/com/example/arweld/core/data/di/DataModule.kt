@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.arweld.core.data.db.AppDatabase
 import com.example.arweld.core.data.db.MIGRATION_1_2
+import com.example.arweld.core.data.db.MIGRATION_2_3
 import com.example.arweld.core.data.db.dao.EventDao
 import com.example.arweld.core.data.db.dao.EvidenceDao
 import com.example.arweld.core.data.db.dao.SyncQueueDao
@@ -60,7 +61,7 @@ object DataModule {
             AppDatabase::class.java,
             "arweld.db"
         )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
     }
 

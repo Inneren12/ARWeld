@@ -1,12 +1,18 @@
 package com.example.arweld.core.data.db.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * Room entity for WorkItem table.
  */
-@Entity(tableName = "work_items")
+@Entity(
+    tableName = "work_items",
+    indices = [
+        Index(value = ["code"]),
+    ],
+)
 data class WorkItemEntity(
     @PrimaryKey val id: String,
     val projectId: String,

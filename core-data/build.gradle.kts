@@ -32,6 +32,8 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
+    sourceSets["androidTest"].assets.srcDir(files("${projectDir}/schemas"))
 }
 
 ksp {
