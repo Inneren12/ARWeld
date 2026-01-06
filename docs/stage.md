@@ -1284,6 +1284,8 @@ Test state transitions:
 - Последние детекции доступны для пайплайна совмещения/pose estimation (StateFlow/хранилище состояния в контроллере AR).
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+**Sprint 2 delivery note:** ML Kit Barcode (QR/DataMatrix/Aztec) детектор (`RealMarkerDetector`) обрабатывает `Frame.acquireCameraImage()` кадры ~6–7 Гц, возвращает `markerId` = barcode rawValue и четыре угла в координатах исходного изображения (порядок TL→TR→BR→BL) после учёта rotationDegrees.
+
 ### S2-17 — оценка позы маркера → мир (PnP + intrinsics)
 
 **Goal:** Рассчитать T_world_marker по четырём углам маркера в изображении, известной 3D-геометрии маркера и параметрам камеры из ARCore.

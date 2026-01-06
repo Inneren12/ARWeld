@@ -14,7 +14,7 @@ class ZoneAligner(
      */
     fun computeWorldZoneTransform(
         markerPoseWorld: Pose3D,
-        markerId: Int,
+        markerId: String,
     ): Pose3D? {
         val zoneTransform = zoneRegistry.get(markerId) ?: return null
         return markerPoseWorld * zoneTransform.tMarkerZone

@@ -1,0 +1,138 @@
+package com.example.arweld.feature.arview.marker
+
+import android.graphics.Point
+import android.graphics.PointF
+import android.graphics.Rect
+import android.os.SystemClock
+import android.util.Log
+import android.view.Surface
+import com.google.android.gms.tasks.Tasks
+import com.google.ar.core.Frame
+import com.google.ar.core.exceptions.NotYetAvailableException
+import com.google.mlkit.vision.barcode.Barcode
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.common.InputImage
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
+
+/**
+ * Real marker detector backed by ML Kit barcode scanning running on
+ * ARCore camera frames.
+ */
+class RealMarkerDetector(
+    private val rotationProvider: () -> Int = { Surface.ROTATION_0 },
+    private val minIntervalMs: Long = DEFAULT_MIN_INTERVAL_MS,
+) : MarkerDetector {
+
+    private val barcodeScanner = BarcodeScanning.getClient(
+        BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(
+                Barcode.FORMAT_QR_CODE,
+                Barcode.FORMAT_DATA_MATRIX,
+                Barcode.FORMAT_AZTEC,
+            )
+            .build(),
+    )
+    private val lastDetectionMs = AtomicLong(0L)
+
+    override fun detectMarkers(frame: Frame): List<DetectedMarker> {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastDetectionMs.get() < minIntervalMs) return emptyList()
+
+        val image = try {
+            frame.acquireCameraImage()
+        } catch (notReady: NotYetAvailableException) {
+            return emptyList()
+        } catch (error: Exception) {
+            Log.w(TAG, "Failed to acquire camera image", error)
+            return emptyList()
+        }
+
+        try {
+            lastDetectionMs.set(now)
+            val rotationDegrees = rotationDegreesFromSurface(rotationProvider())
+            val inputImage = InputImage.fromMediaImage(image, rotationDegrees)
+            val barcodes = Tasks.await(
+                barcodeScanner.process(inputImage),
+                DETECTION_TIMEOUT_MS,
+                TimeUnit.MILLISECONDS,
+            )
+            if (barcodes.isEmpty()) return emptyList()
+
+            val width = image.width
+            val height = image.height
+
+            return barcodes.mapNotNull { barcode ->
+                val id = barcode.rawValue ?: barcode.displayValue ?: return@mapNotNull null
+                val corners = (barcode.cornerPoints?.takeIf { it.size >= 4 }
+                    ?.map { mapToImageSpace(it, width, height, rotationDegrees) }
+                    ?: barcode.boundingBox?.let { box ->
+                        boundingBoxCorners(box, width, height, rotationDegrees)
+                    }) ?: return@mapNotNull null
+
+                val orderedCorners = orderCorners(corners)
+
+                DetectedMarker(
+                    id = id,
+                    corners = orderedCorners,
+                    timestampNs = frame.timestamp,
+                )
+            }
+        } catch (error: Exception) {
+            Log.w(TAG, "Marker detection failed", error)
+            return emptyList()
+        } finally {
+            image.close()
+        }
+    }
+
+    private fun rotationDegreesFromSurface(rotation: Int): Int = when (rotation) {
+        Surface.ROTATION_90 -> 90
+        Surface.ROTATION_180 -> 180
+        Surface.ROTATION_270 -> 270
+        else -> 0
+    }
+
+    private fun boundingBoxCorners(
+        box: Rect,
+        width: Int,
+        height: Int,
+        rotationDegrees: Int,
+    ): List<PointF> {
+        val rawCorners = listOf(
+            Point(box.left, box.top),
+            Point(box.right, box.top),
+            Point(box.right, box.bottom),
+            Point(box.left, box.bottom),
+        )
+        return rawCorners.map { mapToImageSpace(it, width, height, rotationDegrees) }
+    }
+
+    private fun mapToImageSpace(point: Point, width: Int, height: Int, rotationDegrees: Int): PointF {
+        return when (rotationDegrees % 360) {
+            90 -> PointF(point.y.toFloat(), (width - point.x).toFloat())
+            180 -> PointF((width - point.x).toFloat(), (height - point.y).toFloat())
+            270 -> PointF((height - point.y).toFloat(), point.x.toFloat())
+            else -> PointF(point.x.toFloat(), point.y.toFloat())
+        }
+    }
+
+    private fun orderCorners(corners: List<PointF>): List<PointF> {
+        if (corners.size < 4) return corners
+        val sortedByY = corners.sortedBy { it.y }
+        val top = sortedByY.take(2).sortedBy { it.x }
+        val bottom = sortedByY.takeLast(2).sortedBy { it.x }
+        val topLeft = top.first()
+        val topRight = top.last()
+        val bottomLeft = bottom.first()
+        val bottomRight = bottom.last()
+        return listOf(topLeft, topRight, bottomRight, bottomLeft)
+    }
+
+    companion object {
+        private const val TAG = "RealMarkerDetector"
+        private const val DETECTION_TIMEOUT_MS = 200L
+        private const val DEFAULT_MIN_INTERVAL_MS = 150L
+    }
+}

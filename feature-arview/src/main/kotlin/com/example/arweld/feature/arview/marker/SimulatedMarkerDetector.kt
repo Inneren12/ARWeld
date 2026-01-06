@@ -20,6 +20,7 @@ class SimulatedMarkerDetector : MarkerDetector {
             DetectedMarker(
                 id = DEFAULT_MARKER_ID,
                 corners = corners.take(4),
+                timestampNs = frame.timestamp,
             ),
         )
     }
@@ -32,7 +33,7 @@ class SimulatedMarkerDetector : MarkerDetector {
     }
 
     companion object {
-        private const val DEFAULT_MARKER_ID = 7
+        private const val DEFAULT_MARKER_ID = "debug-marker"
         private val DEFAULT_CORNERS = listOf(
             PointF(320f, 240f),
             PointF(420f, 240f),

@@ -22,7 +22,7 @@ class AlignmentEventLogger @Inject constructor(
 ) {
     private val json: Json = Json { encodeDefaults = false }
 
-    suspend fun logMarkerAlignment(workItemId: String?, markerId: Int, transform: Pose3D) {
+    suspend fun logMarkerAlignment(workItemId: String?, markerId: String, transform: Pose3D) {
         logAlignment(
             workItemId = workItemId,
             method = "marker",
@@ -45,7 +45,7 @@ class AlignmentEventLogger @Inject constructor(
     private suspend fun logAlignment(
         workItemId: String?,
         method: String,
-        markerIds: List<Int>,
+        markerIds: List<String>,
         numPoints: Int?,
         transform: Pose3D,
     ) {

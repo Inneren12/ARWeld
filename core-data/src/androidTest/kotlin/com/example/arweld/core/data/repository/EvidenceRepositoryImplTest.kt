@@ -98,7 +98,7 @@ class EvidenceRepositoryImplTest {
             writeText("ar-screenshot-bytes")
         }
         val meta = ArScreenshotMeta(
-            markerIds = listOf(1, 2, 3),
+            markerIds = listOf("1", "2", "3"),
             trackingState = "TRACKING",
             alignmentQualityScore = 0.9f,
             distanceToMarker = null,

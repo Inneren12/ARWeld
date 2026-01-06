@@ -29,8 +29,9 @@ class MarkerPoseEstimatorTest {
         val worldCameraPose = Pose3D.Identity
 
         val detectedMarker = DetectedMarker(
-            id = 42,
+            id = "42",
             corners = buildProjectedCorners(markerSize.toDouble(), translation, intrinsics),
+            timestampNs = 0L,
         )
 
         val pose = estimator.estimateMarkerPose(

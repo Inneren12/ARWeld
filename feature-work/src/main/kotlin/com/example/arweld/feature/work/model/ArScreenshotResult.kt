@@ -7,7 +7,7 @@ import java.io.Serializable
  */
 data class ArScreenshotResult(
     val uriString: String,
-    val markerIds: List<Int> = emptyList(),
+    val markerIds: List<String> = emptyList(),
     val trackingState: String = "UNKNOWN",
     val alignmentQualityScore: Float = 0f,
     val distanceToMarker: Float? = null,
