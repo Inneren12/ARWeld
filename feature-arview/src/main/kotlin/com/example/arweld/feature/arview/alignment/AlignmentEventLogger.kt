@@ -22,23 +22,35 @@ class AlignmentEventLogger @Inject constructor(
 ) {
     private val json: Json = Json { encodeDefaults = false }
 
-    suspend fun logMarkerAlignment(workItemId: String?, markerId: String, transform: Pose3D) {
+    suspend fun logMarkerAlignment(
+        workItemId: String?,
+        markerId: String,
+        transform: Pose3D,
+        alignmentScore: Double? = null,
+    ) {
         logAlignment(
             workItemId = workItemId,
             method = "marker",
             markerIds = listOf(markerId),
             numPoints = null,
             transform = transform,
+            alignmentScore = alignmentScore,
         )
     }
 
-    suspend fun logManualAlignment(workItemId: String?, numPoints: Int, transform: Pose3D) {
+    suspend fun logManualAlignment(
+        workItemId: String?,
+        numPoints: Int,
+        transform: Pose3D,
+        alignmentScore: Double? = null,
+    ) {
         logAlignment(
             workItemId = workItemId,
             method = "manual",
             markerIds = emptyList(),
             numPoints = numPoints,
             transform = transform,
+            alignmentScore = alignmentScore,
         )
     }
 
@@ -48,6 +60,7 @@ class AlignmentEventLogger @Inject constructor(
         markerIds: List<String>,
         numPoints: Int?,
         transform: Pose3D,
+        alignmentScore: Double?,
     ) {
         if (workItemId.isNullOrBlank()) {
             Log.w(TAG, "Skipping AR_ALIGNMENT_SET: missing workItemId")
@@ -65,7 +78,7 @@ class AlignmentEventLogger @Inject constructor(
             method = method,
             markerIds = markerIds,
             numPoints = numPoints,
-            alignmentScore = null,
+            alignmentScore = alignmentScore,
             timestamp = timestamp,
             worldPosition = transform.toPayloadPosition(),
             worldRotationEuler = transform.toPayloadEuler(),
