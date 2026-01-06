@@ -16,6 +16,10 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -33,6 +37,7 @@ android {
         jvmTarget = "11"
     }
 
+    sourceSets["test"].assets.srcDir(files("${projectDir}/schemas"))
     sourceSets["androidTest"].assets.srcDir(files("${projectDir}/schemas"))
 }
 
