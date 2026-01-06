@@ -13,4 +13,10 @@
     <string name="capture_ar_screenshot_error">Failed to capture AR screenshot</string>
     <string name="simulate_marker_button">Simulate marker</string>
     <string name="alignment_score_label">Alignment score: %1$.2f</string>
+    <string name="diagnostic_overlay_title">Debug</string>
+    <string name="diagnostic_marker_count">Markers: %1$d</string>
+    <string name="diagnostic_intrinsics_status">Intrinsics: %1$s</string>
+    <string name="diagnostic_alignment_score">Align score: %1$.2f</string>
+    <string name="diagnostic_value_ok">ok</string>
+    <string name="diagnostic_value_missing">missing</string>
 </resources>

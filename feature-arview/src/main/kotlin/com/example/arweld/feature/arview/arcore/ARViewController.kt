@@ -88,11 +88,15 @@ class ARViewController(
     private val manualAlignmentPoints = mutableListOf<AlignmentPoint>()
     private val lastMarkerTimestampNs = AtomicReference<Long>(0L)
     private val lastAlignmentSetNs = AtomicLong(0L)
+    private val lastAlignmentEventNs = AtomicLong(0L)
+    private val lastAlignmentEventPose = AtomicReference<Pose3D?>()
     private var lastQualityChangeNs: Long = 0L
     private var lastManualResetNs: Long = 0L
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
+    private val _intrinsicsAvailable = MutableStateFlow(false)
+    val intrinsicsAvailable: StateFlow<Boolean> = _intrinsicsAvailable
     private val _detectedMarkers = MutableStateFlow<List<DetectedMarker>>(emptyList())
     val detectedMarkers: StateFlow<List<DetectedMarker>> = _detectedMarkers
     private val _markerWorldPoses = MutableStateFlow<Map<String, Pose3D>>(emptyMap())
@@ -191,9 +195,12 @@ class ARViewController(
 
     private fun onFrame(frame: Frame) {
         if (!isDetectingMarkers.compareAndSet(false, true)) return
-        val cameraIntrinsics = frame.camera.toCameraIntrinsics()?.also { intrinsics ->
+        val rotationDegrees = rotationDegreesFromSurface(currentRotation())
+        val freshIntrinsics = frame.camera.toCameraIntrinsics(rotationDegrees)?.also { intrinsics ->
             cachedIntrinsics.set(intrinsics)
-        } ?: cachedIntrinsics.get()
+        }
+        val cameraIntrinsics = freshIntrinsics ?: cachedIntrinsics.get()
+        _intrinsicsAvailable.value = cameraIntrinsics != null
         val featurePointCount = computeFeaturePointCount(frame)
         val trackingState = frame.camera.trackingState
         val frameTimestampNs = frame.timestamp
@@ -219,6 +226,9 @@ class ARViewController(
                             cameraPoseWorld = cameraPoseWorld,
                         )?.let { pose ->
                             marker.id to pose
+                        } ?: run {
+                            Log.d(TAG, "Pose estimation returned null for marker ${marker.id}")
+                            null
                         }
                     }.toMap()
                 } else {
@@ -306,14 +316,11 @@ class ARViewController(
             modelAligned.set(true)
             lastAlignmentSetNs.set(System.nanoTime())
             _alignmentScore.value = computeAlignmentScore(markerWorldPoses.size)
-            detectorScope.launch {
-                alignmentEventLogger.logMarkerAlignment(
-                    workItemId = workItemId,
-                    markerId = markerId,
-                    transform = worldZonePose,
-                    alignmentScore = _alignmentScore.value.toDouble(),
-                )
-            }
+            logMarkerAlignmentIfNeeded(
+                markerId = markerId,
+                transform = worldZonePose,
+                alignmentScore = _alignmentScore.value.toDouble(),
+            )
         } else if (modelAligned.get()) {
             lastAlignmentSetNs.set(System.nanoTime())
             _alignmentScore.value = computeAlignmentScore(markerWorldPoses.size)
@@ -358,14 +365,11 @@ class ARViewController(
                 sample = AlignmentSample(emptyList()),
                 statusMessage = "Manual alignment applied",
             )
-            detectorScope.launch {
-                alignmentEventLogger.logManualAlignment(
-                    workItemId = workItemId,
-                    numPoints = sample.points.size,
-                    transform = solvedPose,
-                    alignmentScore = _alignmentScore.value.toDouble(),
-                )
-            }
+            logManualAlignmentIfNeeded(
+                numPoints = sample.points.size,
+                transform = solvedPose,
+                alignmentScore = _alignmentScore.value.toDouble(),
+            )
         } else {
             manualAlignmentPoints.clear()
             _manualAlignmentState.value = ManualAlignmentState(
@@ -389,6 +393,45 @@ class ARViewController(
         val elapsed = System.nanoTime() - lastAlignmentNs
         val normalized = 1f - (elapsed.toDouble() / RECENT_ALIGNMENT_HORIZON_NS.toDouble()).toFloat()
         return normalized.coerceIn(0f, 1f)
+    }
+
+    private fun logMarkerAlignmentIfNeeded(markerId: String, transform: Pose3D, alignmentScore: Double?) {
+        if (!shouldEmitAlignmentEvent(transform)) return
+        markAlignmentEvent(transform)
+        detectorScope.launch {
+            alignmentEventLogger.logMarkerAlignment(
+                workItemId = workItemId,
+                markerId = markerId,
+                transform = transform,
+                alignmentScore = alignmentScore,
+            )
+        }
+    }
+
+    private fun logManualAlignmentIfNeeded(numPoints: Int, transform: Pose3D, alignmentScore: Double?) {
+        if (!shouldEmitAlignmentEvent(transform)) return
+        markAlignmentEvent(transform)
+        detectorScope.launch {
+            alignmentEventLogger.logManualAlignment(
+                workItemId = workItemId,
+                numPoints = numPoints,
+                transform = transform,
+                alignmentScore = alignmentScore,
+            )
+        }
+    }
+
+    private fun shouldEmitAlignmentEvent(pose: Pose3D): Boolean {
+        val lastPose = lastAlignmentEventPose.get()
+        val poseChanged = isPoseSignificantlyDifferent(lastPose, pose)
+        val intervalElapsed = System.nanoTime() - lastAlignmentEventNs.get()
+        val intervalOk = lastAlignmentEventNs.get() == 0L || intervalElapsed >= ALIGNMENT_EVENT_MIN_INTERVAL_NS
+        return (lastPose == null || poseChanged) && intervalOk
+    }
+
+    private fun markAlignmentEvent(pose: Pose3D) {
+        lastAlignmentEventPose.set(pose)
+        lastAlignmentEventNs.set(System.nanoTime())
     }
 
     private fun updateAlignmentScoreForStaleFrame() {
@@ -472,6 +515,7 @@ class ARViewController(
         private val RECENT_MARKER_TIMEOUT_NS = TimeUnit.SECONDS.toNanos(2)
         private const val MIN_FEATURE_POINTS_WARNING = 40
         private val RECENT_ALIGNMENT_HORIZON_NS = TimeUnit.SECONDS.toNanos(3)
+        private val ALIGNMENT_EVENT_MIN_INTERVAL_NS = TimeUnit.SECONDS.toNanos(1)
         private const val MAX_MARKER_COUNT_FOR_SCORE = 3f
         private const val MARKER_SCORE_WEIGHT = 0.4f
         private const val RECENCY_SCORE_WEIGHT = 0.6f
@@ -489,6 +533,13 @@ class ARViewController(
             Log.w(TAG, "Failed to read point cloud", error)
             0
         }
+    }
+
+    private fun rotationDegreesFromSurface(rotation: Int): Int = when (rotation) {
+        Surface.ROTATION_90 -> 90
+        Surface.ROTATION_180 -> 180
+        Surface.ROTATION_270 -> 270
+        else -> 0
     }
 
     private fun updateMarkerTimestampIfNeeded(hasMarker: Boolean, frameTimestampNs: Long) {

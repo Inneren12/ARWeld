@@ -84,6 +84,8 @@ fun ARViewScreen(
     val manualState by controller.manualAlignmentState.collectAsState()
     val trackingStatus by controller.trackingStatus.collectAsState()
     val alignmentScore by controller.alignmentScore.collectAsState()
+    val detectedMarkers by controller.detectedMarkers.collectAsState()
+    val intrinsicsReady by controller.intrinsicsAvailable.collectAsState()
 
     LaunchedEffect(controller) {
         controller.loadTestNodeModel()
@@ -123,6 +125,16 @@ fun ARViewScreen(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(16.dp)
+                )
+            }
+            if (isDebuggable) {
+                DiagnosticOverlay(
+                    markerCount = detectedMarkers.size,
+                    intrinsicsReady = intrinsicsReady,
+                    alignmentScore = alignmentScore,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp),
                 )
             }
             ManualAlignmentOverlay(
@@ -231,6 +243,51 @@ private fun ManualAlignmentOverlay(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(text = it, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+    }
+}
+
+@Composable
+private fun DiagnosticOverlay(
+    markerCount: Int,
+    intrinsicsReady: Boolean,
+    alignmentScore: Float,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 2.dp,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(
+                text = stringResource(id = R.string.diagnostic_overlay_title),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(id = R.string.diagnostic_marker_count, markerCount),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(
+                    id = R.string.diagnostic_intrinsics_status,
+                    if (intrinsicsReady) {
+                        stringResource(id = R.string.diagnostic_value_ok)
+                    } else {
+                        stringResource(id = R.string.diagnostic_value_missing)
+                    },
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(id = R.string.diagnostic_alignment_score, alignmentScore.toDouble()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
