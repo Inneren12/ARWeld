@@ -112,6 +112,8 @@ class ARViewController(
         ),
     )
     val trackingStatus: StateFlow<TrackingStatus> = _trackingStatus
+    private val _renderFps = MutableStateFlow(0.0)
+    val renderFps: StateFlow<Double> = _renderFps
     private val mainHandler = Handler(Looper.getMainLooper())
 
     fun onCreate() {
@@ -119,6 +121,9 @@ class ARViewController(
         ArScreenshotRegistry.register(this)
         sceneRenderer.setFrameListener(::onFrame)
         sceneRenderer.setHitTestResultListener(::onHitTestResult)
+        sceneRenderer.setRenderRateListener { fps ->
+            _renderFps.value = fps
+        }
         surfaceView.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
                 sceneRenderer.queueHitTest(event.x, event.y)
@@ -155,6 +160,7 @@ class ARViewController(
             testNodeModel = null
         }
         sceneRenderer.setFrameListener(null)
+        sceneRenderer.setRenderRateListener(null)
         sceneRenderer.destroy()
         sessionManager.onDestroy()
         detectorScope.cancel()

@@ -86,6 +86,7 @@ fun ARViewScreen(
     val alignmentScore by controller.alignmentScore.collectAsState()
     val detectedMarkers by controller.detectedMarkers.collectAsState()
     val intrinsicsReady by controller.intrinsicsAvailable.collectAsState()
+    val renderFps by controller.renderFps.collectAsState()
 
     LaunchedEffect(controller) {
         controller.loadTestNodeModel()
@@ -132,6 +133,7 @@ fun ARViewScreen(
                     markerCount = detectedMarkers.size,
                     intrinsicsReady = intrinsicsReady,
                     alignmentScore = alignmentScore,
+                    renderFps = renderFps,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(16.dp),
@@ -252,6 +254,7 @@ private fun DiagnosticOverlay(
     markerCount: Int,
     intrinsicsReady: Boolean,
     alignmentScore: Float,
+    renderFps: Double,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -285,6 +288,11 @@ private fun DiagnosticOverlay(
             )
             Text(
                 text = stringResource(id = R.string.diagnostic_alignment_score, alignmentScore.toDouble()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(id = R.string.diagnostic_render_fps, renderFps),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

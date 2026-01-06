@@ -23,6 +23,7 @@ import com.google.ar.core.Frame
 import com.google.ar.core.Pose
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingState
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
@@ -51,13 +52,19 @@ class ARSceneRenderer(
     private var modelRootPose: Pose3D? = null
     private var frameListener: ((Frame) -> Unit)? = null
     private var hitTestResultListener: ((Pose3D) -> Unit)? = null
+    private var renderRateListener: ((Double) -> Unit)? = null
     private val tapQueue = ConcurrentLinkedQueue<Pair<Float, Float>>()
 
     private var rendering = false
+    private var lastRenderTimeNs: Long = 0L
+    private var smoothedFrameIntervalNs: Double? = null
+    private var lastFpsLogTimestampNs: Long = 0L
     private val choreographer = Choreographer.getInstance()
     private val frameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
-            renderFrame(frameTimeNanos)
+            if (shouldRenderFrame(frameTimeNanos)) {
+                renderFrame(frameTimeNanos)
+            }
             if (rendering) {
                 choreographer.postFrameCallback(this)
             }
@@ -78,7 +85,13 @@ class ARSceneRenderer(
         hitTestResultListener = listener
     }
 
+    fun setRenderRateListener(listener: ((Double) -> Unit)?) {
+        renderRateListener = listener
+    }
+
     fun onResume() {
+        lastRenderTimeNs = 0L
+        smoothedFrameIntervalNs = null
         rendering = true
         choreographer.postFrameCallback(frameCallback)
     }
@@ -144,6 +157,7 @@ class ARSceneRenderer(
             if (renderer.beginFrame(swapChain, frameTimeNanos)) {
                 renderer.render(view)
                 renderer.endFrame()
+                recordFrameTiming(frameTimeNanos)
             }
         } catch (error: Exception) {
             Log.w(TAG, "Failed to render AR frame", error)
@@ -245,12 +259,48 @@ class ARSceneRenderer(
         scene.addEntity(sunlight)
     }
 
+    private fun shouldRenderFrame(frameTimeNanos: Long): Boolean {
+        val lastRender = lastRenderTimeNs
+        if (lastRender == 0L) return true
+        val delta = frameTimeNanos - lastRender
+        return delta + FRAME_INTERVAL_TOLERANCE_NS >= TARGET_FRAME_INTERVAL_NS
+    }
+
+    private fun recordFrameTiming(frameTimeNanos: Long) {
+        val lastRender = lastRenderTimeNs
+        if (lastRender > 0L) {
+            val interval = frameTimeNanos - lastRender
+            smoothedFrameIntervalNs = smoothedFrameIntervalNs?.let { previous ->
+                previous + FRAME_INTERVAL_SMOOTHING * (interval - previous)
+            } ?: interval.toDouble()
+            val fps = smoothedFrameIntervalNs?.let { intervalNs -> SECONDS_IN_NANOS / intervalNs }
+            if (fps != null) {
+                renderRateListener?.invoke(fps)
+                maybeLogFps(fps)
+            }
+        }
+        lastRenderTimeNs = frameTimeNanos
+    }
+
+    private fun maybeLogFps(fps: Double) {
+        val now = System.nanoTime()
+        if (now - lastFpsLogTimestampNs < FPS_LOG_INTERVAL_NS) return
+        lastFpsLogTimestampNs = now
+        Log.d(TAG, "Render FPS (smoothed): ${"%.1f".format(fps)}")
+    }
+
     companion object {
         private const val TAG = "ARSceneRenderer"
         private const val DEFAULT_Z_OFFSET_METERS = 1.5f
         private const val MODEL_SCALE = 0.25f
         private const val NEAR_PLANE = 0.1f
         private const val FAR_PLANE = 100f
+        private const val TARGET_FPS = 30
+        private val TARGET_FRAME_INTERVAL_NS = TimeUnit.SECONDS.toNanos(1) / TARGET_FPS
+        private val FRAME_INTERVAL_TOLERANCE_NS = TimeUnit.MILLISECONDS.toNanos(2)
+        private const val FRAME_INTERVAL_SMOOTHING = 0.1
+        private const val SECONDS_IN_NANOS = 1_000_000_000.0
+        private val FPS_LOG_INTERVAL_NS = TimeUnit.SECONDS.toNanos(1)
     }
 }
 
