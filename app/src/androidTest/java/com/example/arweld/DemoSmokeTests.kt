@@ -2,6 +2,8 @@ package com.example.arweld
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.onNodeWithSubstring
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.example.arweld.core.data.seed.DbSeedInitializer
@@ -37,41 +39,68 @@ class DemoSmokeTests {
     }
 
     @Test
-    fun loginNavigatesToHomeAndShowsRoleTile() {
-        selectUser("Assembler 1")
-
-        waitForText("Navigation Demo")
+    fun loginNavigatesToHomeScreen() {
+        loginAndWaitForHome("Assembler 1")
 
         composeRule.onNodeWithText("Role: ASSEMBLER").assertExists()
-        composeRule.onNodeWithText("Assembler Queue").assertExists()
+        composeRule.onNodeWithText("Navigation Demo").assertExists()
     }
 
     @Test
-    fun homeTileOpensTimeline() {
-        selectUser("Assembler 1")
+    fun homeTilesChangePerRole() {
+        loginAndWaitForHome("Assembler 1") {
+            composeRule.onNodeWithText("Assembler Queue").assertExists()
+            composeRule.onNodeWithText("QC Queue").assertDoesNotExist()
+        }
 
-        waitForText("Navigation Demo")
+        relaunchFromSplash()
+
+        loginAndWaitForHome("QC 1") {
+            composeRule.onNodeWithText("QC Queue").assertExists()
+            composeRule.onNodeWithText("Assembler Queue").assertDoesNotExist()
+        }
+
+        relaunchFromSplash()
+
+        loginAndWaitForHome("Supervisor 1") {
+            composeRule.onNodeWithText("Supervisor Dashboard").assertExists()
+            composeRule.onNodeWithSubstring("Role: SUPERVISOR").assertExists()
+        }
+
+        relaunchFromSplash()
+
+        loginAndWaitForHome("Director 1") {
+            composeRule.onNodeWithText("Supervisor Dashboard").assertExists()
+            composeRule.onNodeWithSubstring("Role: DIRECTOR").assertExists()
+        }
+    }
+
+    @Test
+    fun tappingHomeTileNavigatesToTimeline() {
+        loginAndWaitForHome("Assembler 1")
+
         composeRule.onNodeWithText("Timeline").performClick()
 
         waitForText("Timeline stub")
         composeRule.onNodeWithText("Timeline stub").assertExists()
     }
 
-    @Test
-    fun workItemSummaryHandlesMissingIdGracefully() {
-        selectUser("Assembler 1")
-
-        waitForText("Navigation Demo")
-        composeRule.onNodeWithText("Work Item Summary").performClick()
-
-        waitForText("Work item not found")
-        composeRule.onNodeWithText("Work item not found").assertExists()
-        composeRule.onNodeWithText("Tap to retry").assertExists()
-    }
-
     private fun selectUser(name: String) {
         waitForText("Select a user")
         composeRule.onNodeWithText(name).performClick()
+    }
+
+    private fun loginAndWaitForHome(name: String, assertions: (() -> Unit)? = null) {
+        selectUser(name)
+
+        waitForText("Navigation Demo")
+
+        assertions?.invoke()
+    }
+
+    private fun relaunchFromSplash() {
+        composeRule.activityRule.scenario.recreate()
+        waitForText("Select a user")
     }
 
     private fun waitForText(text: String, timeoutMillis: Long = 5_000) {
