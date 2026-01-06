@@ -21,11 +21,11 @@ class WorkRepositoryImpl @Inject constructor(
     private val eventDao: EventDao,
 ) : WorkRepository {
 
-    override suspend fun getWorkItemByCode(code: String): WorkItem? {
+    override suspend fun getByCode(code: String): WorkItem? {
         return workItemDao.getByCode(code)?.toDomain()
     }
 
-    override suspend fun getWorkItemById(id: String): WorkItem? {
+    override suspend fun getById(id: String): WorkItem? {
         return workItemDao.getById(id)?.toDomain()
     }
 
@@ -34,7 +34,11 @@ class WorkRepositoryImpl @Inject constructor(
         return reduce(events)
     }
 
-    override suspend fun getMyQueue(userId: String): List<WorkItemState> {
+    override suspend fun listByStatus(status: WorkStatus): List<WorkItemState> {
+        return allWorkItemStates().filter { it.status == status }
+    }
+
+    override suspend fun listMyQueue(userId: String): List<WorkItemState> {
         val events = eventDao.getLastEventsByUser(userId)
         val workItemIds = events.map { it.workItemId }.toSet()
 
@@ -44,15 +48,15 @@ class WorkRepositoryImpl @Inject constructor(
             .filter { state -> state.status != WorkStatus.APPROVED }
     }
 
-    override suspend fun getQcQueue(): List<WorkItemState> {
+    override suspend fun listQcQueue(): List<WorkItemState> {
+        return allWorkItemStates().filter { state ->
+            state.status == WorkStatus.READY_FOR_QC || state.status == WorkStatus.QC_IN_PROGRESS
+        }
+    }
+
+    private suspend fun allWorkItemStates(): List<WorkItemState> {
         val workItems = workItemDao.observeAll().first()
-        // Simple v1 approach: derive state for every WorkItem and filter. Can be optimized with
-        // targeted queries in a later sprint if performance needs arise.
-        return workItems
-            .map { entity -> getWorkItemState(entity.id) }
-            .filter { state ->
-                state.status == WorkStatus.READY_FOR_QC || state.status == WorkStatus.QC_IN_PROGRESS
-            }
+        return workItems.map { entity -> getWorkItemState(entity.id) }
     }
 
     private fun WorkItemEntity.toDomain() = WorkItem(

@@ -84,6 +84,25 @@ class EvidenceRepositoryImpl @Inject constructor(
         return evidence
     }
 
+    override suspend fun saveFileAndRecord(
+        workItemId: String,
+        eventId: String,
+        fileOrUri: Any,
+        kind: EvidenceKind,
+        arMeta: ArScreenshotMeta?,
+    ): Evidence {
+        return when (kind) {
+            EvidenceKind.PHOTO -> savePhoto(workItemId, eventId, fileOrUri as File)
+            EvidenceKind.AR_SCREENSHOT -> saveArScreenshot(
+                workItemId = workItemId,
+                eventId = eventId,
+                uri = fileOrUri as Uri,
+                meta = arMeta ?: error("AR screenshot metadata required"),
+            )
+            else -> error("Evidence kind $kind not supported in saveFileAndRecord")
+        }
+    }
+
     override suspend fun saveAll(evidenceList: List<Evidence>) {
         if (evidenceList.isEmpty()) return
         evidenceDao.insertAll(evidenceList.map { it.toEntity() })

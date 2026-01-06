@@ -27,4 +27,8 @@ class EventRepositoryImpl @Inject constructor(
     override suspend fun getEventsForWorkItem(workItemId: String): List<Event> {
         return eventDao.getByWorkItemId(workItemId).map { it.toDomain() }
     }
+
+    override suspend fun getLastEventsByUser(userId: String): List<Event> {
+        return eventDao.getLastEventsByUser(userId).map { it.toDomain() }
+    }
 }

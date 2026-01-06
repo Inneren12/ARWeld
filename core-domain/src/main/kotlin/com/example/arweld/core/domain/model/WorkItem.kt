@@ -19,6 +19,6 @@ data class WorkItem(
 
 enum class WorkItemType {
     PART,
-    ASSEMBLY,
+    NODE,
     OPERATION
 }

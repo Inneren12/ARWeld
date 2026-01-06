@@ -48,6 +48,8 @@ dependencies {
     implementation(project(":feature-scanner"))
     implementation(project(":feature-arview"))
     implementation(project(":feature-supervisor"))
+    implementation(project(":feature-assembler"))
+    implementation(project(":feature-qc"))
 
     // Core modules
     implementation(project(":core-domain"))

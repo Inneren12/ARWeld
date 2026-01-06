@@ -30,6 +30,17 @@ interface EvidenceRepository {
     ): Evidence
 
     /**
+     * Save a captured file (photo or AR screenshot) and emit an evidence record.
+     */
+    suspend fun saveFileAndRecord(
+        workItemId: String,
+        eventId: String,
+        fileOrUri: Any,
+        kind: EvidenceKind,
+        arMeta: ArScreenshotMeta? = null,
+    ): Evidence
+
+    /**
      * Persist multiple evidence records in a batch.
      */
     suspend fun saveAll(evidenceList: List<Evidence>)
@@ -38,6 +49,9 @@ interface EvidenceRepository {
      * Fetch all evidence attached to the given event.
      */
     suspend fun getEvidenceForEvent(eventId: String): List<Evidence>
+
+    /** Alias maintained for Sprint 1 acceptance language. */
+    suspend fun listByEvent(eventId: String): List<Evidence> = getEvidenceForEvent(eventId)
 
     /**
      * Fetch all evidence tied to a work item regardless of source event.

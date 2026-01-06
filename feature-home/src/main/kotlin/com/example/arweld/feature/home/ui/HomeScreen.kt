@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.arweld.core.domain.model.Role
 import com.example.arweld.feature.home.viewmodel.HomeUiState
 import com.example.arweld.feature.home.viewmodel.HomeViewModel
 
@@ -51,7 +52,7 @@ fun HomeScreen(
             is HomeUiState.Success -> {
                 HomeContent(
                     userName = state.currentUser?.displayName ?: "Guest",
-                    userRole = state.currentUser?.role?.name ?: "N/A",
+                    userRole = state.currentUser?.role,
                     workItemCount = state.workItemCount,
                     onNavigateToWorkSummary = onNavigateToWorkSummary,
                     onNavigateToTimeline = onNavigateToTimeline,
@@ -79,7 +80,7 @@ fun HomeScreen(
 @Composable
 private fun HomeContent(
     userName: String,
-    userRole: String,
+    userRole: Role?,
     workItemCount: Int,
     onNavigateToWorkSummary: () -> Unit,
     onNavigateToTimeline: () -> Unit,
@@ -149,18 +150,49 @@ private fun HomeContent(
             Text("Timeline")
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Button(
-            onClick = onNavigateToAssemblerQueue,
-            modifier = Modifier.fillMaxWidth(0.7f)
-        ) {
-            Text("Assembler Queue")
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Button(
-            onClick = onNavigateToQcQueue,
-            modifier = Modifier.fillMaxWidth(0.7f)
-        ) {
-            Text("QC Queue")
+        when (userRole) {
+            Role.ASSEMBLER -> {
+                Button(
+                    onClick = onNavigateToAssemblerQueue,
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Text("Assembler Queue")
+                }
+            }
+
+            Role.QC -> {
+                Button(
+                    onClick = onNavigateToQcQueue,
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Text("QC Queue")
+                }
+            }
+
+            Role.SUPERVISOR, Role.DIRECTOR -> {
+                Button(
+                    onClick = onNavigateToAssemblerQueue,
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Text("Assembler Queue")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onNavigateToQcQueue,
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Text("QC Queue")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onNavigateToSupervisorDashboard,
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Text("Supervisor Dashboard")
+                }
+            }
+
+            null -> {}
         }
         Spacer(modifier = Modifier.height(12.dp))
         Button(
@@ -168,13 +200,6 @@ private fun HomeContent(
             modifier = Modifier.fillMaxWidth(0.7f)
         ) {
             Text("Scan Code")
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Button(
-            onClick = onNavigateToSupervisorDashboard,
-            modifier = Modifier.fillMaxWidth(0.7f)
-        ) {
-            Text("Supervisor Dashboard")
         }
     }
 }

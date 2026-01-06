@@ -30,4 +30,6 @@ include(":feature-work")
 include(":feature-scanner")
 include(":feature-arview")
 include(":feature-supervisor")
+include(":feature-assembler")
+include(":feature-qc")
  
