@@ -7,6 +7,6 @@ package com.example.arweld.core.domain.spatial
  * @property tMarkerZone Transform from marker coordinates into the zone/model coordinate system.
  */
 data class ZoneTransform(
-    val markerId: Int,
+    val markerId: String,
     val tMarkerZone: Pose3D,
 )

@@ -27,6 +27,7 @@ interface MarkerDetector {
  * stay consistent for downstream pose estimation.
  */
 data class DetectedMarker(
-    val id: Int,
+    val id: String,
     val corners: List<PointF>,
+    val timestampNs: Long,
 )

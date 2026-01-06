@@ -23,6 +23,7 @@ import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Vector3
 import com.example.arweld.feature.arview.marker.DetectedMarker
 import com.example.arweld.feature.arview.marker.MarkerDetector
+import com.example.arweld.feature.arview.marker.RealMarkerDetector
 import com.example.arweld.feature.arview.marker.SimulatedMarkerDetector
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
 import com.example.arweld.feature.arview.alignment.RigidTransformSolver
@@ -63,6 +64,7 @@ class ARViewController(
     context: Context,
     private val alignmentEventLogger: AlignmentEventLogger,
     private val workItemId: String?,
+    markerDetector: MarkerDetector? = null,
 ) : ArScreenshotService {
 
     private val surfaceView: SurfaceView = SurfaceView(context).apply {
@@ -71,7 +73,7 @@ class ARViewController(
     private val sessionManager = ARCoreSessionManager(context)
     private val modelLoader: ModelLoader = AndroidFilamentModelLoader(context)
     private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
-    private val markerDetector: MarkerDetector = SimulatedMarkerDetector()
+    private val markerDetector: MarkerDetector = markerDetector ?: RealMarkerDetector(::currentRotation)
     private val markerPoseEstimator = MarkerPoseEstimator()
     private val zoneRegistry = ZoneRegistry()
     private val zoneAligner = ZoneAligner(zoneRegistry)
@@ -89,8 +91,8 @@ class ARViewController(
     val errorMessage: StateFlow<String?> = _errorMessage
     private val _detectedMarkers = MutableStateFlow<List<DetectedMarker>>(emptyList())
     val detectedMarkers: StateFlow<List<DetectedMarker>> = _detectedMarkers
-    private val _markerWorldPoses = MutableStateFlow<Map<Int, Pose3D>>(emptyMap())
-    val markerWorldPoses: StateFlow<Map<Int, Pose3D>> = _markerWorldPoses
+    private val _markerWorldPoses = MutableStateFlow<Map<String, Pose3D>>(emptyMap())
+    val markerWorldPoses: StateFlow<Map<String, Pose3D>> = _markerWorldPoses
     private val _manualAlignmentState = MutableStateFlow(ManualAlignmentState())
     val manualAlignmentState: StateFlow<ManualAlignmentState> = _manualAlignmentState
     private val _trackingStatus = MutableStateFlow(
@@ -149,7 +151,11 @@ class ARViewController(
     }
 
     fun triggerDebugMarkerDetection() {
-        (markerDetector as? SimulatedMarkerDetector)?.triggerSimulatedDetection()
+        if (markerDetector is SimulatedMarkerDetector) {
+            (markerDetector as SimulatedMarkerDetector).triggerSimulatedDetection()
+        } else {
+            Log.d(TAG, "Simulated detector not active; real detector running")
+        }
     }
 
     fun getView(): View = surfaceView
@@ -190,6 +196,9 @@ class ARViewController(
             try {
                 val markers = markerDetector.detectMarkers(frame)
                 _detectedMarkers.value = markers
+                if (markers.isNotEmpty()) {
+                    Log.d(TAG, "marker detected: ${markers.joinToString { it.id }}")
+                }
                 val intrinsics = cameraIntrinsics
                 if (intrinsics != null) {
                     val worldPoses = markers.mapNotNull { marker ->
@@ -230,7 +239,7 @@ class ARViewController(
         )
     }
 
-    private fun maybeAlignModel(markerWorldPoses: Map<Int, Pose3D>) {
+    private fun maybeAlignModel(markerWorldPoses: Map<String, Pose3D>) {
         if (markerAligned()) return
 
         val alignmentResult = markerWorldPoses.entries.firstNotNullOfOrNull { (markerId, pose) ->

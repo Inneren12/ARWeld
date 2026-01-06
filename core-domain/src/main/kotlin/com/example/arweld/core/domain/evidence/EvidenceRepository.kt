@@ -66,7 +66,7 @@ interface EvidenceRepository {
 
 @Serializable
 data class ArScreenshotMeta(
-    val markerIds: List<Int>,
+    val markerIds: List<String>,
     val trackingState: String,
     val alignmentQualityScore: Float,
     val distanceToMarker: Float?,

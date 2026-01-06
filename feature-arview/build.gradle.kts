@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.filament.android)
     implementation(libs.filament.gltfio.android)
     implementation(libs.filament.utils.android)
+    implementation(libs.mlkit.barcode.scanning)
 
     // Testing
     testImplementation(libs.junit)

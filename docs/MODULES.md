@@ -582,8 +582,9 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `RigidTransformSolver.kt` — Quaternion-based solver (Horn method) to recover `T_world_model` from 3D-3D correspondences
   - `ManualAlignmentState.kt` — UI-facing state for tap collection progress and status messages
 - `marker/`
-  - `MarkerDetector.kt` — Interface + `DetectedMarker` result with ordered corners; operates on ARCore frames
-  - `StubMarkerDetector.kt` — Placeholder implementation returning no detections (S2-16)
+  - `MarkerDetector.kt` — Interface + `DetectedMarker` result with ordered corners/timestamp; operates on ARCore frames
+  - `RealMarkerDetector.kt` — ML Kit barcode (QR/DataMatrix/Aztec) detector on `Frame.acquireCameraImage()` with camera-space corners
+  - `SimulatedMarkerDetector.kt` — Debug-only trigger for manual test detections
 - `pose/`
   - `MarkerPoseEstimator.kt` — Computes T_world_marker via planar PnP (homography) using camera intrinsics and AR camera pose
 - `tracking/`
