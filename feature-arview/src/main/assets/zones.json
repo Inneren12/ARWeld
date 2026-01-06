@@ -1,0 +1,12 @@
+{
+  "zones": [
+    {
+      "markerId": "TEST_MARKER_01",
+      "markerSizeMeters": 0.12,
+      "tMarkerZone": {
+        "position": { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "rotation": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 }
+      }
+    }
+  ]
+}

@@ -10,12 +10,17 @@ import org.junit.Test
 class ZoneAlignerTest {
 
     @Test
-    fun `computeWorldZoneTransform stores aligned pose`() {
+    fun `registry exposes marker size and aligner composes transforms`() {
+        val tMarkerZone = Pose3D(
+            position = Vector3(0.1, -0.2, 0.3),
+            rotation = Quaternion(0.0, 0.0, 0.0, 1.0),
+        )
         val registry = ZoneRegistry(
             zones = mapOf(
                 "marker-1" to ZoneTransform(
                     markerId = "marker-1",
-                    tMarkerZone = Pose3D.Identity,
+                    tMarkerZone = tMarkerZone,
+                    markerSizeMeters = 0.12f,
                 ),
             ),
         )
@@ -24,11 +29,15 @@ class ZoneAlignerTest {
             position = Vector3(1.0, 0.5, -0.25),
             rotation = Quaternion.Identity,
         )
+        val zoneTransform = registry.get("marker-1")
 
         val worldZonePose = aligner.computeWorldZoneTransform(markerPoseWorld, "marker-1")
 
         assertThat(worldZonePose).isNotNull()
-        assertThat(worldZonePose).isEqualTo(markerPoseWorld)
-        assertThat(aligner.lastAlignedPose()).isEqualTo(markerPoseWorld)
+        assertThat(zoneTransform?.markerSizeMeters).isEqualTo(0.12f)
+        assertThat(zoneTransform?.tMarkerZone).isEqualTo(tMarkerZone)
+        val expectedWorldPose = markerPoseWorld * tMarkerZone
+        assertThat(worldZonePose).isEqualTo(expectedWorldPose)
+        assertThat(aligner.lastAlignedPose()).isEqualTo(expectedWorldPose)
     }
 }
