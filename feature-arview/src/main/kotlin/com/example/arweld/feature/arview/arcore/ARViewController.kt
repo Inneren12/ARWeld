@@ -15,6 +15,7 @@ import android.view.View
 import android.view.WindowManager
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
+import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.core.domain.spatial.AlignmentPoint
 import com.example.arweld.core.domain.spatial.AlignmentSample
@@ -117,7 +118,9 @@ class ARViewController(
     private val mainHandler = Handler(Looper.getMainLooper())
 
     fun onCreate() {
-        Log.d(TAG, "ARViewController onCreate")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "ARViewController onCreate")
+        }
         ArScreenshotRegistry.register(this)
         sceneRenderer.setFrameListener(::onFrame)
         sceneRenderer.setHitTestResultListener(::onHitTestResult)
@@ -135,7 +138,9 @@ class ARViewController(
     }
 
     fun onResume() {
-        Log.d(TAG, "ARViewController onResume")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "ARViewController onResume")
+        }
         val rotation = currentRotation()
         val error = sessionManager.onResume(
             displayRotation = rotation,
@@ -147,13 +152,17 @@ class ARViewController(
     }
 
     fun onPause() {
-        Log.d(TAG, "ARViewController onPause")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "ARViewController onPause")
+        }
         sessionManager.onPause()
         sceneRenderer.onPause()
     }
 
     fun onDestroy() {
-        Log.d(TAG, "ARViewController onDestroy")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "ARViewController onDestroy")
+        }
         ArScreenshotRegistry.unregister(this)
         testNodeModel?.let {
             modelLoader.destroyModel(it)
@@ -170,7 +179,9 @@ class ARViewController(
         if (markerDetector is SimulatedMarkerDetector) {
             (markerDetector as SimulatedMarkerDetector).triggerSimulatedDetection()
         } else {
-            Log.d(TAG, "Simulated detector not active; real detector running")
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Simulated detector not active; real detector running")
+            }
         }
     }
 
@@ -216,7 +227,9 @@ class ARViewController(
                 val markers = markerDetector.detectMarkers(frame)
                 _detectedMarkers.value = markers
                 if (markers.isNotEmpty()) {
-                    Log.d(TAG, "marker detected: ${markers.joinToString { it.id }}")
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "marker detected: ${markers.joinToString { it.id }}")
+                    }
                 }
                 val intrinsics = cameraIntrinsics
                 if (intrinsics == null) {
@@ -227,7 +240,9 @@ class ARViewController(
                     markers.mapNotNull { marker ->
                         val zoneTransform = zoneRegistry.get(marker.id)
                         if (zoneTransform == null) {
-                            Log.d(TAG, "Marker ${marker.id} not found in zone registry")
+                            if (BuildConfig.DEBUG) {
+                                Log.d(TAG, "Marker ${marker.id} not found in zone registry")
+                            }
                             return@mapNotNull null
                         }
                         markerPoseEstimator.estimateMarkerPose(
@@ -238,7 +253,9 @@ class ARViewController(
                         )?.let { pose ->
                             marker.id to pose
                         } ?: run {
-                            Log.d(TAG, "Pose estimation returned null for marker ${marker.id}")
+                            if (BuildConfig.DEBUG) {
+                                Log.d(TAG, "Pose estimation returned null for marker ${marker.id}")
+                            }
                             null
                         }
                     }.toMap()

@@ -5,6 +5,7 @@ import com.example.arweld.core.domain.spatial.CameraIntrinsics
 import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Quaternion
 import com.example.arweld.core.domain.spatial.Vector3
+import com.example.arweld.feature.arview.BuildConfig
 import com.google.ar.core.Camera
 import com.google.ar.core.Pose
 import java.util.concurrent.atomic.AtomicBoolean
@@ -13,21 +14,27 @@ internal fun Camera.toCameraIntrinsics(rotationDegrees: Int? = null): CameraIntr
     val intrinsics = runCatching { imageIntrinsics }
         .getOrElse {
             if (INTRINSICS_FAILURE_LOGGED.compareAndSet(false, true)) {
-                Log.d(TAG, "imageIntrinsics unavailable: ${it.message}")
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "imageIntrinsics unavailable: ${it.message}")
+                }
             }
             null
         }
         ?: runCatching { textureIntrinsics }
             .getOrElse { error ->
                 if (INTRINSICS_FAILURE_LOGGED.compareAndSet(false, true)) {
-                    Log.d(TAG, "textureIntrinsics unavailable: ${error.message}; will retry")
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "textureIntrinsics unavailable: ${error.message}; will retry")
+                    }
                 }
                 null
             }
 
     if (intrinsics == null) {
         if (INTRINSICS_FAILURE_LOGGED.compareAndSet(false, true)) {
-            Log.d(TAG, "Camera intrinsics null; retrying on next frame")
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Camera intrinsics null; retrying on next frame")
+            }
         }
         return null
     }
@@ -46,11 +53,13 @@ internal fun Camera.toCameraIntrinsics(rotationDegrees: Int? = null): CameraIntr
 
     if (INTRINSICS_LOGGED.compareAndSet(false, true)) {
         val rotation = rotationDegrees?.let { "$it°" } ?: "n/a"
-        Log.d(
-            TAG,
-            "Intrinsics fx=${mapped.fx}, fy=${mapped.fy}, cx=${mapped.cx}, cy=${mapped.cy}, " +
-                "size=${mapped.width}x${mapped.height}, rotation=$rotation",
-        )
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                TAG,
+                "Intrinsics fx=${mapped.fx}, fy=${mapped.fy}, cx=${mapped.cx}, cy=${mapped.cy}, " +
+                    "size=${mapped.width}x${mapped.height}, rotation=$rotation",
+            )
+        }
     }
 
     return mapped

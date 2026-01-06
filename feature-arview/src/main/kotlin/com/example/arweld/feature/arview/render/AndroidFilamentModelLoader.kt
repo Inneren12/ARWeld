@@ -2,6 +2,7 @@ package com.example.arweld.feature.arview.render
 
 import android.content.Context
 import android.util.Log
+import com.example.arweld.feature.arview.BuildConfig
 import com.google.android.filament.Engine
 import com.google.android.filament.EntityManager
 import com.google.android.filament.utils.Utils
@@ -43,7 +44,9 @@ class AndroidFilamentModelLoader(
             engine = engine,
             asset = asset,
         ).also {
-            Log.d(TAG, "Loaded GLB asset: $assetPath with ${asset.entitiesCountCompat()} entities")
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Loaded GLB asset: $assetPath with ${asset.entitiesCountCompat()} entities")
+            }
         }
     }
 
