@@ -77,7 +77,7 @@ class ARViewController(
     private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
     private val markerDetector: MarkerDetector = markerDetector ?: RealMarkerDetector(::currentRotation)
     private val markerPoseEstimator = MarkerPoseEstimator()
-    private val zoneRegistry = ZoneRegistry()
+    private val zoneRegistry = ZoneRegistry.fromAssets(context.assets)
     private val zoneAligner = ZoneAligner(zoneRegistry)
     private val rigidTransformSolver = RigidTransformSolver()
     private val detectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -225,10 +225,15 @@ class ARViewController(
 
                 val worldPoses = if (intrinsics != null) {
                     markers.mapNotNull { marker ->
+                        val zoneTransform = zoneRegistry.get(marker.id)
+                        if (zoneTransform == null) {
+                            Log.d(TAG, "Marker ${marker.id} not found in zone registry")
+                            return@mapNotNull null
+                        }
                         markerPoseEstimator.estimateMarkerPose(
                             intrinsics = intrinsics,
                             marker = marker,
-                            markerSizeMeters = DEFAULT_MARKER_SIZE_METERS,
+                            markerSizeMeters = zoneTransform.markerSizeMeters,
                             cameraPoseWorld = cameraPoseWorld,
                         )?.let { pose ->
                             marker.id to pose
@@ -509,7 +514,6 @@ class ARViewController(
     companion object {
         private const val TAG = "ARViewController"
         private const val TEST_NODE_ASSET_PATH = "models/test_node.glb"
-        private const val DEFAULT_MARKER_SIZE_METERS = 0.12f
         private const val REQUIRED_POINTS = 3
         // Reference points chosen from test_node.glb: origin and two 20cm offsets along X/Y on the base plane
         private val MODEL_REFERENCE_POINTS = listOf(
