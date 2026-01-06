@@ -1,11 +1,14 @@
 package com.example.arweld.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.NavType
 import androidx.navigation.navigation
 import androidx.navigation.navArgument
 import com.example.arweld.ui.auth.LoginRoute
@@ -27,6 +30,15 @@ import com.example.arweld.ui.supervisor.WorkItemDetailRoute
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+    val navigationLogger: NavigationLoggerViewModel = hiltViewModel()
+
+    DisposableEffect(navController) {
+        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+            destination.route?.let { navigationLogger.logNavigation(it) }
+        }
+        navController.addOnDestinationChangedListener(listener)
+        onDispose { navController.removeOnDestinationChangedListener(listener) }
+    }
 
     NavHost(
         navController = navController,

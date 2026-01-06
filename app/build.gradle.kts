@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation("com.google.android.material:material:1.12.0")
+    implementation(libs.timber)
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
