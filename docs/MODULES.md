@@ -39,6 +39,8 @@ core:structural
 - `core:domain` depends on `core:structural`
 - `core:structural` has no dependencies (pure Kotlin/JVM, no Android framework)
 
+Sprint 1 also introduces placeholder feature modules `feature-assembler` and `feature-qc` to satisfy the planned topology; they currently host stub Composables and can be extended in later sprints.
+
 ---
 
 ## Module Descriptions

@@ -180,6 +180,7 @@ The MVP (Minimum Viable Product) delivers a **pilot-ready system in 6 sprints (~
 
 **Sprint 1–2: Foundation + Assembler Workflow**
 - Local database with event-driven architecture
+- Room schema version **2** (v1 baseline + migration_1_2 adds workItemId and sizeBytes to evidence)
 - Role-based authentication (local users)
 - Barcode/QR scanning with camera
 - Assembler workflow: scan → claim → start → mark ready for QC

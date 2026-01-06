@@ -167,7 +167,7 @@ class WorkRepositoryImplTest {
             id = workItemId,
             projectId = "project-2",
             zoneId = "zone-1",
-            type = "ASSEMBLY",
+            type = "NODE",
             code = "CODE-456",
             description = "Another item",
             nodeId = "node-123",

@@ -6,8 +6,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
+import androidx.navigation.navigation
 import androidx.navigation.navArgument
 import com.example.arweld.ui.auth.LoginRoute
+import com.example.arweld.ui.auth.SplashScreen
 import com.example.arweld.ui.home.HomeRoute
 import com.example.arweld.ui.ar.ARViewRoute
 import com.example.arweld.ui.work.AssemblerQueueRoute
@@ -28,191 +30,198 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
     NavHost(
         navController = navController,
-        startDestination = ROUTE_LOGIN,
+        startDestination = ROUTE_AUTH_GRAPH,
         modifier = modifier
     ) {
-        composable(ROUTE_LOGIN) {
-            LoginRoute(
-                onLoginSuccess = {
-                    navController.navigate(ROUTE_HOME) {
-                        popUpTo(ROUTE_LOGIN) { inclusive = true }
+        navigation(route = ROUTE_AUTH_GRAPH, startDestination = ROUTE_SPLASH) {
+            composable(ROUTE_SPLASH) {
+                SplashScreen(navController = navController)
+            }
+            composable(ROUTE_LOGIN) {
+                LoginRoute(
+                    onLoginSuccess = {
+                        navController.navigate(ROUTE_MAIN_GRAPH) {
+                            popUpTo(ROUTE_AUTH_GRAPH) { inclusive = true }
+                        }
                     }
-                }
-            )
+                )
+            }
         }
-        composable(ROUTE_HOME) {
-            HomeRoute(navController = navController)
-        }
-        composable(ROUTE_ASSEMBLER_QUEUE) {
-            AssemblerQueueRoute(navController = navController)
-        }
-        composable(ROUTE_QC_QUEUE) {
-            QcQueueRoute(navController = navController)
-        }
-        composable(
-            route = "$ROUTE_QC_CHECKLIST?workItemId={workItemId}&code={code}",
-            arguments = listOf(
-                navArgument("workItemId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("code") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val workItemId = backStackEntry.arguments?.getString("workItemId")
-            val code = backStackEntry.arguments?.getString("code")
-            QcChecklistRoute(
-                navController = navController,
-                workItemId = workItemId,
-                code = code,
-            )
-        }
-        composable(ROUTE_SCAN_CODE) {
-            ScanCodeRoute(navController = navController)
-        }
-        composable(
-            route = "$ROUTE_WORK_ITEM_SUMMARY?workItemId={workItemId}",
-            arguments = listOf(
-                navArgument("workItemId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val workItemId = backStackEntry.arguments?.getString("workItemId")
-            WorkItemSummaryRoute(
-                navController = navController,
-                workItemId = workItemId,
-            )
-        }
-        composable(ROUTE_TIMELINE) {
-            TimelineScreen()
-        }
-        composable(
-            route = "$ROUTE_AR_VIEW?workItemId={workItemId}",
-            arguments = listOf(
-                navArgument("workItemId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val workItemId = backStackEntry.arguments?.getString("workItemId")
-            ARViewRoute(
-                navController = navController,
-                workItemId = workItemId,
-            )
-        }
-        composable(
-            route = "$ROUTE_QC_START?workItemId={workItemId}&code={code}",
-            arguments = listOf(
-                navArgument("workItemId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("code") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val workItemId = backStackEntry.arguments?.getString("workItemId")
-            val code = backStackEntry.arguments?.getString("code")
-            QcStartRoute(
-                navController = navController,
-                workItemId = workItemId,
-                code = code,
-            )
-        }
-        composable(
-            route = "$ROUTE_QC_PASS_CONFIRM?workItemId={workItemId}&code={code}&checklist={checklist}",
-            arguments = listOf(
-                navArgument("workItemId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("code") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("checklist") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val workItemId = backStackEntry.arguments?.getString("workItemId")
-            val code = backStackEntry.arguments?.getString("code")
-            val checklistJson = backStackEntry.arguments?.getString("checklist")
-            QcPassConfirmRoute(
-                navController = navController,
-                workItemId = workItemId,
-                code = code,
-                checklistJson = checklistJson,
-            )
-        }
-        composable(
-            route = "$ROUTE_QC_FAIL_REASON?workItemId={workItemId}&code={code}&checklist={checklist}",
-            arguments = listOf(
-                navArgument("workItemId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("code") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("checklist") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val workItemId = backStackEntry.arguments?.getString("workItemId")
-            val code = backStackEntry.arguments?.getString("code")
-            val checklistJson = backStackEntry.arguments?.getString("checklist")
-            QcFailReasonRoute(
-                navController = navController,
-                workItemId = workItemId,
-                code = code,
-                checklistJson = checklistJson,
-            )
-        }
-        composable(ROUTE_SUPERVISOR_DASHBOARD) {
-            SupervisorDashboardRoute(
-                onWorkItemClick = { workItemId ->
-                    navController.navigate(workItemDetailRoute(workItemId))
-                }
-            )
-        }
-        composable(
-            route = "$ROUTE_WORK_ITEM_DETAIL/{workItemId}",
-            arguments = listOf(
-                navArgument("workItemId") {
-                    type = NavType.StringType
-                }
-            )
-        ) {
-            WorkItemDetailRoute(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+        navigation(route = ROUTE_MAIN_GRAPH, startDestination = ROUTE_HOME) {
+            composable(ROUTE_HOME) {
+                HomeRoute(navController = navController)
+            }
+            composable(ROUTE_ASSEMBLER_QUEUE) {
+                AssemblerQueueRoute(navController = navController)
+            }
+            composable(ROUTE_QC_QUEUE) {
+                QcQueueRoute(navController = navController)
+            }
+            composable(
+                route = "$ROUTE_QC_CHECKLIST?workItemId={workItemId}&code={code}",
+                arguments = listOf(
+                    navArgument("workItemId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("code") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val workItemId = backStackEntry.arguments?.getString("workItemId")
+                val code = backStackEntry.arguments?.getString("code")
+                QcChecklistRoute(
+                    navController = navController,
+                    workItemId = workItemId,
+                    code = code,
+                )
+            }
+            composable(ROUTE_SCAN_CODE) {
+                ScanCodeRoute(navController = navController)
+            }
+            composable(
+                route = "$ROUTE_WORK_ITEM_SUMMARY?workItemId={workItemId}",
+                arguments = listOf(
+                    navArgument("workItemId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val workItemId = backStackEntry.arguments?.getString("workItemId")
+                WorkItemSummaryRoute(
+                    navController = navController,
+                    workItemId = workItemId,
+                )
+            }
+            composable(ROUTE_TIMELINE) {
+                TimelineScreen()
+            }
+            composable(
+                route = "$ROUTE_AR_VIEW?workItemId={workItemId}",
+                arguments = listOf(
+                    navArgument("workItemId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val workItemId = backStackEntry.arguments?.getString("workItemId")
+                ARViewRoute(
+                    navController = navController,
+                    workItemId = workItemId,
+                )
+            }
+            composable(
+                route = "$ROUTE_QC_START?workItemId={workItemId}&code={code}",
+                arguments = listOf(
+                    navArgument("workItemId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("code") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val workItemId = backStackEntry.arguments?.getString("workItemId")
+                val code = backStackEntry.arguments?.getString("code")
+                QcStartRoute(
+                    navController = navController,
+                    workItemId = workItemId,
+                    code = code,
+                )
+            }
+            composable(
+                route = "$ROUTE_QC_PASS_CONFIRM?workItemId={workItemId}&code={code}&checklist={checklist}",
+                arguments = listOf(
+                    navArgument("workItemId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("code") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("checklist") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val workItemId = backStackEntry.arguments?.getString("workItemId")
+                val code = backStackEntry.arguments?.getString("code")
+                val checklistJson = backStackEntry.arguments?.getString("checklist")
+                QcPassConfirmRoute(
+                    navController = navController,
+                    workItemId = workItemId,
+                    code = code,
+                    checklistJson = checklistJson,
+                )
+            }
+            composable(
+                route = "$ROUTE_QC_FAIL_REASON?workItemId={workItemId}&code={code}&checklist={checklist}",
+                arguments = listOf(
+                    navArgument("workItemId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("code") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("checklist") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val workItemId = backStackEntry.arguments?.getString("workItemId")
+                val code = backStackEntry.arguments?.getString("code")
+                val checklistJson = backStackEntry.arguments?.getString("checklist")
+                QcFailReasonRoute(
+                    navController = navController,
+                    workItemId = workItemId,
+                    code = code,
+                    checklistJson = checklistJson,
+                )
+            }
+            composable(ROUTE_SUPERVISOR_DASHBOARD) {
+                SupervisorDashboardRoute(
+                    onWorkItemClick = { workItemId ->
+                        navController.navigate(workItemDetailRoute(workItemId))
+                    }
+                )
+            }
+            composable(
+                route = "$ROUTE_WORK_ITEM_DETAIL/{workItemId}",
+                arguments = listOf(
+                    navArgument("workItemId") {
+                        type = NavType.StringType
+                    }
+                )
+            ) {
+                WorkItemDetailRoute(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
     }
 }

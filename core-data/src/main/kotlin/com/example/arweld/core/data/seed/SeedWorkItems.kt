@@ -22,7 +22,7 @@ object SeedWorkItems {
             id = "W-002",
             projectId = "P-1",
             zoneId = "ZONE-B",
-            type = WorkItemType.ASSEMBLY.name,
+            type = WorkItemType.NODE.name,
             code = "ARWELD-W-002",
             description = "Column flange weld",
             nodeId = "NODE-FLANGE",

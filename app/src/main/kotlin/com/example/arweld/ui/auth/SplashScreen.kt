@@ -16,7 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.arweld.navigation.Routes
+import com.example.arweld.navigation.ROUTE_LOGIN
+import com.example.arweld.navigation.ROUTE_SPLASH
 
 /**
  * Splash screen - entry point for the app.
@@ -27,8 +28,8 @@ import com.example.arweld.navigation.Routes
 fun SplashScreen(navController: NavHostController) {
     // Navigate to Login screen immediately on first composition
     LaunchedEffect(Unit) {
-        navController.navigate(Routes.ROUTE_LOGIN) {
-            popUpTo(Routes.ROUTE_SPLASH) { inclusive = true }
+        navController.navigate(ROUTE_LOGIN) {
+            popUpTo(ROUTE_SPLASH) { inclusive = true }
         }
     }
 

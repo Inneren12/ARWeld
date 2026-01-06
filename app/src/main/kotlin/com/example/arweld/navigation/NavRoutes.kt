@@ -2,6 +2,8 @@ package com.example.arweld.navigation
 
 import android.net.Uri
 
+const val ROUTE_AUTH_GRAPH = "auth_graph"
+const val ROUTE_MAIN_GRAPH = "main_graph"
 const val ROUTE_SPLASH = "splash"
 const val ROUTE_LOGIN = "login"
 const val ROUTE_HOME = "home"

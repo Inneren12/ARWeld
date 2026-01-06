@@ -107,8 +107,7 @@ fun reduce(events: List<Event>): WorkItemState {
             // it is still captured via lastEvent below.
 
             EventType.AR_ALIGNMENT_SET,
-            EventType.EVIDENCE_CAPTURED,
-            EventType.ISSUE_CREATED -> state
+            EventType.EVIDENCE_CAPTURED -> state
         }
 
         updated.copy(lastEvent = event)

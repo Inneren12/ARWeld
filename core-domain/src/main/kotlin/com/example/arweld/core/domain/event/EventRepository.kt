@@ -19,4 +19,9 @@ interface EventRepository {
      * Fetch all events for a WorkItem ordered by timestamp.
      */
     suspend fun getEventsForWorkItem(workItemId: String): List<Event>
+
+    /**
+     * Returns the most recent events performed by a given user ordered by recency.
+     */
+    suspend fun getLastEventsByUser(userId: String): List<Event>
 }
