@@ -11,7 +11,8 @@ import androidx.room.PrimaryKey
     tableName = "events",
     indices = [
         Index(value = ["workItemId"]),
-        Index(value = ["actorId"])
+        Index(value = ["actorId"]),
+        Index(value = ["workItemId", "timestamp"]),
     ]
 )
 data class EventEntity(
