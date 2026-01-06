@@ -6,6 +6,7 @@ import android.graphics.Rect
 import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
+import androidx.annotation.VisibleForTesting
 import com.google.android.gms.tasks.Tasks
 import com.google.ar.core.Frame
 import com.google.ar.core.exceptions.NotYetAvailableException
@@ -91,7 +92,8 @@ class RealMarkerDetector(
         }
     }
 
-    private fun rotationDegreesFromSurface(rotation: Int): Int = when (rotation) {
+    @VisibleForTesting
+    internal fun rotationDegreesFromSurface(rotation: Int): Int = when (rotation) {
         Surface.ROTATION_90 -> 90
         Surface.ROTATION_180 -> 180
         Surface.ROTATION_270 -> 270
@@ -113,7 +115,8 @@ class RealMarkerDetector(
         return rawCorners.map { mapToImageSpace(it, width, height, rotationDegrees) }
     }
 
-    private fun mapToImageSpace(point: Point, width: Int, height: Int, rotationDegrees: Int): PointF {
+    @VisibleForTesting
+    internal fun mapToImageSpace(point: Point, width: Int, height: Int, rotationDegrees: Int): PointF {
         return when (rotationDegrees % 360) {
             90 -> PointF(point.y.toFloat(), (width - point.x).toFloat())
             180 -> PointF((width - point.x).toFloat(), (height - point.y).toFloat())
@@ -122,7 +125,8 @@ class RealMarkerDetector(
         }
     }
 
-    private fun orderCorners(corners: List<PointF>): List<PointF> {
+    @VisibleForTesting
+    internal fun orderCorners(corners: List<PointF>): List<PointF> {
         if (corners.size < 4) return corners
         val sortedByY = corners.sortedBy { it.y }
         val top = sortedByY.take(2).sortedBy { it.x }

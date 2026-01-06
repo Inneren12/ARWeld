@@ -5,6 +5,7 @@ import android.util.Log
 import android.view.Choreographer
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.arcore.toArCorePose
@@ -286,7 +287,9 @@ class ARSceneRenderer(
         val now = System.nanoTime()
         if (now - lastFpsLogTimestampNs < FPS_LOG_INTERVAL_NS) return
         lastFpsLogTimestampNs = now
-        Log.d(TAG, "Render FPS (smoothed): ${"%.1f".format(fps)}")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Render FPS (smoothed): ${"%.1f".format(fps)}")
+        }
     }
 
     companion object {
