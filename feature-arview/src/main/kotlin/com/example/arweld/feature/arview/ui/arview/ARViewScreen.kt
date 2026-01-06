@@ -128,6 +128,8 @@ fun ARViewScreen(
             ManualAlignmentOverlay(
                 state = manualState,
                 onStartManualAlignment = { controller.startManualAlignment() },
+                onResetManualAlignment = { controller.resetManualAlignment() },
+                onCancelManualAlignment = { controller.cancelManualAlignment() },
                 modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
             )
             Column(
@@ -196,20 +198,39 @@ internal interface AlignmentEventLoggerEntryPoint {
 private fun ManualAlignmentOverlay(
     state: ManualAlignmentState,
     onStartManualAlignment: () -> Unit,
+    onResetManualAlignment: () -> Unit,
+    onCancelManualAlignment: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        Button(onClick = onStartManualAlignment) {
-            Text(text = stringResource(id = R.string.manual_align_button))
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(id = R.string.manual_align_progress, state.collectedCount),
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        state.statusMessage?.let {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (!state.isActive) {
+            Button(onClick = onStartManualAlignment) {
+                Text(text = stringResource(id = R.string.manual_align_button))
+            }
+            state.statusMessage?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            Text(
+                text = stringResource(id = R.string.manual_align_progress, state.collectedCount),
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = onResetManualAlignment) {
+                    Text(text = stringResource(id = R.string.manual_align_reset))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = onCancelManualAlignment) {
+                    Text(text = stringResource(id = R.string.manual_align_cancel))
+                }
+            }
+            state.statusMessage?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

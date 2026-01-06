@@ -46,7 +46,7 @@ class AlignmentEventLogger @Inject constructor(
     ) {
         logAlignment(
             workItemId = workItemId,
-            method = "manual",
+            method = "manual_3pt",
             markerIds = emptyList(),
             numPoints = numPoints,
             transform = transform,

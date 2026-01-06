@@ -3,6 +3,8 @@
     <string name="back">Back</string>
     <string name="manual_align_button">Manual align (tap 3 points)</string>
     <string name="manual_align_progress">Collected %1$d/3 points</string>
+    <string name="manual_align_reset">Reset points</string>
+    <string name="manual_align_cancel">Cancel</string>
     <string name="tracking_ok">Tracking OK</string>
     <string name="tracking_unstable">Tracking unstable</string>
     <string name="tracking_poor">Tracking poor</string>
