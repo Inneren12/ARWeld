@@ -58,13 +58,15 @@ public class AppDatabase_Impl : AppDatabase() {
   }
 
   protected override fun createOpenDelegate(): RoomOpenDelegate {
-    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(2,
-        "2c119d16aa12807532e9e646b6001abc", "1f7abebf9b15f2ba2d844e859392e640") {
+    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(3,
+        "8ab5cd169cd240300682d1412b7f0b85", "424b44e1442115ccd773b705df061232") {
       public override fun createAllTables(connection: SQLiteConnection) {
         connection.execSQL("CREATE TABLE IF NOT EXISTS `work_items` (`id` TEXT NOT NULL, `projectId` TEXT NOT NULL, `zoneId` TEXT, `type` TEXT NOT NULL, `code` TEXT, `description` TEXT, `nodeId` TEXT, `createdAt` INTEGER, PRIMARY KEY(`id`))")
+        connection.execSQL("CREATE INDEX IF NOT EXISTS `index_work_items_code` ON `work_items` (`code`)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `events` (`id` TEXT NOT NULL, `workItemId` TEXT NOT NULL, `type` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `actorId` TEXT NOT NULL, `actorRole` TEXT NOT NULL, `deviceId` TEXT NOT NULL, `payloadJson` TEXT, PRIMARY KEY(`id`))")
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_events_workItemId` ON `events` (`workItemId`)")
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_events_actorId` ON `events` (`actorId`)")
+        connection.execSQL("CREATE INDEX IF NOT EXISTS `index_events_workItemId_timestamp` ON `events` (`workItemId`, `timestamp`)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `evidence` (`id` TEXT NOT NULL, `workItemId` TEXT NOT NULL, `eventId` TEXT NOT NULL, `kind` TEXT NOT NULL, `uri` TEXT NOT NULL, `sha256` TEXT NOT NULL, `sizeBytes` INTEGER NOT NULL, `metaJson` TEXT, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_evidence_eventId` ON `evidence` (`eventId`)")
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_evidence_workItemId` ON `evidence` (`workItemId`)")
@@ -72,7 +74,7 @@ public class AppDatabase_Impl : AppDatabase() {
         connection.execSQL("CREATE TABLE IF NOT EXISTS `sync_queue` (`id` TEXT NOT NULL, `payloadJson` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `status` TEXT NOT NULL, `retryCount` INTEGER NOT NULL, PRIMARY KEY(`id`))")
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_sync_queue_status` ON `sync_queue` (`status`)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
-        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2c119d16aa12807532e9e646b6001abc')")
+        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8ab5cd169cd240300682d1412b7f0b85')")
       }
 
       public override fun dropAllTables(connection: SQLiteConnection) {
@@ -118,6 +120,8 @@ public class AppDatabase_Impl : AppDatabase() {
             TableInfo.CREATED_FROM_ENTITY))
         val _foreignKeysWorkItems: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
         val _indicesWorkItems: MutableSet<TableInfo.Index> = mutableSetOf()
+        _indicesWorkItems.add(TableInfo.Index("index_work_items_code", false, listOf("code"),
+            listOf("ASC")))
         val _infoWorkItems: TableInfo = TableInfo("work_items", _columnsWorkItems,
             _foreignKeysWorkItems, _indicesWorkItems)
         val _existingWorkItems: TableInfo = read(connection, "work_items")
@@ -153,6 +157,8 @@ public class AppDatabase_Impl : AppDatabase() {
             listOf("ASC")))
         _indicesEvents.add(TableInfo.Index("index_events_actorId", false, listOf("actorId"),
             listOf("ASC")))
+        _indicesEvents.add(TableInfo.Index("index_events_workItemId_timestamp", false,
+            listOf("workItemId", "timestamp"), listOf("ASC", "ASC")))
         val _infoEvents: TableInfo = TableInfo("events", _columnsEvents, _foreignKeysEvents,
             _indicesEvents)
         val _existingEvents: TableInfo = read(connection, "events")

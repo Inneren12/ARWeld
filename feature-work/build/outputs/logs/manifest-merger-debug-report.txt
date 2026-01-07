@@ -1,16 +1,16 @@
 -- Merging decision tree log ---
 manifest
-ADDED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5595524315844447430.xml:2:13-83
-INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5595524315844447430.xml:2:13-83
+ADDED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest14891899617603288187.xml:2:13-83
+INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest14891899617603288187.xml:2:13-83
 	package
-		INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5595524315844447430.xml
+		INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest14891899617603288187.xml
 	xmlns:android
-		ADDED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5595524315844447430.xml:2:23-81
+		ADDED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest14891899617603288187.xml:2:23-81
 uses-sdk
-INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5595524315844447430.xml reason: use-sdk injection requested
-INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5595524315844447430.xml
-INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5595524315844447430.xml
+INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest14891899617603288187.xml reason: use-sdk injection requested
+INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest14891899617603288187.xml
+INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest14891899617603288187.xml
 	android:targetSdkVersion
-		INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5595524315844447430.xml
+		INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest14891899617603288187.xml
 	android:minSdkVersion
-		INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest5595524315844447430.xml
+		INJECTED from C:\B\ARWeld1\feature-work\build\intermediates\tmp\ProcessLibraryManifest\debug\tempAndroidManifest14891899617603288187.xml

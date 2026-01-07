@@ -1,12 +1,22 @@
 com.example.arweld.feature.arview
 drawable ic_arrow_back
+string alignment_score_label
 string ar_view_title
 string back
 string capture_ar_screenshot
 string capture_ar_screenshot_error
 string capture_ar_screenshot_success
+string diagnostic_alignment_score
+string diagnostic_intrinsics_status
+string diagnostic_marker_count
+string diagnostic_overlay_title
+string diagnostic_render_fps
+string diagnostic_value_missing
+string diagnostic_value_ok
 string manual_align_button
+string manual_align_cancel
 string manual_align_progress
+string manual_align_reset
 string simulate_marker_button
 string tracking_ok
 string tracking_poor
