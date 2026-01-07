@@ -175,7 +175,7 @@ private data class EvidenceCapturedPayload(
     val uri: String,
     val sizeBytes: Long,
     val timestamp: Long,
-    val markerIds: List<Int>?,
+    val markerIds: List<String>?,
     val trackingQuality: String?,
     val alignmentScore: Float?,
     val screenshotTimestamp: Long?,

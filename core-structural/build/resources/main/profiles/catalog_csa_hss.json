@@ -1,0 +1,36 @@
+{
+  "standard": "CSA",
+  "type": "HSS",
+  "items": [
+    {
+      "designation": "HSS 152x152x6.4",
+      "aliases": ["HSS152X152X6.4", "HSS 6x6x1/4"],
+      "hMm": 152.4,
+      "bMm": 152.4,
+      "tMm": 6.4,
+      "cornerRadiusMm": 10.0,
+      "massKgPerM": 35.7,
+      "areaMm2": 4550.0
+    },
+    {
+      "designation": "HSS 203x152x8.0",
+      "aliases": ["HSS203X152X8.0", "HSS 8x6x5/16"],
+      "hMm": 203.2,
+      "bMm": 152.4,
+      "tMm": 8.0,
+      "cornerRadiusMm": 12.0,
+      "massKgPerM": 50.2,
+      "areaMm2": 6390.0
+    },
+    {
+      "designation": "HSS 4x4x5/16",
+      "aliases": ["HSS4X4X5/16"],
+      "hMm": 101.6,
+      "bMm": 101.6,
+      "tMm": 7.9,
+      "cornerRadiusMm": 6.0,
+      "massKgPerM": 26.9,
+      "areaMm2": 3430.0
+    }
+  ]
+}
