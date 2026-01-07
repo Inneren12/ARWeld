@@ -1,0 +1,15 @@
+-- Merging decision tree log ---
+manifest
+ADDED from C:\B\ARWeld1\feature-assembler\src\main\AndroidManifest.xml:1:1-60
+INJECTED from C:\B\ARWeld1\feature-assembler\src\main\AndroidManifest.xml:1:1-60
+	package
+		ADDED from C:\B\ARWeld1\feature-assembler\src\main\AndroidManifest.xml:1:11-57
+		INJECTED from C:\B\ARWeld1\feature-assembler\src\main\AndroidManifest.xml
+uses-sdk
+INJECTED from C:\B\ARWeld1\feature-assembler\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from C:\B\ARWeld1\feature-assembler\src\main\AndroidManifest.xml
+INJECTED from C:\B\ARWeld1\feature-assembler\src\main\AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from C:\B\ARWeld1\feature-assembler\src\main\AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from C:\B\ARWeld1\feature-assembler\src\main\AndroidManifest.xml

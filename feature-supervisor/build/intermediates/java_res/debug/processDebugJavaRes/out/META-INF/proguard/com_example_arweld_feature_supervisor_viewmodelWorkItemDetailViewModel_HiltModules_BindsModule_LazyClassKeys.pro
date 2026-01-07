@@ -1,0 +1,3 @@
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.supervisor.viewmodel.SupervisorDashboardViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.supervisor.viewmodel.SupervisorDashboardViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.supervisor.viewmodel.WorkItemDetailViewModel

@@ -1,0 +1,16 @@
+{
+  "standard": "CSA",
+  "type": "L",
+  "items": [
+    {
+      "designation": "L51x38x6.4",
+      "aliases": ["L51X38X6.4", "L 51 x 38 x 6.4"],
+      "leg1Mm": 51.0,
+      "leg2Mm": 38.0,
+      "tMm": 6.4,
+      "cornerRadiusMm": 4.0,
+      "massKgPerM": 4.6,
+      "areaMm2": 585.0
+    }
+  ]
+}

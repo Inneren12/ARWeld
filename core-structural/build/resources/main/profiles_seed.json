@@ -1,0 +1,123 @@
+[
+  {
+    "specKind": "WShapeSpec",
+    "designation": "W200x27",
+    "dMm": 203.2,
+    "bfMm": 133.4,
+    "twMm": 6.1,
+    "tfMm": 7.6,
+    "areaMm2": 3450.0,
+    "massKgPerM": 26.9
+  },
+  {
+    "specKind": "WShapeSpec",
+    "designation": "W310x39",
+    "dMm": 307.3,
+    "bfMm": 165.1,
+    "twMm": 6.4,
+    "tfMm": 9.4,
+    "areaMm2": 5050.0,
+    "massKgPerM": 38.9
+  },
+  {
+    "specKind": "WShapeSpec",
+    "designation": "W360x33",
+    "dMm": 342.9,
+    "bfMm": 171.5,
+    "twMm": 5.8,
+    "tfMm": 8.9,
+    "areaMm2": 4210.0,
+    "massKgPerM": 32.9
+  },
+  {
+    "specKind": "WShapeSpec",
+    "designation": "W410x60",
+    "dMm": 419.1,
+    "bfMm": 178.8,
+    "twMm": 8.6,
+    "tfMm": 12.7,
+    "areaMm2": 7690.0,
+    "massKgPerM": 60.3
+  },
+  {
+    "specKind": "HssSpec",
+    "designation": "HSS 6x6x3/8",
+    "hMm": 152.4,
+    "bMm": 152.4,
+    "tMm": 8.9,
+    "areaMm2": 4280.0,
+    "massKgPerM": 52.9
+  },
+  {
+    "specKind": "HssSpec",
+    "designation": "HSS 8x4x1/4",
+    "hMm": 203.2,
+    "bMm": 101.6,
+    "tMm": 6.4,
+    "areaMm2": 3620.0,
+    "massKgPerM": 28.3
+  },
+  {
+    "specKind": "HssSpec",
+    "designation": "HSS 4x4x5/16",
+    "hMm": 101.6,
+    "bMm": 101.6,
+    "tMm": 7.9,
+    "areaMm2": 3430.0,
+    "massKgPerM": 26.9
+  },
+  {
+    "specKind": "ChannelSpec",
+    "designation": "C200x20",
+    "dMm": 200.0,
+    "bfMm": 76.0,
+    "twMm": 6.0,
+    "tfMm": 8.0,
+    "areaMm2": 2550.0,
+    "massKgPerM": 20.0
+  },
+  {
+    "specKind": "ChannelSpec",
+    "designation": "C380x50",
+    "dMm": 380.0,
+    "bfMm": 100.0,
+    "twMm": 8.0,
+    "tfMm": 13.0,
+    "areaMm2": 6300.0,
+    "massKgPerM": 49.0
+  },
+  {
+    "specKind": "AngleSpec",
+    "designation": "L4x4x3/8",
+    "leg1Mm": 101.6,
+    "leg2Mm": 101.6,
+    "tMm": 9.5,
+    "areaMm2": 1740.0,
+    "massKgPerM": 13.0
+  },
+  {
+    "specKind": "AngleSpec",
+    "designation": "L3x2x1/4",
+    "leg1Mm": 76.2,
+    "leg2Mm": 50.8,
+    "tMm": 6.4,
+    "areaMm2": 1030.0,
+    "massKgPerM": 8.1
+  },
+  {
+    "specKind": "PlateSpec",
+    "designation": "PL 10x250",
+    "tMm": 10.0,
+    "wMm": 250.0,
+    "areaMm2": 2500.0,
+    "massKgPerM": 19.6
+  },
+  {
+    "specKind": "PlateSpec",
+    "designation": "PL 20x300",
+    "tMm": 20.0,
+    "wMm": 300.0,
+    "areaMm2": 6000.0,
+    "massKgPerM": 47.1
+  }
+]

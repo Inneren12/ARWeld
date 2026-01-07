@@ -1,0 +1,3 @@
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.AssemblerQueueViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.AssemblerQueueViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.QcChecklistViewModel

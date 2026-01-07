@@ -35,6 +35,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -70,7 +71,7 @@ dependencies {
     implementation(libs.filament.gltfio.android)
     implementation(libs.filament.utils.android)
     implementation(libs.mlkit.barcode.scanning)
-
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

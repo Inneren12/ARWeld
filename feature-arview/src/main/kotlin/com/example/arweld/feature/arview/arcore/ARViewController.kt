@@ -630,7 +630,6 @@ class ARViewController(
             return
         }
 
-        val now = System.nanoTime()
         if (now - lastQualityChangeNs < QUALITY_HOLD_DURATION_NS) {
             return
         }
