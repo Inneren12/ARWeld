@@ -2,6 +2,7 @@ package com.example.arweld.feature.work.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.arweld.core.domain.state.WorkItemState
 import com.example.arweld.core.domain.work.WorkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -38,11 +39,19 @@ class QcQueueViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(QcQueueUiState(isLoading = true))
     val uiState: StateFlow<QcQueueUiState> = _uiState.asStateFlow()
 
-    suspend fun loadQcQueue() {
+    fun refresh() {
+        viewModelScope.launch { loadQcQueueInternal() }
+    }
+
+    fun updateSortMode(sortMode: QcQueueSort) {
+        _uiState.value = _uiState.value.copy(sortMode = sortMode)
+    }
+
+    private suspend fun loadQcQueueInternal() {
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
         runCatching {
-            val queue = workRepository.getQcQueue()
-            queue.mapNotNull { state ->
+            val queue: List<WorkItemState> = workRepository.getQcQueue()
+            val mappedItems: List<QcQueueItemUiModel> = queue.mapNotNull { state ->
                 val workItemId = state.lastEvent?.workItemId ?: return@mapNotNull null
                 val workItem = workRepository.getWorkItemById(workItemId) ?: return@mapNotNull null
                 val readyForQcSince = state.readyForQcSince
@@ -59,14 +68,13 @@ class QcQueueViewModel @Inject constructor(
                     waitingTimeMinutes = waitingTimeMinutes,
                 )
             }
-                .sortedWith(
-                    when (_uiState.value.sortMode) {
-                        QcQueueSort.BY_AGE -> compareBy<QcQueueItemUiModel> { it.readyForQcSince ?: Long.MAX_VALUE }
-                            .thenBy { it.code }
-                        QcQueueSort.BY_ZONE -> compareBy<QcQueueItemUiModel> { it.zone ?: "" }
-                            .thenBy { it.readyForQcSince ?: Long.MAX_VALUE }
-                    },
-                )
+            val comparator: Comparator<QcQueueItemUiModel> = when (_uiState.value.sortMode) {
+                QcQueueSort.BY_AGE -> compareBy<QcQueueItemUiModel> { it.readyForQcSince ?: Long.MAX_VALUE }
+                    .thenBy { it.code }
+                QcQueueSort.BY_ZONE -> compareBy<QcQueueItemUiModel> { it.zone ?: "" }
+                    .thenBy { it.readyForQcSince ?: Long.MAX_VALUE }
+            }
+            mappedItems.sortedWith(comparator)
         }.onSuccess { items ->
             _uiState.value = QcQueueUiState(
                 isLoading = false,
@@ -82,13 +90,5 @@ class QcQueueViewModel @Inject constructor(
                 sortMode = _uiState.value.sortMode,
             )
         }
-    }
-
-    fun refresh() {
-        viewModelScope.launch { loadQcQueue() }
-    }
-
-    fun updateSortMode(sortMode: QcQueueSort) {
-        _uiState.value = _uiState.value.copy(sortMode = sortMode)
     }
 }

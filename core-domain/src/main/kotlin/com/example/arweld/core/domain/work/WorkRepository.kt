@@ -27,4 +27,8 @@ interface WorkRepository {
     suspend fun getWorkItemByCode(code: String): WorkItem? = getByCode(code)
 
     suspend fun getWorkItemById(id: String): WorkItem? = getById(id)
+
+    suspend fun getMyQueue(userId: String): List<WorkItemState> = listMyQueue(userId)
+
+    suspend fun getQcQueue(): List<WorkItemState> = listQcQueue()
 }
