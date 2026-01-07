@@ -10,7 +10,7 @@ import androidx.annotation.VisibleForTesting
 import com.google.android.gms.tasks.Tasks
 import com.google.ar.core.Frame
 import com.google.ar.core.exceptions.NotYetAvailableException
-import com.google.mlkit.vision.barcode.Barcode
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
