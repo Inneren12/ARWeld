@@ -1,0 +1,10 @@
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.AssemblerQueueViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.AssemblerQueueViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.QcChecklistViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.QcChecklistViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.QcFailReasonViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.QcFailReasonViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.QcPassConfirmViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.QcPassConfirmViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.QcQueueViewModel
+-keep,allowobfuscation,allowshrinking class com.example.arweld.feature.work.viewmodel.QcQueueViewModel
