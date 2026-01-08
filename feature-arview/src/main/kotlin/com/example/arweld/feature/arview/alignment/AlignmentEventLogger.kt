@@ -99,7 +99,7 @@ class AlignmentEventLogger @Inject constructor(
             .onFailure { error -> Log.w(TAG, "Failed to append alignment event", error) }
     }
 
-    private fun resolveDeviceId(): String = Build.MODEL.ifBlank { UNKNOWN_DEVICE_ID }
+    private fun resolveDeviceId(): String = Build.MODEL?.takeIf { it.isNotBlank() } ?: UNKNOWN_DEVICE_ID
 
     companion object {
         private const val TAG = "AlignmentEventLogger"
