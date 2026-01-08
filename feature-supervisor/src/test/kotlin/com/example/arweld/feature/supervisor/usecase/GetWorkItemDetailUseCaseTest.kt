@@ -64,7 +64,7 @@ class GetWorkItemDetailUseCaseTest {
         whenever(eventDao.getByWorkItemId("wi1")).thenReturn(events)
 
         // Mock user
-        whenever(userDao.getUserById("user1")).thenReturn(
+        whenever(userDao.getById("user1")).thenReturn(
             createUserEntity("user1", "Alice", Role.ASSEMBLER)
         )
 
@@ -99,10 +99,10 @@ class GetWorkItemDetailUseCaseTest {
         whenever(eventDao.getByWorkItemId("wi1")).thenReturn(events)
 
         // Mock users
-        whenever(userDao.getUserById("user1")).thenReturn(
+        whenever(userDao.getById("user1")).thenReturn(
             createUserEntity("user1", "Alice", Role.ASSEMBLER)
         )
-        whenever(userDao.getUserById("user2")).thenReturn(
+        whenever(userDao.getById("user2")).thenReturn(
             createUserEntity("user2", "Bob", Role.QC)
         )
 
@@ -140,10 +140,10 @@ class GetWorkItemDetailUseCaseTest {
         whenever(eventDao.getByWorkItemId("wi1")).thenReturn(events)
 
         // Mock users
-        whenever(userDao.getUserById("user1")).thenReturn(
+        whenever(userDao.getById("user1")).thenReturn(
             createUserEntity("user1", "Alice", Role.ASSEMBLER)
         )
-        whenever(userDao.getUserById("user2")).thenReturn(
+        whenever(userDao.getById("user2")).thenReturn(
             createUserEntity("user2", "Bob", Role.QC)
         )
 
@@ -178,7 +178,7 @@ class GetWorkItemDetailUseCaseTest {
         whenever(eventDao.getByWorkItemId("wi1")).thenReturn(events)
 
         // Mock user dao returns null
-        whenever(userDao.getUserById("unknown_user")).thenReturn(null)
+        whenever(userDao.getById("unknown_user")).thenReturn(null)
 
         // When
         val timeline = useCase.getTimeline("wi1")
@@ -218,7 +218,7 @@ class GetWorkItemDetailUseCaseTest {
         )
         whenever(eventDao.getByWorkItemId("wi1")).thenReturn(events)
 
-        whenever(userDao.getUserById("user1")).thenReturn(
+        whenever(userDao.getById("user1")).thenReturn(
             createUserEntity("user1", "Alice", Role.ASSEMBLER)
         )
 
@@ -245,7 +245,7 @@ class GetWorkItemDetailUseCaseTest {
         )
         whenever(eventDao.getByWorkItemId("wi1")).thenReturn(events)
 
-        whenever(userDao.getUserById("user1")).thenReturn(
+        whenever(userDao.getById("user1")).thenReturn(
             createUserEntity("user1", "Alice", Role.ASSEMBLER)
         )
 
@@ -281,11 +281,12 @@ class GetWorkItemDetailUseCaseTest {
         createdAt = createdAt
     )
 
-    private fun createUserEntity(id: String, name: String, role: Role) = UserEntity(
+    private fun createUserEntity(id: String, name: String, role: Role, lastSeenAt: Long = 0L) = UserEntity(
         id = id,
-        displayName = name,
+        name = name,
         role = role.name,
-        isActive = true
+        isActive = true,
+        lastSeenAt = lastSeenAt,
     )
 
     private fun createEventEntity(

@@ -71,7 +71,9 @@ dependencies {
     implementation(libs.filament.gltfio.android)
     implementation(libs.filament.utils.android)
     implementation(libs.mlkit.barcode.scanning)
-
+    testImplementation("com.google.truth:truth:1.4.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+        testImplementation("io.mockk:mockk:1.14.7")
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

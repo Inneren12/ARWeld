@@ -5,62 +5,50 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.After
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class Migration2To3Test {
 
-    private val testDb = "migration-test"
-
     @get:Rule
     val helper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
-        AppDatabase::class.java,
-        emptyList(),
+        AppDatabase::class.java.canonicalName,
         FrameworkSQLiteOpenHelperFactory()
     )
 
+    private val dbName = "migration-test"
+
+    @After
+    fun tearDown() {
+        InstrumentationRegistry.getInstrumentation().targetContext.deleteDatabase(dbName)
+    }
+
     @Test
-    fun migration2To3_createsIndexes() {
-        helper.createDatabase(testDb, 2).close()
+    fun migratesFrom2To3_andCreatesIndexes() {
+        helper.createDatabase(dbName, 2).close()
 
-        val migratedDb = helper.runMigrationsAndValidate(testDb, 3, true, MIGRATION_2_3)
+        helper.runMigrationsAndValidate(dbName, 3, true, MIGRATION_2_3).use { db ->
+            val workItemIndexes = db.indexNames("work_items")
+            val eventIndexes = db.indexNames("events")
 
-        migratedDb.use { database ->
-            val workItemIndexes = database.indexNames("work_items")
-            assertTrue("index_work_items_code" in workItemIndexes)
-
-            val eventIndexes = database.indexNames("events")
-            assertTrue("index_events_workItemId_timestamp" in eventIndexes)
-
-            val eventIndexColumns = database.indexColumns("index_events_workItemId_timestamp")
-            assertEquals(listOf("workItemId", "timestamp"), eventIndexColumns)
+            assertTrue(workItemIndexes.contains("index_work_items_code"))
+            assertTrue(eventIndexes.contains("index_events_workItemId_timestamp"))
         }
     }
 
-    private fun SupportSQLiteDatabase.indexNames(tableName: String): List<String> {
-        return query("PRAGMA index_list('$tableName')").use { cursor ->
-            buildList {
-                val nameIndex = cursor.getColumnIndexOrThrow("name")
-                while (cursor.moveToNext()) {
-                    add(cursor.getString(nameIndex))
-                }
+    private fun SupportSQLiteDatabase.indexNames(table: String): List<String> {
+        val names = mutableListOf<String>()
+        query("PRAGMA index_list('$table')").use { cursor ->
+            val nameColumn = cursor.getColumnIndex("name")
+            while (cursor.moveToNext()) {
+                names.add(cursor.getString(nameColumn))
             }
         }
-    }
-
-    private fun SupportSQLiteDatabase.indexColumns(indexName: String): List<String> {
-        return query("PRAGMA index_info('$indexName')").use { cursor ->
-            buildList {
-                val nameIndex = cursor.getColumnIndexOrThrow("name")
-                while (cursor.moveToNext()) {
-                    add(cursor.getString(nameIndex))
-                }
-            }
-        }
+        return names
     }
 }

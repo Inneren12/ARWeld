@@ -9,6 +9,10 @@ import com.example.arweld.core.domain.model.User
 import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Quaternion
 import com.example.arweld.core.domain.spatial.Vector3
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -17,8 +21,26 @@ class AlignmentEventLoggerTest {
 
     @Test
     fun `logs alignment event on success`() = runTest {
-        val eventRepository = FakeEventRepository()
-        val authRepository = FakeAuthRepository()
+        val eventRepository = mockk<EventRepository>(relaxed = true)
+        val authRepository = mockk<AuthRepository>(relaxed = true)
+        val user = mockk<User>(relaxed = true)
+
+        // AlignmentEventLogger обычно берет текущего юзера отсюда
+        coEvery { authRepository.currentUser() } returns user
+
+        // На всякий случай фиксируем нужные поля (если логгер их использует)
+        every { user.id } returns "user-1"
+        every { user.role } returns Role.ASSEMBLER
+        // если эти поля есть в модели:
+        every { user.username } returns "test-user"
+        every { user.displayName } returns "Test User"
+        every { user.deviceId } returns "test-device-1"
+
+        val eventSlot = slot<Event>()
+        val eventsSlot = slot<List<Event>>()
+        coEvery { eventRepository.appendEvent(capture(eventSlot)) } returns Unit
+        coEvery { eventRepository.appendEvents(capture(eventsSlot)) } returns Unit
+
         val logger = AlignmentEventLogger(eventRepository, authRepository)
 
         logger.logManualAlignment(
@@ -27,29 +49,12 @@ class AlignmentEventLoggerTest {
             transform = Pose3D(Vector3(0.0, 0.0, 0.0), Quaternion.Identity),
         )
 
-        val appended = eventRepository.appendedEvents.single()
+        val appended: Event = when {
+            eventSlot.isCaptured -> eventSlot.captured
+            eventsSlot.isCaptured -> eventsSlot.captured.first()
+            else -> error("No event appended")
+        }
         assertEquals(EventType.AR_ALIGNMENT_SET, appended.type)
     }
 }
 
-private class FakeEventRepository : EventRepository {
-    val appendedEvents = mutableListOf<Event>()
-    override suspend fun appendEvent(event: Event) {
-        appendedEvents.add(event)
-    }
-
-    override suspend fun appendEvents(events: List<Event>) {
-        appendedEvents.addAll(events)
-    }
-
-    override suspend fun getEventsForWorkItem(workItemId: String): List<Event> = emptyList()
-}
-
-private class FakeAuthRepository : AuthRepository {
-    private val user = User(id = "user-1", name = "Test User", role = Role.ASSEMBLER)
-    override suspend fun loginMock(role: Role): User = user
-    override suspend fun availableUsers(): List<User> = listOf(user)
-    override suspend fun loginWithUserId(userId: String): User = user
-    override suspend fun currentUser(): User = user
-    override suspend fun logout() {}
-}
