@@ -15,6 +15,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify project structure
+        run: |
+          if [ ! -f ./gradlew ]; then
+            echo "Error: gradlew not found in repository root"
+            exit 1
+          fi
+          if [ ! -f ./settings.gradle.kts ] && [ ! -f ./settings.gradle ]; then
+            echo "Error: settings.gradle.kts or settings.gradle not found in repository root"
+            exit 1
+          fi
+          echo "Project structure verified successfully"
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
