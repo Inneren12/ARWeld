@@ -14,6 +14,11 @@ tasks.register("s1QualityGate") {
     description = "Runs the Sprint 1 local quality gate: assemble, unit tests, lint, and instrumentation smoke."
 }
 
+tasks.register("s2QualityGate") {
+    group = "verification"
+    description = "Runs the Sprint 2 local quality gate: assemble, unit tests, lint, and instrumentation smoke."
+}
+
 gradle.projectsEvaluated {
     val requiredTasks = mutableListOf<String>()
 
@@ -36,6 +41,10 @@ gradle.projectsEvaluated {
     )
 
     tasks.named("s1QualityGate").configure {
+        dependsOn(requiredTasks)
+    }
+
+    tasks.named("s2QualityGate").configure {
         dependsOn(requiredTasks)
     }
 }

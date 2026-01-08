@@ -50,7 +50,7 @@ class QcQueueViewModel @Inject constructor(
     private suspend fun loadQcQueueInternal() {
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
         runCatching {
-            val queue: List<WorkItemState> = workRepository.getQcQueue()
+            val queue: List<WorkItemState> = workRepository.listQcQueue()
             val mappedItems: List<QcQueueItemUiModel> = queue.mapNotNull { state ->
                 val workItemId = state.lastEvent?.workItemId ?: return@mapNotNull null
                 val workItem = workRepository.getWorkItemById(workItemId) ?: return@mapNotNull null
