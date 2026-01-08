@@ -82,7 +82,7 @@ class WorkItemSummaryViewModelTest {
 private class RecordingWorkRepository : WorkRepository {
     val stateRequests = mutableListOf<String>()
 
-    override suspend fun getWorkItemByCode(code: String): WorkItem? {
+    override suspend fun getByCode(code: String): WorkItem? {
         return if (code == "CODE-123") {
             WorkItem(
                 id = "WID-1",
@@ -96,7 +96,7 @@ private class RecordingWorkRepository : WorkRepository {
         }
     }
 
-    override suspend fun getWorkItemById(id: String): WorkItem? = null
+    override suspend fun getById(id: String): WorkItem? = null
 
     override suspend fun getWorkItemState(workItemId: String): WorkItemState {
         stateRequests += workItemId
@@ -109,9 +109,11 @@ private class RecordingWorkRepository : WorkRepository {
         )
     }
 
-    override suspend fun getMyQueue(userId: String) = emptyList<WorkItemState>()
+    override suspend fun listByStatus(status: WorkStatus) = emptyList<WorkItemState>()
 
-    override suspend fun getQcQueue() = emptyList<WorkItemState>()
+    override suspend fun listMyQueue(userId: String) = emptyList<WorkItemState>()
+
+    override suspend fun listQcQueue() = emptyList<WorkItemState>()
 }
 
 private class FakeAuthRepository : AuthRepository {

@@ -630,12 +630,12 @@ class ARViewController(
             return
         }
 
-        val now = System.nanoTime()
-        if (now - lastQualityChangeNs < QUALITY_HOLD_DURATION_NS) {
+        val qualityCheckNow = System.nanoTime()
+        if (qualityCheckNow - lastQualityChangeNs < QUALITY_HOLD_DURATION_NS) {
             return
         }
 
-        lastQualityChangeNs = now
+        lastQualityChangeNs = qualityCheckNow
         _trackingStatus.value = desiredStatus
     }
 }
