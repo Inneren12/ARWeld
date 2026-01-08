@@ -27,8 +27,7 @@ class RigidTransformSolver {
 
         val covariance = computeCrossCovariance(centeredModel, centeredWorld)
         val rotation = computeRotation(covariance) ?: return null
-        val translatedModelCentroid = rotation.rotate(modelCentroid)
-        val translation = worldCentroid - translatedModelCentroid
+        val translation = worldCentroid - rotation.rotate(modelCentroid)
 
         return Pose3D(position = translation, rotation = rotation)
     }

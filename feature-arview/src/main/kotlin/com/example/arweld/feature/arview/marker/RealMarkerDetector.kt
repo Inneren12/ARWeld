@@ -26,15 +26,17 @@ class RealMarkerDetector(
     private val minIntervalMs: Long = DEFAULT_MIN_INTERVAL_MS,
 ) : MarkerDetector {
 
-    private val barcodeScanner = BarcodeScanning.getClient(
-        BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(
-                Barcode.FORMAT_QR_CODE,
-                Barcode.FORMAT_DATA_MATRIX,
-                Barcode.FORMAT_AZTEC,
-            )
-            .build(),
-    )
+    private val barcodeScanner by lazy {
+        BarcodeScanning.getClient(
+            BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(
+                    Barcode.FORMAT_QR_CODE,
+                    Barcode.FORMAT_DATA_MATRIX,
+                    Barcode.FORMAT_AZTEC,
+                )
+                .build(),
+        )
+    }
     private val lastDetectionMs = AtomicLong(0L)
 
     override fun detectMarkers(frame: Frame): List<DetectedMarker> {
