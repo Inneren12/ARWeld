@@ -8,7 +8,6 @@ import com.example.arweld.core.data.db.entity.UserEntity
 import com.example.arweld.core.data.db.entity.WorkItemEntity
 import com.example.arweld.core.domain.event.EventType
 import com.example.arweld.core.domain.model.Role
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
@@ -37,41 +36,38 @@ class GetUserActivityUseCaseTest {
     }
 
     @Test
-    fun `getUserActivity with no users returns empty list`() = runTest {
-        // Given: no users
-        whenever(userDao.observeAll()).thenReturn(flowOf<List<UserEntity>>(emptyList()))
+    fun `getUserActivity with no work items returns empty list`() = runTest {
+        // Given: no work items
+        whenever(workItemDao.observeAll()).thenReturn(flowOf(emptyList()))
 
         // When
         val activities = useCase()
 
         // Then
-        assertTrue("Expected no activities when no users exist", activities.isEmpty())
+        assertTrue("Expected no activities when no work items exist", activities.isEmpty())
     }
 
     @Test
-    fun `getUserActivity filters out users with no events`() = runTest {
-        // Given: 2 users, only 1 has events
-        val users = listOf(
-            createUserEntity("user1", "Alice", Role.ASSEMBLER),
-            createUserEntity("user2", "Bob", Role.QC)
+    fun `getUserActivity filters out actors with no user record`() = runTest {
+        // Given: work items and events, but only user1 exists in DB
+        val now = System.currentTimeMillis()
+        val workItems = listOf(
+            createWorkItemEntity("wi1", "WI-001"),
+            createWorkItemEntity("wi2", "WI-002")
+        )
+        val events = listOf(
+            createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - 1000, actorId = "user1"),
+            createEventEntity("e2", "wi2", EventType.WORK_CLAIMED, now - 2000, actorId = "user2")
         )
 
-        val useCase = GetUserActivityUseCase(
-            userDao = fakeUserDao(users),
-            eventDao = eventDao,
-            workItemDao = workItemDao,
+        whenever(workItemDao.observeAll()).thenReturn(flowOf(workItems))
+        whenever(eventDao.getByWorkItemIds(listOf("wi1", "wi2"))).thenReturn(events)
+        whenever(userDao.getById("user1")).thenReturn(
+            createUserEntity("user1", "Alice", Role.ASSEMBLER)
         )
-
-        // Mock event dao: only user1 has events
-        whenever(eventDao.getLastEventByUser("user1")).thenReturn(
-            createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, System.currentTimeMillis())
-        )
-        whenever(eventDao.getLastEventByUser("user2")).thenReturn(null)
-
-        // Mock work item dao
-        whenever(workItemDao.getById("wi1")).thenReturn(
-            createWorkItemEntity("wi1", "WI-001")
-        )
+        whenever(userDao.getById("user2")).thenReturn(null) // user2 doesn't exist
+        whenever(workItemDao.getById("wi1")).thenReturn(workItems[0])
+        whenever(workItemDao.getById("wi2")).thenReturn(workItems[1])
 
         // When
         val activities = useCase()
@@ -86,25 +82,19 @@ class GetUserActivityUseCaseTest {
     fun `getUserActivity includes last event details`() = runTest {
         // Given: user with event
         val now = System.currentTimeMillis()
-        val users = listOf(
-            createUserEntity("user1", "Alice", Role.ASSEMBLER)
-        )
-
-        val useCase = GetUserActivityUseCase(
-            userDao = fakeUserDao(users),
-            eventDao = eventDao,
-            workItemDao = workItemDao,
-        )
-
-        // Mock event dao
-        whenever(eventDao.getLastEventByUser("user1")).thenReturn(
-            createEventEntity("e1", "wi1", EventType.WORK_STARTED, now - 3600000)
-        )
-
-        // Mock work item dao
-        whenever(workItemDao.getById("wi1")).thenReturn(
+        val workItems = listOf(
             createWorkItemEntity("wi1", "WI-001")
         )
+        val events = listOf(
+            createEventEntity("e1", "wi1", EventType.WORK_STARTED, now - 3600000, actorId = "user1")
+        )
+
+        whenever(workItemDao.observeAll()).thenReturn(flowOf(workItems))
+        whenever(eventDao.getByWorkItemIds(listOf("wi1"))).thenReturn(events)
+        whenever(userDao.getById("user1")).thenReturn(
+            createUserEntity("user1", "Alice", Role.ASSEMBLER)
+        )
+        whenever(workItemDao.getById("wi1")).thenReturn(workItems[0])
 
         // When
         val activities = useCase()
@@ -128,33 +118,31 @@ class GetUserActivityUseCaseTest {
         val twoHours = 2 * oneHour
         val threeHours = 3 * oneHour
 
-        val users = listOf(
-            createUserEntity("user1", "Alice", Role.ASSEMBLER),
-            createUserEntity("user2", "Bob", Role.QC),
-            createUserEntity("user3", "Charlie", Role.SUPERVISOR)
+        val workItems = listOf(
+            createWorkItemEntity("wi1", "WI-001"),
+            createWorkItemEntity("wi2", "WI-002"),
+            createWorkItemEntity("wi3", "WI-003")
         )
-
-        val useCase = GetUserActivityUseCase(
-            userDao = fakeUserDao(users),
-            eventDao = eventDao,
-            workItemDao = workItemDao,
-        )
-
-        // Mock event dao: user2 has most recent action, then user1, then user3
-        whenever(eventDao.getLastEventByUser("user1")).thenReturn(
-            createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - twoHours, actorId = "user1")
-        )
-        whenever(eventDao.getLastEventByUser("user2")).thenReturn(
-            createEventEntity("e2", "wi2", EventType.QC_STARTED, now - oneHour, actorId = "user2")
-        )
-        whenever(eventDao.getLastEventByUser("user3")).thenReturn(
+        val events = listOf(
+            createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - twoHours, actorId = "user1"),
+            createEventEntity("e2", "wi2", EventType.QC_STARTED, now - oneHour, actorId = "user2"),
             createEventEntity("e3", "wi3", EventType.WORK_STARTED, now - threeHours, actorId = "user3")
         )
 
-        // Mock work item dao
-        whenever(workItemDao.getById("wi1")).thenReturn(createWorkItemEntity("wi1", "WI-001"))
-        whenever(workItemDao.getById("wi2")).thenReturn(createWorkItemEntity("wi2", "WI-002"))
-        whenever(workItemDao.getById("wi3")).thenReturn(createWorkItemEntity("wi3", "WI-003"))
+        whenever(workItemDao.observeAll()).thenReturn(flowOf(workItems))
+        whenever(eventDao.getByWorkItemIds(listOf("wi1", "wi2", "wi3"))).thenReturn(events)
+        whenever(userDao.getById("user1")).thenReturn(
+            createUserEntity("user1", "Alice", Role.ASSEMBLER)
+        )
+        whenever(userDao.getById("user2")).thenReturn(
+            createUserEntity("user2", "Bob", Role.QC)
+        )
+        whenever(userDao.getById("user3")).thenReturn(
+            createUserEntity("user3", "Charlie", Role.SUPERVISOR)
+        )
+        whenever(workItemDao.getById("wi1")).thenReturn(workItems[0])
+        whenever(workItemDao.getById("wi2")).thenReturn(workItems[1])
+        whenever(workItemDao.getById("wi3")).thenReturn(workItems[2])
 
         // When
         val activities = useCase()
@@ -174,22 +162,19 @@ class GetUserActivityUseCaseTest {
     fun `getUserActivity handles missing work item code gracefully`() = runTest {
         // Given: user with event but work item doesn't exist
         val now = System.currentTimeMillis()
-        val users = listOf(
+        val workItems = listOf(
+            createWorkItemEntity("wi1", "WI-001")
+        )
+        val events = listOf(
+            createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - 3600000, actorId = "user1")
+        )
+
+        whenever(workItemDao.observeAll()).thenReturn(flowOf(workItems))
+        whenever(eventDao.getByWorkItemIds(listOf("wi1"))).thenReturn(events)
+        whenever(userDao.getById("user1")).thenReturn(
             createUserEntity("user1", "Alice", Role.ASSEMBLER)
         )
-
-        val useCase = GetUserActivityUseCase(
-            userDao = fakeUserDao(users),
-            eventDao = eventDao,
-            workItemDao = workItemDao,
-        )
-
-        // Mock event dao
-        whenever(eventDao.getLastEventByUser("user1")).thenReturn(
-            createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - 3600000)
-        )
-
-        // Mock work item dao: work item not found
+        // Mock work item dao: work item not found when getting by id
         whenever(workItemDao.getById("wi1")).thenReturn(null)
 
         // When
@@ -205,33 +190,31 @@ class GetUserActivityUseCaseTest {
     fun `getUserActivity includes different event types`() = runTest {
         // Given: users with different event types
         val now = System.currentTimeMillis()
-        val users = listOf(
-            createUserEntity("user1", "Alice", Role.ASSEMBLER),
-            createUserEntity("user2", "Bob", Role.QC),
-            createUserEntity("user3", "Charlie", Role.ASSEMBLER)
+        val workItems = listOf(
+            createWorkItemEntity("wi1", "WI-001"),
+            createWorkItemEntity("wi2", "WI-002"),
+            createWorkItemEntity("wi3", "WI-003")
         )
-
-        val useCase = GetUserActivityUseCase(
-            userDao = fakeUserDao(users),
-            eventDao = eventDao,
-            workItemDao = workItemDao,
-        )
-
-        // Mock event dao with different event types
-        whenever(eventDao.getLastEventByUser("user1")).thenReturn(
-            createEventEntity("e1", "wi1", EventType.WORK_STARTED, now - 1800000, actorId = "user1")
-        )
-        whenever(eventDao.getLastEventByUser("user2")).thenReturn(
-            createEventEntity("e2", "wi2", EventType.QC_PASSED, now - 900000, actorId = "user2")
-        )
-        whenever(eventDao.getLastEventByUser("user3")).thenReturn(
+        val events = listOf(
+            createEventEntity("e1", "wi1", EventType.WORK_STARTED, now - 1800000, actorId = "user1"),
+            createEventEntity("e2", "wi2", EventType.QC_PASSED, now - 900000, actorId = "user2"),
             createEventEntity("e3", "wi3", EventType.WORK_READY_FOR_QC, now - 300000, actorId = "user3")
         )
 
-        // Mock work item dao
-        whenever(workItemDao.getById("wi1")).thenReturn(createWorkItemEntity("wi1", "WI-001"))
-        whenever(workItemDao.getById("wi2")).thenReturn(createWorkItemEntity("wi2", "WI-002"))
-        whenever(workItemDao.getById("wi3")).thenReturn(createWorkItemEntity("wi3", "WI-003"))
+        whenever(workItemDao.observeAll()).thenReturn(flowOf(workItems))
+        whenever(eventDao.getByWorkItemIds(listOf("wi1", "wi2", "wi3"))).thenReturn(events)
+        whenever(userDao.getById("user1")).thenReturn(
+            createUserEntity("user1", "Alice", Role.ASSEMBLER)
+        )
+        whenever(userDao.getById("user2")).thenReturn(
+            createUserEntity("user2", "Bob", Role.QC)
+        )
+        whenever(userDao.getById("user3")).thenReturn(
+            createUserEntity("user3", "Charlie", Role.ASSEMBLER)
+        )
+        whenever(workItemDao.getById("wi1")).thenReturn(workItems[0])
+        whenever(workItemDao.getById("wi2")).thenReturn(workItems[1])
+        whenever(workItemDao.getById("wi3")).thenReturn(workItems[2])
 
         // When
         val activities = useCase()
@@ -244,51 +227,50 @@ class GetUserActivityUseCaseTest {
     }
 
     @Test
-    fun `getUserActivity query efficiency - uses LIMIT 1 on DAO`() = runTest {
-        // Given: user with event
+    fun `getUserActivity handles multiple events per actor and picks last`() = runTest {
+        // Given: user with multiple events on different work items
         val now = System.currentTimeMillis()
-        val users = listOf(
+        val workItems = listOf(
+            createWorkItemEntity("wi1", "WI-001"),
+            createWorkItemEntity("wi2", "WI-002")
+        )
+        // user1 has 2 events, should pick the most recent one (e2)
+        val events = listOf(
+            createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - 7200000, actorId = "user1"),
+            createEventEntity("e2", "wi2", EventType.WORK_STARTED, now - 3600000, actorId = "user1")
+        )
+
+        whenever(workItemDao.observeAll()).thenReturn(flowOf(workItems))
+        whenever(eventDao.getByWorkItemIds(listOf("wi1", "wi2"))).thenReturn(events)
+        whenever(userDao.getById("user1")).thenReturn(
             createUserEntity("user1", "Alice", Role.ASSEMBLER)
         )
-
-        val useCase = GetUserActivityUseCase(
-            userDao = fakeUserDao(users),
-            eventDao = eventDao,
-            workItemDao = workItemDao,
-        )
-
-        // Mock event dao - getLastEventByUser should be called (which uses LIMIT 1)
-        whenever(eventDao.getLastEventByUser("user1")).thenReturn(
-            createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - 3600000)
-        )
-
-        // Mock work item dao
-        whenever(workItemDao.getById("wi1")).thenReturn(
-            createWorkItemEntity("wi1", "WI-001")
-        )
+        whenever(workItemDao.getById("wi1")).thenReturn(workItems[0])
+        whenever(workItemDao.getById("wi2")).thenReturn(workItems[1])
 
         // When
         val activities = useCase()
 
-        // Then: should successfully get activity
+        // Then: should pick the most recent event (e2)
         assertEquals(1, activities.size)
-
-        // Note: This test verifies that we're using getLastEventByUser (with LIMIT 1)
-        // instead of getLastEventsByUser (which could return all events for a user)
-        // The former is more efficient for this use case
+        assertEquals("user1", activities[0].userId)
+        assertEquals("wi2", activities[0].currentWorkItemId)
+        assertEquals("WORK_STARTED", activities[0].lastActionType)
+        assertEquals(now - 3600000, activities[0].lastActionTimeMs)
     }
 
     private fun createUserEntity(
         id: String,
-        name: String,
+        name: String?,
         role: Role,
-        lastSeenAt: Long = 0L,
+        lastSeenAt: Long? = System.currentTimeMillis(),
+        isActive: Boolean = true
     ) = UserEntity(
         id = id,
         name = name,
         role = role.name,
-        isActive = true,
         lastSeenAt = lastSeenAt,
+        isActive = isActive
     )
 
     private fun createWorkItemEntity(id: String, code: String) = WorkItemEntity(
@@ -318,47 +300,4 @@ class GetUserActivityUseCaseTest {
         deviceId = "device1",
         payloadJson = null
     )
-}
-/**
-     * Room DAO контракт мог поменяться (observe/list/active и т.п.).
-     * Этот fake подстраивается: если use case вызывает Flow-метод — вернет flowOf(users),
-     * если вызывает suspend list-метод — вернет users,
-     * если вызывает getById(...) — вернет найденного пользователя.
-     */
-    private fun fakeUserDao(users: List<UserEntity>): UserDao {
-    val iface = UserDao::class.java
-    return Proxy.newProxyInstance(iface.classLoader, arrayOf(iface)) { _, method, args ->
-        when (method.name) {
-            "toString" -> "FakeUserDao"
-            "hashCode" -> System.identityHashCode(this)
-            "equals" -> false
-            else -> {
-                val argsList = args?.toList().orEmpty()
-                val isSuspend = method.parameterTypes.lastOrNull()?.name == Continuation::class.java.name
-                val returnTypeName = method.returnType.name
-                val idArg = argsList.firstOrNull { it is String } as? String
-                val oneUser = idArg?.let { id -> users.firstOrNull { it.id == id } }
-                when {
-                    returnTypeName == Flow::class.java.name -> {
-                        // observeById(...) -> Flow<UserEntity?>, иначе -> Flow<List<UserEntity>>
-                        if (method.name.contains("ById", ignoreCase = true) && idArg != null) {
-                            flowOf(oneUser)
-                        } else {
-                                flowOf(users)
-                            }
-                    }
-                    isSuspend -> {
-                        // suspend list/get
-                        if (method.name.contains("ById", ignoreCase = true) && idArg != null) oneUser else users
-                    }
-                    returnTypeName == "java.util.List" -> users
-                    returnTypeName == UserEntity::class.java.name -> oneUser
-                    returnTypeName == "boolean" -> false
-                    returnTypeName == "int" -> 0
-                    returnTypeName == "long" -> 0L
-                    else -> null
-                }
-            }
-        }
-    } as UserDao
 }
