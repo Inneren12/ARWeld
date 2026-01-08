@@ -1,7 +1,0 @@
-R_DEF: Internal format may change without notice
-local
-string qc_checklist_title_cleanliness
-string qc_checklist_title_completeness
-string qc_checklist_title_fasteners
-string qc_checklist_title_geometry
-string qc_checklist_title_marking
