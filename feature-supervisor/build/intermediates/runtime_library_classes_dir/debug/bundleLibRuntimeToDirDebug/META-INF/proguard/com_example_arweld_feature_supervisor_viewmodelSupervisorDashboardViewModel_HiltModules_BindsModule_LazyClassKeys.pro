@@ -1,1 +1,0 @@
--keep,allowobfuscation,allowshrinking class com.example.arweld.feature.supervisor.viewmodel.SupervisorDashboardViewModel
