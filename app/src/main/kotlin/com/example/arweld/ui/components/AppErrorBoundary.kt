@@ -10,6 +10,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,6 +31,26 @@ class ErrorBoundaryViewModel @Inject constructor(
     }
 }
 
+@Stable
+fun interface ErrorReporter {
+    fun report(throwable: Throwable)
+}
+
+val LocalErrorReporter = staticCompositionLocalOf<ErrorReporter> {
+    ErrorReporter { /* no-op by default */ }
+}
+
+/**
+ * Use inside callbacks (onClick, coroutine blocks, etc) — NOT around @Composable invocations.
+ */
+inline fun ErrorReporter.runCatchingToBoundary(block: () -> Unit) {
+    try {
+        block()
+    } catch (t: Throwable) {
+        report(t)
+    }
+}
+
 @Composable
 fun AppErrorBoundary(
     modifier: Modifier = Modifier,
@@ -36,20 +59,19 @@ fun AppErrorBoundary(
 ) {
     val (capturedError, setCapturedError) = remember { mutableStateOf<Throwable?>(null) }
 
-    if (capturedError == null) {
-        try {
-            content()
-        } catch (throwable: Throwable) {
+    val reporter = remember(viewModel) {
+        ErrorReporter { throwable ->
             viewModel.onUnhandledError(throwable)
             setCapturedError(throwable)
         }
     }
 
-    capturedError?.let {
-        ErrorFallback(
-            modifier = modifier,
-            onRetry = { setCapturedError(null) },
-        )
+    if (capturedError != null) {
+        ErrorFallback(modifier = modifier, onRetry = { setCapturedError(null) })
+        return
+    }
+    CompositionLocalProvider(LocalErrorReporter provides reporter) {
+        content()
     }
 }
 

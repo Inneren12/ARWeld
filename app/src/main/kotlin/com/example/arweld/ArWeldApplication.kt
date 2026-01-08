@@ -1,7 +1,7 @@
 package com.example.arweld
 
 import android.app.Application
-import com.example.arweld.BuildConfig
+import android.content.pm.ApplicationInfo
 import com.example.arweld.core.data.seed.DbSeedInitializer
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -21,7 +21,8 @@ class ArWeldApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        if (BuildConfig.DEBUG) {
+        val isDebuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        if (isDebuggable) {
             Timber.plant(Timber.DebugTree())
         }
         applicationScope.launch {
