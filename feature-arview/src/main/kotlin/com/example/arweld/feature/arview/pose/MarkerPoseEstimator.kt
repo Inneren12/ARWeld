@@ -36,11 +36,13 @@ class MarkerPoseEstimator {
 
     private fun buildSquarePoints(sizeMeters: Double): List<Vector3> {
         val half = sizeMeters / 2.0
+        // Corners in camera space with Y-down convention (matches image space projection)
+        // When facing camera: TL, TR, BR, BL in image coordinates
         return listOf(
-            Vector3(-half, half, 0.0), // top-left
-            Vector3(half, half, 0.0), // top-right
-            Vector3(half, -half, 0.0), // bottom-right
-            Vector3(-half, -half, 0.0), // bottom-left
+            Vector3(-half, -half, 0.0), // top-left (small X, small Y -> small u, small v)
+            Vector3(half, -half, 0.0), // top-right (large X, small Y -> large u, small v)
+            Vector3(half, half, 0.0), // bottom-right (large X, large Y -> large u, large v)
+            Vector3(-half, half, 0.0), // bottom-left (small X, large Y -> small u, large v)
         )
     }
 

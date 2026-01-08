@@ -55,11 +55,12 @@ class MarkerPoseEstimatorTest {
         intrinsics: CameraIntrinsics,
     ): List<PointF> {
         val half = markerSize / 2.0
+        // Use Y-down convention to match image space: TL, TR, BR, BL
         val objectPoints = listOf(
-            Vector3(-half, half, 0.0),
-            Vector3(half, half, 0.0),
-            Vector3(half, -half, 0.0),
-            Vector3(-half, -half, 0.0),
+            Vector3(-half, -half, 0.0), // top-left
+            Vector3(half, -half, 0.0), // top-right
+            Vector3(half, half, 0.0), // bottom-right
+            Vector3(-half, half, 0.0), // bottom-left
         )
         return objectPoints.map { point ->
             val cameraPoint = Vector3(
