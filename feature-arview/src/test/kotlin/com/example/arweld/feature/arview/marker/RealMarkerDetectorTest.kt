@@ -8,6 +8,7 @@ import org.junit.Test
 class RealMarkerDetectorTest {
 
     private val detector = RealMarkerDetector()
+    private val epsilon = 1e-3f
 
     @Test
     fun `maps camera point to image space for standard rotations`() {
@@ -24,7 +25,8 @@ class RealMarkerDetectorTest {
 
         mappings.forEach { (rotation, expected) ->
             val mapped = detector.mapToImageSpace(point, width, height, rotation)
-            assertThat(mapped).isEqualTo(expected)
+            assertThat(mapped.x).isWithin(epsilon).of(expected.x)
+            assertThat(mapped.y).isWithin(epsilon).of(expected.y)
         }
     }
 
@@ -39,11 +41,12 @@ class RealMarkerDetectorTest {
 
         val ordered = detector.orderCorners(unordered)
 
-        assertThat(ordered).containsExactly(
-            PointF(10f, 10f),
-            PointF(90f, 20f),
-            PointF(50f, 80f),
-            PointF(20f, 70f),
+        val orderedPairs = ordered.map { it.x to it.y }
+        assertThat(orderedPairs).containsExactly(
+            10f to 10f,
+            90f to 20f,
+            50f to 80f,
+            20f to 70f,
         ).inOrder()
     }
 }

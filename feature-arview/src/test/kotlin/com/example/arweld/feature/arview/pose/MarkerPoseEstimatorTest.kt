@@ -61,7 +61,7 @@ class MarkerPoseEstimatorTest {
             Vector3(half, -half, 0.0),
             Vector3(-half, -half, 0.0),
         )
-        val projected = objectPoints.map { point ->
+        return objectPoints.map { point ->
             val cameraPoint = Vector3(
                 point.x + translation.x,
                 point.y + translation.y,
@@ -71,18 +71,5 @@ class MarkerPoseEstimatorTest {
             val v = intrinsics.fy * (cameraPoint.y / cameraPoint.z) + intrinsics.cy
             PointF(u.toFloat(), v.toFloat())
         }
-        return orderCorners(projected)
-    }
-
-    private fun orderCorners(corners: List<PointF>): List<PointF> {
-        if (corners.size < 4) return corners
-        val sortedByY = corners.sortedBy { it.y }
-        val top = sortedByY.take(2).sortedBy { it.x }
-        val bottom = sortedByY.takeLast(2).sortedBy { it.x }
-        val topLeft = top.first()
-        val topRight = top.last()
-        val bottomLeft = bottom.first()
-        val bottomRight = bottom.last()
-        return listOf(topLeft, topRight, bottomRight, bottomLeft)
     }
 }
