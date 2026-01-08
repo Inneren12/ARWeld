@@ -34,7 +34,6 @@ class AlignmentEventLoggerTest {
         // если эти поля есть в модели:
         every { user.username } returns "test-user"
         every { user.displayName } returns "Test User"
-        every { user.deviceId } returns "test-device-1"
 
         val eventSlot = slot<Event>()
         val eventsSlot = slot<List<Event>>()

@@ -166,12 +166,13 @@ class GetQcBottleneckUseCaseTest {
             .thenReturn(allEvents)
 
         // Mock user dao to return user name
-        whenever(userDao.getUserById("user1")).thenReturn(
+        whenever(userDao.getById("user1")).thenReturn(
             UserEntity(
                 id = "user1",
-                displayName = "John Doe",
+                name = "John Doe",
                 role = Role.ASSEMBLER.name,
-                isActive = true
+                isActive = true,
+                lastSeenAt = 0L,
             )
         )
 
