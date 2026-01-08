@@ -96,7 +96,19 @@ private class RecordingWorkRepository : WorkRepository {
         }
     }
 
-    override suspend fun getById(id: String): WorkItem? = null
+    override suspend fun getById(id: String): WorkItem? {
+        return if (id == "WID-1") {
+            WorkItem(
+                id = "WID-1",
+                code = "CODE-123",
+                type = WorkItemType.PART,
+                description = "Test work item",
+                createdAt = 0L,
+            )
+        } else {
+            null
+        }
+    }
 
     override suspend fun getWorkItemState(workItemId: String): WorkItemState {
         stateRequests += workItemId

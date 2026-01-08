@@ -93,7 +93,7 @@ class GetWorkItemDetailUseCaseTest {
         val events = listOf(
             createEventEntity("e3-ccc", "wi1", EventType.WORK_READY_FOR_QC, sameTimestamp, "user1"),
             createEventEntity("e1-aaa", "wi1", EventType.WORK_CLAIMED, sameTimestamp - 1000, "user1"),
-            createEventEntity("e4-ddd", "wi1", EventType.QC_STARTED, sameTimestamp + 1000, "user2"),
+            createEventEntity("e4-ddd", "wi1", EventType.QC_STARTED, sameTimestamp + 1000, "user2", actorRole = Role.QC),
             createEventEntity("e2-bbb", "wi1", EventType.WORK_STARTED, sameTimestamp, "user1")
         )
         whenever(eventDao.getByWorkItemId("wi1")).thenReturn(events)
@@ -134,8 +134,8 @@ class GetWorkItemDetailUseCaseTest {
         val events = listOf(
             createEventEntity("e1", "wi1", EventType.WORK_CLAIMED, now - 3600000, "user1"),
             createEventEntity("e2", "wi1", EventType.WORK_READY_FOR_QC, now - 1800000, "user1"),
-            createEventEntity("e3", "wi1", EventType.QC_STARTED, now - 900000, "user2"),
-            createEventEntity("e4", "wi1", EventType.QC_PASSED, now - 300000, "user2")
+            createEventEntity("e3", "wi1", EventType.QC_STARTED, now - 900000, "user2", actorRole = Role.QC),
+            createEventEntity("e4", "wi1", EventType.QC_PASSED, now - 300000, "user2", actorRole = Role.QC)
         )
         whenever(eventDao.getByWorkItemId("wi1")).thenReturn(events)
 
@@ -295,14 +295,15 @@ class GetWorkItemDetailUseCaseTest {
         type: EventType,
         timestamp: Long,
         actorId: String,
-        payloadJson: String? = null
+        payloadJson: String? = null,
+        actorRole: Role = Role.ASSEMBLER
     ) = EventEntity(
         id = id,
         workItemId = workItemId,
         type = type.name,
         timestamp = timestamp,
         actorId = actorId,
-        actorRole = Role.ASSEMBLER.name,
+        actorRole = actorRole.name,
         deviceId = "device1",
         payloadJson = payloadJson
     )
