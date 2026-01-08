@@ -92,7 +92,7 @@ class AlignmentEventLogger @Inject constructor(
             actorId = user.id,
             actorRole = user.role,
             deviceId = resolveDeviceId(),
-            payloadJson = json.encodeToString(payload),
+            payloadJson = json.encodeToString(ArAlignmentPayload.serializer(), payload),
         )
 
         runCatching { eventRepository.appendEvent(event) }
