@@ -48,7 +48,7 @@ class AssemblerQueueViewModel @Inject constructor(
                     throw IllegalStateException("Assembler queue available only for ASSEMBLER role")
                 }
 
-                val queue = workRepository.getMyQueue(user.id)
+                val queue = workRepository.listMyQueue(user.id)
                 _uiState.value = AssemblerQueueUiState(
                     isLoading = false,
                     inProgress = queue.filter { it.status == WorkStatus.IN_PROGRESS },
