@@ -1,5 +1,0 @@
-int string qc_checklist_title_cleanliness 0x0
-int string qc_checklist_title_completeness 0x0
-int string qc_checklist_title_fasteners 0x0
-int string qc_checklist_title_geometry 0x0
-int string qc_checklist_title_marking 0x0

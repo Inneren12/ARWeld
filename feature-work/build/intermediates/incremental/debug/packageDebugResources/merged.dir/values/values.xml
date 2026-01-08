@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="qc_checklist_title_cleanliness">Cleanliness</string>
-    <string name="qc_checklist_title_completeness">Completeness</string>
-    <string name="qc_checklist_title_fasteners">Fasteners</string>
-    <string name="qc_checklist_title_geometry">Geometry</string>
-    <string name="qc_checklist_title_marking">Marking</string>
-</resources>

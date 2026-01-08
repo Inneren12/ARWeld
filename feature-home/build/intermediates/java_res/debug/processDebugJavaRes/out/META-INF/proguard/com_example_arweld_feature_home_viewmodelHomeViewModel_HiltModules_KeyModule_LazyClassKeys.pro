@@ -1,2 +1,0 @@
--keep,allowobfuscation,allowshrinking class com.example.arweld.feature.home.viewmodel.HomeViewModel
--keep,allowobfuscation,allowshrinking class com.example.arweld.feature.home.viewmodel.HomeViewModel
