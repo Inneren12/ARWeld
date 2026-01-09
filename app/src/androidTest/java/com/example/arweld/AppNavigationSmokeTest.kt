@@ -22,6 +22,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import androidx.compose.ui.test.onAllNodesWithText
 
 @HiltAndroidTest
 class AppNavigationSmokeTest {
@@ -83,19 +84,15 @@ class AppNavigationSmokeTest {
             }.getOrDefault(false)
         }
 
-        // Подстрой список после первого лога printToLog("SMOKE") — увидишь реальные тексты/теги.
-        waitUntilCondition(timeoutMillis = 20_000, targetDescription = "QC queue content") {
-            listOf(
-                "Loading QC queue",
-                "Start",
-                "Начать",
-                "Queue is empty",
-                "No items",
-            ).any { t ->
-                runCatching {
-                    composeRule.onAllNodesWithText(t, substring = true).fetchSemanticsNodes().isNotEmpty()
-                }.getOrDefault(false)
-            }
+        // Smoke: нам важно, что экран QC открылся. Контент может быть пустым/без "Loading..." текста.
+        waitUntilCondition(timeoutMillis = 20_000, targetDescription = "QC queue screen") {
+            val byTag = runCatching {
+                composeRule.onAllNodesWithTag("qc_queue_screen").fetchSemanticsNodes().isNotEmpty()
+            }.getOrDefault(false)
+            val byTitle = runCatching {
+                composeRule.onAllNodesWithText("QC Queue", substring = true).fetchSemanticsNodes().isNotEmpty()
+            }.getOrDefault(false)
+            byTag || byTitle
         }
     }
 
@@ -106,7 +103,6 @@ class AppNavigationSmokeTest {
             logDiagnostics("Timeout waiting for $targetDescription")
             throw t
         }
-        waitForTag("qc_queue_screen", timeoutMillis = 20_000)
     }
 
     private fun performLogin(userId: String) {
