@@ -25,6 +25,7 @@ import coil.request.ImageRequest
 import com.example.arweld.core.domain.evidence.Evidence
 import com.example.arweld.core.domain.evidence.EvidenceKind
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.text.SimpleDateFormat
@@ -90,7 +91,7 @@ fun EvidenceViewerDialog(
                     val raw = metaJsonForDisplay ?: return@remember null
                     runCatching {
                         val json = Json { ignoreUnknownKeys = true }
-                        val metaObject = json.parseToJsonElement(raw).jsonObject
+                        val metaObject = json.decodeFromString<JsonElement>(raw).jsonObject
                         metaObject.map { (key, value) ->
                             val displayValue = if (value is JsonPrimitive) {
                                 value.content

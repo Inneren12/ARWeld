@@ -14,8 +14,12 @@ import java.time.Instant
 import java.time.ZoneOffset
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 data class ReportsPeriod(
     val startMillis: Long,
@@ -103,12 +107,12 @@ class GetReportsUseCase @Inject constructor(
     private fun parseFailReasons(payloadJson: String?): List<String> {
         if (payloadJson.isNullOrBlank()) return emptyList()
         return runCatching {
-            Json { ignoreUnknownKeys = true }.decodeFromString(FailQcExportPayload.serializer(), payloadJson)
-        }.getOrNull()?.reasons.orEmpty()
+            val json = Json { ignoreUnknownKeys = true }
+            val element = json.decodeFromString<JsonElement>(payloadJson)
+            element.jsonObject["reasons"]
+                ?.jsonArray
+                ?.mapNotNull { it.jsonPrimitive.contentOrNull }
+                .orEmpty()
+        }.getOrDefault(emptyList())
     }
 }
-
-@Serializable
-private data class FailQcExportPayload(
-    val reasons: List<String> = emptyList(),
-)

@@ -3,6 +3,9 @@ package com.example.arweld.core.auth.repository
 import com.example.arweld.core.domain.auth.AuthRepository
 import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.model.User
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
@@ -14,6 +17,8 @@ class InMemoryAuthRepository @Inject constructor() : AuthRepository {
 
     private val mutex = Mutex()
     private var cachedUser: User? = null
+    private val _currentUserFlow = MutableStateFlow<User?>(null)
+    override val currentUserFlow: StateFlow<User?> = _currentUserFlow.asStateFlow()
 
     override suspend fun loginMock(role: Role): User = mutex.withLock {
         val user = User(
@@ -23,12 +28,14 @@ class InMemoryAuthRepository @Inject constructor() : AuthRepository {
             role = role
         )
         cachedUser = user
+        _currentUserFlow.value = user
         user
     }
 
     override suspend fun logout() {
         mutex.withLock {
             cachedUser = null
+            _currentUserFlow.value = null
         }
     }
 
@@ -46,6 +53,7 @@ class InMemoryAuthRepository @Inject constructor() : AuthRepository {
         val user = availableUsers().firstOrNull { it.id == userId }
             ?: error("User $userId not found in in-memory list")
         cachedUser = user
+        _currentUserFlow.value = user
         user
     }
 

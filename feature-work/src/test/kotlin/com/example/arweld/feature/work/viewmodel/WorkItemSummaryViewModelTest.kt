@@ -13,6 +13,8 @@ import com.example.arweld.core.domain.work.usecase.MarkReadyForQcUseCase
 import com.example.arweld.core.domain.work.usecase.StartWorkUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -129,6 +131,9 @@ private class RecordingWorkRepository : WorkRepository {
 }
 
 private class FakeAuthRepository : AuthRepository {
+    private val _currentUserFlow = MutableStateFlow<User?>(null)
+    override val currentUserFlow: StateFlow<User?> = _currentUserFlow
+
     override suspend fun loginMock(role: com.example.arweld.core.domain.model.Role): User {
         throw UnsupportedOperationException()
     }
@@ -142,6 +147,7 @@ private class FakeAuthRepository : AuthRepository {
     override suspend fun currentUser(): User? = null
 
     override suspend fun logout() {
+        _currentUserFlow.value = null
         // no-op
     }
 }
