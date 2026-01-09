@@ -54,6 +54,10 @@ class WorkRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getMyQueue(userId: String): List<WorkItemState> = listMyQueue(userId)
+
+    override suspend fun getQcQueue(): List<WorkItemState> = listQcQueue()
+
     private suspend fun allWorkItemStates(): List<WorkItemState> {
         val workItems = workItemDao.observeAll().first()
         return workItems.map { entity -> getWorkItemState(entity.id) }
