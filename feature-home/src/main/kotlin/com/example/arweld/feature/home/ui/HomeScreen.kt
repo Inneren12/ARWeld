@@ -12,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.arweld.core.domain.model.Role
@@ -37,7 +38,9 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Surface(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("home_screen"),
         color = MaterialTheme.colorScheme.background
     ) {
         when (val state = uiState) {
