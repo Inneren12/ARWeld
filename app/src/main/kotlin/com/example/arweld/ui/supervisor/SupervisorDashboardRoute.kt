@@ -10,6 +10,7 @@ import com.example.arweld.feature.supervisor.viewmodel.SupervisorDashboardViewMo
 @Composable
 fun SupervisorDashboardRoute(
     onWorkItemClick: (String) -> Unit,
+    onWorkListClick: () -> Unit,
     viewModel: SupervisorDashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -25,6 +26,7 @@ fun SupervisorDashboardRoute(
         onBottleneckThresholdChange = { threshold ->
             viewModel.setBottleneckThreshold(threshold)
         },
-        onWorkItemClick = onWorkItemClick
+        onWorkItemClick = onWorkItemClick,
+        onWorkListClick = onWorkListClick
     )
 }

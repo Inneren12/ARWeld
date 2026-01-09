@@ -18,6 +18,7 @@ const val ROUTE_WORK_ITEM_SUMMARY = "work_item_summary"
 const val ROUTE_TIMELINE = "timeline"
 const val ROUTE_AR_VIEW = "ar_view"
 const val ROUTE_SUPERVISOR_DASHBOARD = "supervisor_dashboard"
+const val ROUTE_SUPERVISOR_WORK_LIST = "supervisor_work_list"
 const val ROUTE_WORK_ITEM_DETAIL = "work_item_detail"
 
 fun workItemSummaryRoute(workItemId: String): String =
