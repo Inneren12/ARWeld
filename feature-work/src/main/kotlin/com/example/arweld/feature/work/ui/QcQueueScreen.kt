@@ -24,6 +24,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.arweld.feature.work.viewmodel.QcQueueItemUiModel
@@ -49,7 +50,7 @@ fun QcQueueScreen(
                 }
             )
         },
-        modifier = modifier
+        modifier = modifier.testTag("qc_queue_screen")
     ) { innerPadding ->
         when {
             uiState.isLoading -> {

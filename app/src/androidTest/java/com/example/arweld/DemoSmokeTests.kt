@@ -113,6 +113,7 @@ class DemoSmokeTests {
 
     private fun relaunchFromSplash() {
         composeRule.activityRule.scenario.recreate()
+        composeRule.waitForIdle()
         waitForLoginScreen()
     }
 
@@ -175,7 +176,11 @@ class DemoSmokeTests {
 
     private fun logDiagnostics(message: String) {
         Log.d("SMOKE", message)
-        composeRule.onRoot(useUnmergedTree = true).printToLog("SMOKE")
+        runCatching {
+            composeRule.onRoot(useUnmergedTree = true).printToLog("SMOKE")
+        }.onFailure { throwable ->
+            Log.d("SMOKE", "Unable to print semantics: ${throwable.message}")
+        }
         composeRule.activityRule.scenario.onActivity { activity ->
             Log.d("SMOKE", "Current activity: ${activity::class.java.name}")
         }
