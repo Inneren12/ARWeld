@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.printToLog
 import androidx.compose.ui.test.performClick
 import androidx.test.rule.GrantPermissionRule
 import com.example.arweld.core.data.seed.DbSeedInitializer
@@ -75,10 +76,35 @@ class AppNavigationSmokeTest {
         waitForHomeScreen()
 
         composeRule.onNodeWithText("QC Queue").performClick()
-        runCatching {
-            composeRule.onRoot(useUnmergedTree = true).printToLog("SMOKE")
-        }.onFailure { throwable ->
-            Log.d("SMOKE", "Unable to print semantics: ${throwable.message}")
+        // "QC Queue" есть на home-плитке, поэтому он не доказывает навигацию.
+        waitUntilCondition(timeoutMillis = 10_000, targetDescription = "leave home_screen") {
+            runCatching {
+                composeRule.onAllNodesWithTag("home_screen").fetchSemanticsNodes().isEmpty()
+            }.getOrDefault(false)
+        }
+
+        // Подстрой список после первого лога printToLog("SMOKE") — увидишь реальные тексты/теги.
+        waitUntilCondition(timeoutMillis = 20_000, targetDescription = "QC queue content") {
+            listOf(
+                "Loading QC queue",
+                "Start",
+                "Начать",
+                "Queue is empty",
+                "No items",
+            ).any { t ->
+                runCatching {
+                    composeRule.onAllNodesWithText(t, substring = true).fetchSemanticsNodes().isNotEmpty()
+                }.getOrDefault(false)
+            }
+        }
+    }
+
+    private fun waitUntilCondition(timeoutMillis: Long, targetDescription: String, condition: () -> Boolean) {
+        try {
+            composeRule.waitUntil(timeoutMillis = timeoutMillis) { runCatching(condition).getOrDefault(false) }
+        } catch (t: Throwable) {
+            logDiagnostics("Timeout waiting for $targetDescription")
+            throw t
         }
         waitForTag("qc_queue_screen", timeoutMillis = 20_000)
     }

@@ -88,6 +88,8 @@ dependencies {
     androidTestImplementation(libs.androidx.room.ktx)
     androidTestImplementation(libs.androidx.room.testing)
 
+    androidTestImplementation("androidx.test:rules:1.5.0")
+
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
