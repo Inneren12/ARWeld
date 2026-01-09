@@ -158,7 +158,7 @@ class EvidenceRepositoryImpl @Inject constructor(
             actorId = user.id,
             actorRole = user.role,
             deviceId = deviceInfoProvider.deviceId,
-            payloadJson = Json.encodeToString(payload),
+            payloadJson = Json.encodeToString(EvidenceCapturedPayload.serializer(), payload),
         )
 
         eventRepository.appendEvent(event)
