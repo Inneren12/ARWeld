@@ -19,6 +19,8 @@
     <string name="diagnostic_alignment_score">Align score: %1$.2f</string>
     <string name="diagnostic_alignment_drift">Drift: %1$.1f mm</string>
     <string name="diagnostic_render_fps">Render Hz: %1$.1f</string>
+    <string name="diagnostic_frame_time_p95">Frame time p95: %1$.1f ms</string>
+    <string name="diagnostic_cv_latency_p95">CV latency p95: %1$.1f ms</string>
     <string name="diagnostic_perf_mode">Perf mode: %1$s</string>
     <string name="performance_mode_normal">normal</string>
     <string name="performance_mode_low">low</string>
@@ -29,6 +31,7 @@
     <string name="diagnostic_point_cloud_empty">empty</string>
     <string name="diagnostic_point_cloud_failed">failed</string>
     <string name="diagnostic_point_cloud_unknown">unknown</string>
+    <string name="device_hot_banner">Device hot — lowering AR quality</string>
     <string name="intrinsics_unavailable_message">Camera intrinsics unavailable</string>
     <string name="intrinsics_retry">Retry intrinsics</string>
     <string name="intrinsics_restart_session">Restart AR session</string>

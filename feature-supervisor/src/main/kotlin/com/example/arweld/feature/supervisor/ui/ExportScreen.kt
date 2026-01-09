@@ -32,6 +32,7 @@ fun ExportScreen(
     onToggleZip: (Boolean) -> Unit,
     onToggleManifest: (Boolean) -> Unit,
     onExport: () -> Unit,
+    onExportDiagnostics: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -90,6 +91,32 @@ fun ExportScreen(
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Text(text = if (state.isExporting) "Exporting..." else "Export")
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = "Diagnostics", style = MaterialTheme.typography.titleMedium)
+                if (state.diagnosticsError != null) {
+                    Text(text = state.diagnosticsError, color = MaterialTheme.colorScheme.error)
+                }
+                if (state.lastDiagnosticsPath != null) {
+                    Text(
+                        text = "Diagnostics zip: ${state.lastDiagnosticsPath}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Button(
+                    onClick = onExportDiagnostics,
+                    enabled = !state.isDiagnosticsExporting,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (state.isDiagnosticsExporting) {
+                        CircularProgressIndicator(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(text = if (state.isDiagnosticsExporting) "Exporting diagnostics..." else "Export diagnostics zip")
+                }
+            }
         }
     }
 }

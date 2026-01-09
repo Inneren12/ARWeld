@@ -55,6 +55,7 @@ class ARSceneRenderer(
     private var frameListener: ((Frame) -> Unit)? = null
     private var hitTestResultListener: ((Pose3D) -> Unit)? = null
     private var renderRateListener: ((Double) -> Unit)? = null
+    private var frameIntervalListener: ((Long) -> Unit)? = null
     private var performanceMode: PerformanceMode = PerformanceMode.NORMAL
     private var sunlightEntity: Int? = null
     private val tapQueue = ConcurrentLinkedQueue<Pair<Float, Float>>()
@@ -91,6 +92,10 @@ class ARSceneRenderer(
 
     fun setRenderRateListener(listener: ((Double) -> Unit)?) {
         renderRateListener = listener
+    }
+
+    fun setFrameIntervalListener(listener: ((Long) -> Unit)?) {
+        frameIntervalListener = listener
     }
 
     fun setPerformanceMode(mode: PerformanceMode) {
@@ -337,6 +342,7 @@ class ARSceneRenderer(
             smoothedFrameIntervalNs = smoothedFrameIntervalNs?.let { previous ->
                 previous + FRAME_INTERVAL_SMOOTHING * (interval - previous)
             } ?: interval.toDouble()
+            frameIntervalListener?.invoke(interval)
             val fps = smoothedFrameIntervalNs?.let { intervalNs -> SECONDS_IN_NANOS / intervalNs }
             if (fps != null) {
                 renderRateListener?.invoke(fps)

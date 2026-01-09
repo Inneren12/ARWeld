@@ -24,5 +24,6 @@ fun ExportCenterRoute(
         onToggleZip = { viewModel.toggleZip(it) },
         onToggleManifest = { viewModel.toggleManifest(it) },
         onExport = { viewModel.export(outputRoot) },
+        onExportDiagnostics = { viewModel.exportDiagnostics(outputRoot) },
     )
 }

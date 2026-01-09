@@ -2,6 +2,7 @@ package com.example.arweld.feature.supervisor.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.arweld.core.domain.diagnostics.DiagnosticsExportService
 import com.example.arweld.core.domain.system.TimeProvider
 import com.example.arweld.feature.supervisor.usecase.ExportOptions
 import com.example.arweld.feature.supervisor.usecase.ExportPeriod
@@ -18,8 +19,11 @@ import kotlinx.coroutines.launch
 
 data class ExportUiState(
     val isExporting: Boolean = false,
+    val isDiagnosticsExporting: Boolean = false,
     val error: String? = null,
+    val diagnosticsError: String? = null,
     val lastExportPath: String? = null,
+    val lastDiagnosticsPath: String? = null,
     val selectedPeriod: ExportPeriod? = null,
     val options: ExportOptions = ExportOptions(),
     val availablePeriods: List<ExportPeriod> = emptyList(),
@@ -28,6 +32,7 @@ data class ExportUiState(
 @HiltViewModel
 class ExportViewModel @Inject constructor(
     private val exportReportUseCase: ExportReportUseCase,
+    private val diagnosticsExportService: DiagnosticsExportService,
     private val timeProvider: TimeProvider,
 ) : ViewModel() {
 
@@ -82,6 +87,28 @@ class ExportViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isExporting = false,
                     error = e.message ?: "Export failed",
+                )
+            }
+        }
+    }
+
+    fun exportDiagnostics(outputRoot: File) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isDiagnosticsExporting = true,
+                diagnosticsError = null,
+                lastDiagnosticsPath = null,
+            )
+            try {
+                val result = diagnosticsExportService.exportDiagnostics(outputRoot)
+                _uiState.value = _uiState.value.copy(
+                    isDiagnosticsExporting = false,
+                    lastDiagnosticsPath = result.zipFile.absolutePath,
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isDiagnosticsExporting = false,
+                    diagnosticsError = e.message ?: "Diagnostics export failed",
                 )
             }
         }
