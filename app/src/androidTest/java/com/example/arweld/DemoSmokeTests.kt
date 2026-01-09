@@ -1,15 +1,11 @@
 package com.example.arweld
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.example.arweld.core.data.seed.DbSeedInitializer
 import com.example.arweld.core.domain.auth.AuthRepository
-import com.example.arweld.navigation.AppNavigation
-import com.example.arweld.ui.components.AppErrorBoundary
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import javax.inject.Inject
@@ -37,15 +33,6 @@ class DemoSmokeTests {
     @Before
     fun setUp() = runBlocking {
         hiltRule.inject()
-        composeRule.setContent {
-            MaterialTheme {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    AppErrorBoundary {
-                        AppNavigation()
-                    }
-                }
-            }
-        }
         authRepository.logout()
         dbSeedInitializer.seedIfEmpty()
     }
@@ -116,9 +103,19 @@ class DemoSmokeTests {
     }
 
     private fun waitForText(text: String, timeoutMillis: Long = 5_000) {
+        waitUntilNodeWithTextExists(text, substring = false, timeoutMillis = timeoutMillis)
+    }
+
+    private fun waitUntilNodeWithTextExists(
+        text: String,
+        substring: Boolean = false,
+        timeoutMillis: Long = 10_000
+    ) {
         composeRule.waitUntil(timeoutMillis = timeoutMillis) {
             runCatching {
-                composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodesWithText(text, substring = substring)
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
             }.getOrDefault(false)
         }
     }
