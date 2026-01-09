@@ -47,15 +47,15 @@ class RigidTransformSolver {
         for (i in modelPoints.indices) {
             val m = modelPoints[i]
             val w = worldPoints[i]
-            matrix[0][0] += m.x * w.x
-            matrix[0][1] += m.x * w.y
-            matrix[0][2] += m.x * w.z
-            matrix[1][0] += m.y * w.x
-            matrix[1][1] += m.y * w.y
-            matrix[1][2] += m.y * w.z
-            matrix[2][0] += m.z * w.x
-            matrix[2][1] += m.z * w.y
-            matrix[2][2] += m.z * w.z
+            matrix[0][0] += w.x * m.x
+            matrix[0][1] += w.x * m.y
+            matrix[0][2] += w.x * m.z
+            matrix[1][0] += w.y * m.x
+            matrix[1][1] += w.y * m.y
+            matrix[1][2] += w.y * m.z
+            matrix[2][0] += w.z * m.x
+            matrix[2][1] += w.z * m.y
+            matrix[2][2] += w.z * m.z
         }
         return matrix
     }
