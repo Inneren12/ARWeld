@@ -2,6 +2,7 @@ package com.example.arweld.core.domain.auth
 
 import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.model.User
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Authentication contract for the ARWeld app.
@@ -31,6 +32,11 @@ interface AuthRepository {
      * Returns the currently signed-in user, or null if none has been cached.
      */
     suspend fun currentUser(): User?
+
+    /**
+     * Observable flow of the current user state. Emits null when logged out, non-null when logged in.
+     */
+    val currentUserFlow: StateFlow<User?>
 
     /**
      * Clears the active session and any persisted credentials.
