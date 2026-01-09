@@ -10,6 +10,9 @@ import com.example.arweld.core.domain.model.User
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -30,8 +33,15 @@ class AuthRepositoryImpl @Inject constructor(
 
     private val sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    @Volatile
-    private var cachedUser: User? = null
+    private val _currentUserFlow = MutableStateFlow<User?>(null)
+    override val currentUserFlow: StateFlow<User?> = _currentUserFlow.asStateFlow()
+
+    init {
+        val serializedUser = sharedPreferences.getString(KEY_CURRENT_USER, null)
+        _currentUserFlow.value = serializedUser?.let {
+            runCatching { json.decodeFromString(User.serializer(), it) }.getOrNull()
+        }
+    }
 
     override suspend fun loginMock(role: Role): User {
         val user = userDao.getFirstActiveByRole(role.name)?.toDomain()
@@ -41,7 +51,7 @@ class AuthRepositoryImpl @Inject constructor(
                 displayName = role.name.lowercase().replaceFirstChar { it.titlecase() },
                 role = role,
             )
-        cacheUser(user)
+        setUser(user)
         return user
     }
 
@@ -50,24 +60,19 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun loginWithUserId(userId: String): User {
         val user = userDao.getById(userId)?.toDomain()
             ?: error("User $userId not found in local database")
-        cacheUser(user)
+        setUser(user)
         return user
     }
 
-    override suspend fun currentUser(): User? {
-        cachedUser?.let { return it }
-        val serializedUser = sharedPreferences.getString(KEY_CURRENT_USER, null) ?: return null
-        return runCatching { json.decodeFromString(User.serializer(), serializedUser) }.
-            getOrNull()?.also { cachedUser = it }
-    }
+    override suspend fun currentUser(): User? = _currentUserFlow.value
 
     override suspend fun logout() {
-        cachedUser = null
+        _currentUserFlow.value = null
         sharedPreferences.edit { remove(KEY_CURRENT_USER) }
     }
 
-    private fun cacheUser(user: User) {
-        cachedUser = user
+    private fun setUser(user: User) {
+        _currentUserFlow.value = user
         sharedPreferences.edit {
             putString(KEY_CURRENT_USER, json.encodeToString(User.serializer(), user))
         }

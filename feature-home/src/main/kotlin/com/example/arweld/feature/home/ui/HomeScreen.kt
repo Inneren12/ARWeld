@@ -62,7 +62,8 @@ fun HomeScreen(
                     onNavigateToAssemblerQueue = onNavigateToAssemblerQueue,
                     onNavigateToQcQueue = onNavigateToQcQueue,
                     onNavigateToScan = onNavigateToScan,
-                    onNavigateToSupervisorDashboard = onNavigateToSupervisorDashboard
+                    onNavigateToSupervisorDashboard = onNavigateToSupervisorDashboard,
+                    onLogout = { viewModel.logout() }
                 )
             }
             is HomeUiState.Error -> {
@@ -90,7 +91,8 @@ private fun HomeContent(
     onNavigateToAssemblerQueue: () -> Unit,
     onNavigateToQcQueue: () -> Unit,
     onNavigateToScan: () -> Unit,
-    onNavigateToSupervisorDashboard: () -> Unit
+    onNavigateToSupervisorDashboard: () -> Unit,
+    onLogout: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -203,6 +205,15 @@ private fun HomeContent(
             modifier = Modifier.fillMaxWidth(0.7f)
         ) {
             Text("Scan Code")
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onLogout,
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .testTag("logout_button")
+        ) {
+            Text("Logout")
         }
     }
 }

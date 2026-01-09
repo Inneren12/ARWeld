@@ -66,21 +66,21 @@ class DemoSmokeTests {
             assertTrue(composeRule.onAllNodesWithText("QC Queue").fetchSemanticsNodes().isEmpty())
         }
 
-        relaunchFromSplash()
+        logoutAndWaitForLogin()
 
         loginAndWaitForHome("u-qc-1") {
             composeRule.onNodeWithText("QC Queue").assertExists()
             assertTrue(composeRule.onAllNodesWithText("Assembler Queue").fetchSemanticsNodes().isEmpty())
         }
 
-        relaunchFromSplash()
+        logoutAndWaitForLogin()
 
         loginAndWaitForHome("u-sup-1") {
             composeRule.onNodeWithText("Supervisor Dashboard").assertExists()
             composeRule.onNodeWithText("Role: SUPERVISOR", substring = true).assertExists()
         }
 
-        relaunchFromSplash()
+        logoutAndWaitForLogin()
 
         loginAndWaitForHome("u-dir-1") {
             composeRule.onNodeWithText("Supervisor Dashboard").assertExists()
@@ -111,8 +111,8 @@ class DemoSmokeTests {
         assertions?.invoke()
     }
 
-    private fun relaunchFromSplash() {
-        composeRule.activityRule.scenario.recreate()
+    private fun logoutAndWaitForLogin() {
+        composeRule.onNodeWithTag("logout_button").performClick()
         composeRule.waitForIdle()
         waitForLoginScreen()
     }

@@ -2,6 +2,9 @@ package com.example.arweld.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -11,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import androidx.navigation.navArgument
+import com.example.arweld.core.domain.auth.AuthRepository
 import com.example.arweld.ui.auth.LoginRoute
 import com.example.arweld.ui.auth.SplashScreen
 import com.example.arweld.ui.home.HomeRoute
@@ -26,11 +30,18 @@ import com.example.arweld.feature.work.ui.TimelineScreen
 import com.example.arweld.ui.scanner.ScanCodeRoute
 import com.example.arweld.ui.supervisor.SupervisorDashboardRoute
 import com.example.arweld.ui.supervisor.WorkItemDetailRoute
+import javax.inject.Inject
 
 @Composable
-fun AppNavigation(modifier: Modifier = Modifier) {
+fun AppNavigation(
+    modifier: Modifier = Modifier,
+    authRepository: AuthRepository = hiltViewModel<AppNavigationViewModel>().authRepository
+) {
     val navController = rememberNavController()
     val navigationLogger: NavigationLoggerViewModel = hiltViewModel()
+    val currentUser by authRepository.currentUserFlow.collectAsState()
+
+    val startDestination = if (currentUser != null) ROUTE_MAIN_GRAPH else ROUTE_AUTH_GRAPH
 
     DisposableEffect(navController) {
         val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
@@ -40,9 +51,20 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         onDispose { navController.removeOnDestinationChangedListener(listener) }
     }
 
+    LaunchedEffect(currentUser) {
+        if (currentUser == null) {
+            val currentRoute = navController.currentBackStackEntry?.destination?.route
+            if (currentRoute != ROUTE_LOGIN && currentRoute != ROUTE_SPLASH && currentRoute != ROUTE_AUTH_GRAPH) {
+                navController.navigate(ROUTE_AUTH_GRAPH) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
-        startDestination = ROUTE_AUTH_GRAPH,
+        startDestination = startDestination,
         modifier = modifier
     ) {
         navigation(route = ROUTE_AUTH_GRAPH, startDestination = ROUTE_SPLASH) {
