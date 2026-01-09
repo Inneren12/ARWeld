@@ -33,8 +33,12 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 data class ExportOptions(
     val includeCsv: Boolean = true,
@@ -283,8 +287,13 @@ class ExportReportUseCase @Inject constructor(
     private fun parseFailReasons(payloadJson: String?): List<String> {
         if (payloadJson.isNullOrBlank()) return emptyList()
         return runCatching {
-            Json { ignoreUnknownKeys = true }.decodeFromString(FailQcExportPayload.serializer(), payloadJson)
-        }.getOrNull()?.reasons.orEmpty()
+            val json = Json { ignoreUnknownKeys = true }
+            val element = json.decodeFromString<JsonElement>(payloadJson)
+            element.jsonObject["reasons"]
+                ?.jsonArray
+                ?.mapNotNull { it.jsonPrimitive.contentOrNull }
+                .orEmpty()
+        }.getOrDefault(emptyList())
     }
 
     private fun copyEvidenceIfExists(evidence: Evidence, evidenceDir: File): String? {
@@ -317,8 +326,3 @@ class ExportReportUseCase @Inject constructor(
         return Instant.ofEpochMilli(timestampMillis).toString()
     }
 }
-
-@Serializable
-private data class FailQcExportPayload(
-    val reasons: List<String> = emptyList(),
-)
