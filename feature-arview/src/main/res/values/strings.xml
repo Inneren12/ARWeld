@@ -17,7 +17,11 @@
     <string name="diagnostic_marker_count">Markers: %1$d</string>
     <string name="diagnostic_intrinsics_status">Intrinsics: %1$s</string>
     <string name="diagnostic_alignment_score">Align score: %1$.2f</string>
+    <string name="diagnostic_alignment_drift">Drift: %1$.1f mm</string>
     <string name="diagnostic_render_fps">Render Hz: %1$.1f</string>
+    <string name="diagnostic_perf_mode">Perf mode: %1$s</string>
+    <string name="performance_mode_normal">normal</string>
+    <string name="performance_mode_low">low</string>
     <string name="diagnostic_point_cloud">Point cloud: %1$s (%2$d pts)</string>
     <string name="diagnostic_value_ok">ok</string>
     <string name="diagnostic_value_missing">missing</string>

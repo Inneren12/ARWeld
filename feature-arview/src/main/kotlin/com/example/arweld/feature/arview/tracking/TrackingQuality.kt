@@ -22,4 +22,7 @@ enum class PointCloudStatus {
 data class TrackingStatus(
     val quality: TrackingQuality,
     val reason: String? = null,
+    val markerVisibility: Int = 0,
+    val driftEstimateMm: Double? = null,
+    val performanceMode: PerformanceMode = PerformanceMode.NORMAL,
 )
