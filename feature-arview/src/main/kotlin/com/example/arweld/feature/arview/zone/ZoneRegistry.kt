@@ -6,6 +6,7 @@ import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Quaternion
 import com.example.arweld.core.domain.spatial.Vector3
 import com.example.arweld.core.domain.spatial.ZoneTransform
+import com.example.arweld.feature.arview.BuildConfig
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -19,7 +20,23 @@ class ZoneRegistry(
 
     private val alignedZones: MutableMap<String, Pose3D> = mutableMapOf()
 
-    fun get(markerId: String): ZoneTransform? = zones[markerId]
+    fun get(markerId: String): ZoneTransform? {
+        val zone = zones[markerId] ?: run {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "No zone configured for markerId=$markerId")
+            }
+            return null
+        }
+        if (!isMarkerSizeValid(zone.markerSizeMeters)) {
+            Log.w(
+                TAG,
+                "Invalid markerSizeMeters=${zone.markerSizeMeters} for markerId=${zone.markerId}. " +
+                    "Expected range ${MIN_MARKER_SIZE_METERS}..${MAX_MARKER_SIZE_METERS}.",
+            )
+            return null
+        }
+        return zone
+    }
 
     @Synchronized
     fun recordAlignment(markerId: String, worldZonePose: Pose3D) {
@@ -32,6 +49,8 @@ class ZoneRegistry(
     companion object {
         private const val TAG = "ZoneRegistry"
         private const val ZONES_ASSET_FILE = "zones.json"
+        private const val MIN_MARKER_SIZE_METERS = 0.05f
+        private const val MAX_MARKER_SIZE_METERS = 1.0f
 
         private val TEST_ZONE = ZoneTransform(
             markerId = "TEST_MARKER_01",
@@ -60,6 +79,10 @@ class ZoneRegistry(
                 keySelector = { it.markerId },
                 valueTransform = { it.toZoneTransform() },
             )
+        }
+
+        private fun isMarkerSizeValid(markerSizeMeters: Float): Boolean {
+            return markerSizeMeters in MIN_MARKER_SIZE_METERS..MAX_MARKER_SIZE_METERS
         }
     }
 }
