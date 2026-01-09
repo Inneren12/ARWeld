@@ -11,8 +11,8 @@ Tip for CI-like runs: `./gradlew s2QualityGate --no-daemon --stacktrace`
 ## What the task runs
 `s2QualityGate` wires together the following verification steps:
 1. **Build APKs:** `:app:assembleDebug` and `:app:assembleRelease`
-2. **Unit tests:** `:app:testDebugUnitTest` (falls back to `:app:test` if needed)
-3. **Lint:** `:app:lintDebug` (falls back to `:app:lint` if needed)
+2. **Unit tests:** `:app:testDebugUnitTest`
+3. **Lint:** `:app:lintDebug`
 
 **Note:** Instrumentation tests are **NOT** included in this gate. Use `./gradlew s2InstrumentationSmoke` to run instrumentation tests separately.
 
@@ -24,7 +24,7 @@ Currently, `s1QualityGate` and `s2QualityGate` run the same tasks. As the projec
 
 ## Typical failure causes
 - **Lint violations:** Style or correctness issues flagged by Android Lint
-- **Unit test failures:** Failing assertions in `testDebugUnitTest` or `test` tasks
+- **Unit test failures:** Failing assertions in `testDebugUnitTest`
 - **Build issues:** Missing resources, dependency conflicts, or compilation errors preventing assembleDebug/assembleRelease
 
 ## Running instrumentation tests separately
@@ -35,11 +35,8 @@ Instrumentation tests are kept separate to avoid requiring an emulator or physic
 ```
 
 ### Instrumentation smoke test details
-The `s2InstrumentationSmoke` task runs instrumentation tests on Gradle Managed Devices. It attempts to find and run one of the following tasks (in order):
-1. `:app:allDevicesDebugAndroidTest` - Runs tests on all configured managed devices
-2. `:app:pixel6Api34DebugAndroidTest` - Runs tests on Pixel 6 API 34 managed device
-3. `:app:gmdDebugAndroidTest` - Generic managed device test task
-4. `:app:connectedDebugAndroidTest` - Falls back to connected device/emulator
+The `s2InstrumentationSmoke` task runs instrumentation tests on the configured Gradle Managed Device:
+1. `:app:pixel6Api34DebugAndroidTest` - Runs tests on Pixel 6 API 34 managed device
 
 ### Requirements for instrumentation tests
 - **Managed devices:** Defined in `app/build.gradle.kts` under `testOptions.managedDevices`
