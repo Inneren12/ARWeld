@@ -9,6 +9,13 @@ enum class TrackingQuality {
     POOR,
 }
 
+enum class PointCloudStatus {
+    OK,
+    EMPTY,
+    FAILED,
+    UNKNOWN,
+}
+
 /**
  * UI-facing tracking status with an optional human-readable reason.
  */
