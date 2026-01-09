@@ -2,8 +2,6 @@ package com.example.arweld
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.assertDoesNotExist
-import androidx.compose.ui.test.onNodeWithSubstring
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.example.arweld.core.data.seed.DbSeedInitializer
@@ -12,6 +10,7 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import javax.inject.Inject
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -50,28 +49,28 @@ class DemoSmokeTests {
     fun homeTilesChangePerRole() {
         loginAndWaitForHome("Assembler 1") {
             composeRule.onNodeWithText("Assembler Queue").assertExists()
-            composeRule.onNodeWithText("QC Queue").assertDoesNotExist()
+            assertTrue(composeRule.onAllNodesWithText("QC Queue").fetchSemanticsNodes().isEmpty())
         }
 
         relaunchFromSplash()
 
         loginAndWaitForHome("QC 1") {
             composeRule.onNodeWithText("QC Queue").assertExists()
-            composeRule.onNodeWithText("Assembler Queue").assertDoesNotExist()
+            assertTrue(composeRule.onAllNodesWithText("Assembler Queue").fetchSemanticsNodes().isEmpty())
         }
 
         relaunchFromSplash()
 
         loginAndWaitForHome("Supervisor 1") {
             composeRule.onNodeWithText("Supervisor Dashboard").assertExists()
-            composeRule.onNodeWithSubstring("Role: SUPERVISOR").assertExists()
+            composeRule.onNodeWithText("Role: SUPERVISOR", substring = true).assertExists()
         }
 
         relaunchFromSplash()
 
         loginAndWaitForHome("Director 1") {
             composeRule.onNodeWithText("Supervisor Dashboard").assertExists()
-            composeRule.onNodeWithSubstring("Role: DIRECTOR").assertExists()
+            composeRule.onNodeWithText("Role: DIRECTOR", substring = true).assertExists()
         }
     }
 
