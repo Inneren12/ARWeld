@@ -5,6 +5,9 @@ import com.example.arweld.core.domain.spatial.CameraIntrinsics
 import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Quaternion
 import com.example.arweld.core.domain.spatial.Vector3
+import com.example.arweld.feature.arview.geometry.orderCornersClockwiseFromTopLeft
+import com.example.arweld.feature.arview.geometry.toPoint2f
+import com.example.arweld.feature.arview.geometry.toPointF
 import com.example.arweld.feature.arview.marker.DetectedMarker
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -26,8 +29,14 @@ class MarkerPoseEstimator {
         cameraPoseWorld: Pose3D,
     ): Pose3D? {
         if (marker.corners.size < 4) return null
+        // Ensure corners are properly ordered (TL, TR, BR, BL clockwise from top-left)
+        // Convert to Point2f for pure Kotlin processing to avoid JVM test issues
+        val point2fCorners = marker.corners.map { it.toPoint2f() }
+        val orderedPoint2f = orderCornersClockwiseFromTopLeft(point2fCorners)
+        val orderedCorners = orderedPoint2f.map { it.toPointF() }
+
         val objectPoints = buildSquarePoints(markerSizeMeters.toDouble())
-        val imagePoints = marker.corners.take(4)
+        val imagePoints = orderedCorners.take(4)
         val homography = computeHomography(objectPoints, imagePoints) ?: return null
         val (rotation, translation) = decomposeHomography(intrinsics, homography) ?: return null
         val markerPoseCamera = Pose3D(translation, rotation)

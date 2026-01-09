@@ -7,6 +7,10 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
 import androidx.annotation.VisibleForTesting
+import com.example.arweld.feature.arview.geometry.Point2f
+import com.example.arweld.feature.arview.geometry.orderCornersClockwiseFromTopLeft
+import com.example.arweld.feature.arview.geometry.toPoint2f
+import com.example.arweld.feature.arview.geometry.toPointF
 import com.google.android.gms.tasks.Tasks
 import com.google.ar.core.Frame
 import com.google.ar.core.exceptions.NotYetAvailableException
@@ -130,14 +134,11 @@ class RealMarkerDetector(
     @VisibleForTesting
     internal fun orderCorners(corners: List<PointF>): List<PointF> {
         if (corners.size < 4) return corners
-        val sortedByY = corners.sortedBy { it.y }
-        val top = sortedByY.take(2).sortedBy { it.x }
-        val bottom = sortedByY.takeLast(2).sortedBy { it.x }
-        val topLeft = top.first()
-        val topRight = top.last()
-        val bottomLeft = bottom.first()
-        val bottomRight = bottom.last()
-        return listOf(topLeft, topRight, bottomRight, bottomLeft)
+        // Convert to pure Kotlin Point2f for JVM-compatible geometry operations
+        val point2fCorners = corners.map { it.toPoint2f() }
+        val orderedPoint2f = orderCornersClockwiseFromTopLeft(point2fCorners)
+        // Convert back to PointF for Android API compatibility
+        return orderedPoint2f.map { it.toPointF() }
     }
 
     companion object {
