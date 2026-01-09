@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
 import androidx.annotation.VisibleForTesting
+import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.feature.arview.geometry.Point2f
 import com.example.arweld.feature.arview.geometry.orderCornersClockwiseFromTopLeft
 import com.example.arweld.feature.arview.geometry.toPoint2f
@@ -46,14 +47,18 @@ class RealMarkerDetector(
     override fun detectMarkers(frame: Frame): List<DetectedMarker> {
         val now = SystemClock.elapsedRealtime()
         if (now - lastDetectionMs.get() < minIntervalMs) {
-            Log.v(TAG, "Skipping detection; throttled to $minIntervalMs ms")
+            if (BuildConfig.DEBUG) {
+                Log.v(TAG, "Skipping detection; throttled to $minIntervalMs ms")
+            }
             return emptyList()
         }
 
         val image = try {
             frame.acquireCameraImage()
         } catch (notReady: NotYetAvailableException) {
-            Log.v(TAG, "Camera image not yet available for marker detection")
+            if (BuildConfig.DEBUG) {
+                Log.v(TAG, "Camera image not yet available for marker detection")
+            }
             return emptyList()
         } catch (error: Exception) {
             Log.w(TAG, "Failed to acquire camera image", error)
@@ -106,7 +111,8 @@ class RealMarkerDetector(
         else -> 0
     }
 
-    private fun boundingBoxCorners(
+    @VisibleForTesting
+    internal fun boundingBoxCorners(
         box: Rect,
         width: Int,
         height: Int,

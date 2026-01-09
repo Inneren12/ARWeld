@@ -274,9 +274,7 @@ class ARViewController(
                     markers.mapNotNull { marker ->
                         val zoneTransform = zoneRegistry.get(marker.id)
                         if (zoneTransform == null) {
-                            if (BuildConfig.DEBUG) {
-                                Log.d(TAG, "Marker ${marker.id} not found in zone registry")
-                            }
+                            Log.w(TAG, "No zone alignment configured for markerId=${marker.id}")
                             return@mapNotNull null
                         }
                         when (

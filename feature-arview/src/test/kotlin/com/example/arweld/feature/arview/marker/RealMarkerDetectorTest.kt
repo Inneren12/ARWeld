@@ -2,6 +2,8 @@ package com.example.arweld.feature.arview.marker
 
 import android.graphics.Point
 import android.graphics.PointF
+import android.graphics.Rect
+import android.view.Surface
 import com.example.arweld.feature.arview.geometry.Point2f
 import com.example.arweld.feature.arview.geometry.orderCornersClockwiseFromTopLeft
 import com.google.common.truth.Truth.assertThat
@@ -32,6 +34,64 @@ class RealMarkerDetectorTest {
             val mapped = detector.mapToImageSpace(point, width, height, rotation)
             assertThat(mapped.x).isWithin(epsilon).of(expected.x)
             assertThat(mapped.y).isWithin(epsilon).of(expected.y)
+        }
+    }
+
+    @Test
+    fun `maps surface rotation constants to degrees`() {
+        val mappings = mapOf(
+            Surface.ROTATION_0 to 0,
+            Surface.ROTATION_90 to 90,
+            Surface.ROTATION_180 to 180,
+            Surface.ROTATION_270 to 270,
+        )
+
+        mappings.forEach { (surfaceRotation, expectedDegrees) ->
+            val degrees = detector.rotationDegreesFromSurface(surfaceRotation)
+            assertThat(degrees).isEqualTo(expectedDegrees)
+        }
+    }
+
+    @Test
+    fun `maps bounding box corners into image space for rotations`() {
+        val width = 100
+        val height = 50
+        val box = Rect(10, 5, 30, 25)
+
+        val rotations = mapOf(
+            0 to listOf(
+                PointF(10f, 5f),
+                PointF(30f, 5f),
+                PointF(30f, 25f),
+                PointF(10f, 25f),
+            ),
+            90 to listOf(
+                PointF(5f, 90f),
+                PointF(5f, 70f),
+                PointF(25f, 70f),
+                PointF(25f, 90f),
+            ),
+            180 to listOf(
+                PointF(90f, 45f),
+                PointF(70f, 45f),
+                PointF(70f, 25f),
+                PointF(90f, 25f),
+            ),
+            270 to listOf(
+                PointF(45f, 10f),
+                PointF(45f, 30f),
+                PointF(25f, 30f),
+                PointF(25f, 10f),
+            ),
+        )
+
+        rotations.forEach { (rotation, expectedCorners) ->
+            val mapped = detector.boundingBoxCorners(box, width, height, rotation)
+            assertThat(mapped).hasSize(4)
+            mapped.zip(expectedCorners).forEach { (actual, expected) ->
+                assertThat(actual.x).isWithin(epsilon).of(expected.x)
+                assertThat(actual.y).isWithin(epsilon).of(expected.y)
+            }
         }
     }
 
