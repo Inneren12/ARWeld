@@ -11,14 +11,14 @@ Tip for CI-like runs: `./gradlew s1QualityGate --no-daemon --stacktrace`
 ## What the task runs
 `s1QualityGate` wires together the following verification steps:
 1. **Build APKs:** `:app:assembleDebug` and `:app:assembleRelease`
-2. **Unit tests:** `:app:testDebugUnitTest` (falls back to `:app:test` if needed)
-3. **Lint:** `:app:lintDebug` (falls back to `:app:lint` if needed)
+2. **Unit tests:** `:app:testDebugUnitTest`
+3. **Lint:** `:app:lintDebug`
 
 **Note:** Instrumentation tests are **NOT** included in this gate. Use `./gradlew s2InstrumentationSmoke` to run instrumentation tests separately.
 
 ## Typical failure causes
 - **Lint violations:** Style or correctness issues flagged by Android Lint
-- **Unit test failures:** Failing assertions in `testDebugUnitTest` or `test` tasks
+- **Unit test failures:** Failing assertions in `testDebugUnitTest`
 - **Build issues:** Missing resources, dependency conflicts, or compilation errors preventing assembleDebug/assembleRelease
 
 ## Running instrumentation tests separately
