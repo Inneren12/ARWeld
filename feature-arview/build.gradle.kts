@@ -74,7 +74,8 @@ dependencies {
     implementation(libs.mlkit.barcode.scanning)
     testImplementation("com.google.truth:truth:1.4.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
-        testImplementation("io.mockk:mockk:1.14.7")
+    testImplementation("io.mockk:mockk:1.14.7")
+    testImplementation("org.robolectric:robolectric:4.11.1")
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
