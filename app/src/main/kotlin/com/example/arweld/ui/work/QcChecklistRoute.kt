@@ -1,6 +1,7 @@
 package com.example.arweld.ui.work
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -19,10 +20,16 @@ fun QcChecklistRoute(
     code: String?,
     viewModel: QcChecklistViewModel = hiltViewModel(),
 ) {
-    val checklist by viewModel.checklist.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(workItemId) {
+        viewModel.initialize(workItemId)
+    }
 
     QcChecklistScreen(
-        checklist = checklist,
+        uiState = uiState,
+        workItemId = workItemId,
+        code = code,
         onUpdateItem = viewModel::updateItemState,
         onNavigateBack = { navController.popBackStack() },
         onPass = { result ->

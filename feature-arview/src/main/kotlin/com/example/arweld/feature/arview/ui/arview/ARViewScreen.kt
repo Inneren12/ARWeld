@@ -44,6 +44,9 @@ import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.feature.arview.arcore.ARViewController
 import com.example.arweld.feature.arview.arcore.ARViewLifecycleHost
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
+import com.example.arweld.feature.arview.arcore.PointCloudStatusReport
+import com.example.arweld.feature.arview.tracking.PerformanceMode
+import com.example.arweld.feature.arview.tracking.PointCloudStatus
 import com.example.arweld.feature.arview.tracking.TrackingQuality
 import com.example.arweld.feature.arview.tracking.TrackingStatus
 import dagger.hilt.EntryPoint
@@ -84,9 +87,12 @@ fun ARViewScreen(
     val manualState by controller.manualAlignmentState.collectAsState()
     val trackingStatus by controller.trackingStatus.collectAsState()
     val alignmentScore by controller.alignmentScore.collectAsState()
+    val alignmentDriftMm by controller.alignmentDriftMm.collectAsState()
     val detectedMarkers by controller.detectedMarkers.collectAsState()
     val intrinsicsReady by controller.intrinsicsAvailable.collectAsState()
     val renderFps by controller.renderFps.collectAsState()
+    val pointCloudStatus by controller.pointCloudStatus.collectAsState()
+    val performanceMode by controller.performanceMode.collectAsState()
 
     LaunchedEffect(controller) {
         controller.loadTestNodeModel()
@@ -119,21 +125,35 @@ fun ARViewScreen(
                 factory = { controller.getView() },
                 modifier = Modifier.fillMaxSize()
             )
-            errorMessage.value?.let { message ->
-                Text(
-                    text = message,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(16.dp)
-                )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                errorMessage.value?.let { message ->
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                if (!intrinsicsReady) {
+                    IntrinsicsBanner(
+                        onRetry = controller::retryIntrinsics,
+                        onRestart = controller::restartSession,
+                    )
+                }
             }
             if (isDebuggable) {
                 DiagnosticOverlay(
                     markerCount = detectedMarkers.size,
                     intrinsicsReady = intrinsicsReady,
                     alignmentScore = alignmentScore,
+                    alignmentDriftMm = alignmentDriftMm,
                     renderFps = renderFps,
+                    pointCloudStatus = pointCloudStatus,
+                    performanceMode = performanceMode,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(16.dp),
@@ -254,7 +274,10 @@ private fun DiagnosticOverlay(
     markerCount: Int,
     intrinsicsReady: Boolean,
     alignmentScore: Float,
+    alignmentDriftMm: Double,
     renderFps: Double,
+    pointCloudStatus: PointCloudStatusReport,
+    performanceMode: PerformanceMode,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -292,10 +315,73 @@ private fun DiagnosticOverlay(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
+                text = stringResource(id = R.string.diagnostic_alignment_drift, alignmentDriftMm),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val pointCloudLabel = when (pointCloudStatus.status) {
+                PointCloudStatus.OK -> stringResource(id = R.string.diagnostic_point_cloud_ok)
+                PointCloudStatus.EMPTY -> stringResource(id = R.string.diagnostic_point_cloud_empty)
+                PointCloudStatus.FAILED -> stringResource(id = R.string.diagnostic_point_cloud_failed)
+                PointCloudStatus.UNKNOWN -> stringResource(id = R.string.diagnostic_point_cloud_unknown)
+            }
+            Text(
+                text = stringResource(
+                    id = R.string.diagnostic_point_cloud,
+                    pointCloudLabel,
+                    pointCloudStatus.pointCount,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
                 text = stringResource(id = R.string.diagnostic_render_fps, renderFps),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Text(
+                text = stringResource(
+                    id = R.string.diagnostic_perf_mode,
+                    if (performanceMode == PerformanceMode.LOW) {
+                        stringResource(id = R.string.performance_mode_low)
+                    } else {
+                        stringResource(id = R.string.performance_mode_normal)
+                    },
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun IntrinsicsBanner(
+    onRetry: () -> Unit,
+    onRestart: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 2.dp,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(
+                text = stringResource(id = R.string.intrinsics_unavailable_message),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = onRetry) {
+                    Text(text = stringResource(id = R.string.intrinsics_retry))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = onRestart) {
+                    Text(text = stringResource(id = R.string.intrinsics_restart_session))
+                }
+            }
         }
     }
 }

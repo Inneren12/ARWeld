@@ -52,6 +52,34 @@ class MarkerPoseEstimatorTest {
         assertThat(markerPose.rotation.angularDistance(Quaternion.Identity)).isAtMost(1e-2)
     }
 
+    @Test
+    fun estimateMarkerPoseWithDiagnostics_reportsInsufficientCorners() {
+        val intrinsics = CameraIntrinsics(
+            fx = 600.0,
+            fy = 600.0,
+            cx = 320.0,
+            cy = 240.0,
+            width = 640,
+            height = 480,
+        )
+        val detectedMarker = DetectedMarker(
+            id = "42",
+            corners = listOf(PointF(0f, 0f), PointF(1f, 1f), PointF(2f, 2f)),
+            timestampNs = 0L,
+        )
+
+        val result = estimator.estimateMarkerPoseWithDiagnostics(
+            intrinsics = intrinsics,
+            marker = detectedMarker,
+            markerSizeMeters = 0.2f,
+            cameraPoseWorld = Pose3D.Identity,
+        )
+
+        assertThat(result).isInstanceOf(MarkerPoseEstimateResult.Failure::class.java)
+        val failure = result as MarkerPoseEstimateResult.Failure
+        assertThat(failure.reason).isEqualTo("insufficient_corners")
+    }
+
     private fun buildProjectedCorners(
         markerSize: Double,
         translation: Vector3,

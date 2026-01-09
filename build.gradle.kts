@@ -11,40 +11,61 @@ plugins {
 
 tasks.register("s1QualityGate") {
     group = "verification"
-    description = "Runs the Sprint 1 local quality gate: assemble, unit tests, lint, and instrumentation smoke."
+    description = "Runs the Sprint 1 local quality gate: assemble, unit tests, and lint (NO instrumentation)."
 }
 
 tasks.register("s2QualityGate") {
     group = "verification"
-    description = "Runs the Sprint 2 local quality gate: assemble, unit tests, lint, and instrumentation smoke."
+    description = "Runs the Sprint 2 local quality gate: assemble, unit tests, and lint (NO instrumentation)."
+}
+
+tasks.register("s2InstrumentationSmoke") {
+    group = "verification"
+    description = "Runs instrumentation smoke tests on managed devices (separate from quality gates)."
 }
 
 gradle.projectsEvaluated {
-    val requiredTasks = mutableListOf<String>()
+    // Quality gate tasks (NO instrumentation)
+    val qualityGateTasks = mutableListOf<String>()
+
+    // Instrumentation smoke tasks (separate)
+    val instrumentationTasks = mutableListOf<String>()
 
     fun addIfExists(taskPath: String) {
-        if (tasks.findByPath(taskPath) != null) requiredTasks += taskPath
+        if (tasks.findByPath(taskPath) != null) qualityGateTasks += taskPath
     }
 
     fun addFirstExisting(vararg taskPaths: String) {
-        taskPaths.firstOrNull { tasks.findByPath(it) != null }?.let(requiredTasks::add)
+        taskPaths.firstOrNull { tasks.findByPath(it) != null }?.let(qualityGateTasks::add)
     }
 
+    fun addFirstInstrumentationTask(vararg taskPaths: String) {
+        taskPaths.firstOrNull { tasks.findByPath(it) != null }?.let(instrumentationTasks::add)
+    }
+
+    // Quality gate dependencies
     addIfExists(":app:assembleDebug")
     addIfExists(":app:assembleRelease")
     addFirstExisting(":app:testDebugUnitTest", ":app:test")
     addFirstExisting(":app:lintDebug", ":app:lint")
-    addFirstExisting(
+
+    // Instrumentation dependencies (separate)
+    addFirstInstrumentationTask(
         ":app:allDevicesDebugAndroidTest",
+        ":app:pixel6Api34DebugAndroidTest",
         ":app:gmdDebugAndroidTest",
         ":app:connectedDebugAndroidTest"
     )
 
     tasks.named("s1QualityGate").configure {
-        dependsOn(requiredTasks)
+        dependsOn(qualityGateTasks)
     }
 
     tasks.named("s2QualityGate").configure {
-        dependsOn(requiredTasks)
+        dependsOn(qualityGateTasks)
+    }
+
+    tasks.named("s2InstrumentationSmoke").configure {
+        dependsOn(instrumentationTasks)
     }
 }

@@ -1,0 +1,79 @@
+{
+  "export_metadata": {
+    "export_id": "exp-20250101-120000",
+    "exported_at": "2025-01-01T12:00:00Z",
+    "exported_by": "supervisor@example.com",
+    "period_start": "2025-01-01T06:00:00Z",
+    "period_end": "2025-01-01T14:00:00Z"
+  },
+  "work_items": [
+    {
+      "id": "wi-1234",
+      "code": "QR-ABC-001",
+      "description": "Weld assembly A1",
+      "status": "APPROVED",
+      "zone": "Zone-A",
+      "node_id": "Node-A1",
+      "events": [
+        {
+          "id": "evt-001",
+          "type": "WORK_CLAIMED",
+          "actor_id": "user-1",
+          "actor_name": "John Smith",
+          "actor_role": "ASSEMBLER",
+          "timestamp": "2025-01-01T09:30:00Z"
+        },
+        {
+          "id": "evt-002",
+          "type": "QC_PASSED",
+          "actor_id": "user-2",
+          "actor_name": "Jane Doe",
+          "actor_role": "QC",
+          "timestamp": "2025-01-01T11:42:00Z",
+          "payload_json": "{\"notes\":\"Excellent quality\"}"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evi-001",
+          "event_id": "evt-002",
+          "kind": "AR_SCREENSHOT",
+          "file_path": "evidence/evi-001_image.png",
+          "file_hash": "a1b2c3d4e5f6",
+          "captured_at": "2025-01-01T11:40:35Z",
+          "size_bytes": 2048,
+          "uri": "file:///evidence/evi-001_image.png"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_work_items": 1,
+    "passed": 1,
+    "failed": 0,
+    "qc_pass_rate": 1.0
+  },
+  "reporting": {
+    "shift_counts": [
+      {
+        "label": "Shift 06:00-14:00",
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "top_fail_reasons": [
+      {
+        "reason": "POROSITY",
+        "count": 2
+      }
+    ],
+    "problematic_nodes": [
+      {
+        "node_id": "Node-A1",
+        "failures": 1,
+        "total_items": 3
+      }
+    ]
+  }
+}

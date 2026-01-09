@@ -22,10 +22,12 @@ import com.example.arweld.core.data.repository.EventRepositoryImpl
 import com.example.arweld.core.data.repository.EvidenceRepositoryImpl
 import com.example.arweld.core.data.repository.WorkItemRepository
 import com.example.arweld.core.data.repository.WorkItemRepositoryImpl
+import com.example.arweld.core.data.sync.SyncQueueRepositoryImpl
 import com.example.arweld.core.domain.auth.AuthRepository
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.evidence.EvidenceRepository
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
+import com.example.arweld.core.domain.sync.SyncQueueRepository
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
 import com.example.arweld.core.domain.work.ResolveWorkItemByCodeUseCase
@@ -196,6 +198,12 @@ abstract class RepositoryModule {
     abstract fun bindAuthRepository(
         impl: AuthRepositoryImpl
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSyncQueueRepository(
+        impl: SyncQueueRepositoryImpl
+    ): SyncQueueRepository
 
     @Binds
     @Singleton

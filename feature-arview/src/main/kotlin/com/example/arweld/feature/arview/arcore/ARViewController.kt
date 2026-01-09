@@ -21,6 +21,7 @@ import com.example.arweld.core.domain.spatial.AlignmentPoint
 import com.example.arweld.core.domain.spatial.AlignmentSample
 import com.example.arweld.core.domain.spatial.CameraIntrinsics
 import com.example.arweld.core.domain.spatial.Pose3D
+import com.example.arweld.core.domain.spatial.Quaternion
 import com.example.arweld.core.domain.spatial.Vector3
 import com.example.arweld.core.domain.spatial.angularDistance
 import com.example.arweld.feature.arview.marker.DetectedMarker
@@ -32,9 +33,12 @@ import com.example.arweld.feature.arview.alignment.RigidTransformSolver
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.feature.arview.arcore.ArScreenshotRegistry
 import com.example.arweld.feature.arview.pose.MarkerPoseEstimator
+import com.example.arweld.feature.arview.pose.MarkerPoseEstimateResult
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.render.ModelLoader
+import com.example.arweld.feature.arview.tracking.PointCloudStatus
+import com.example.arweld.feature.arview.tracking.PerformanceMode
 import com.example.arweld.feature.arview.tracking.TrackingQuality
 import com.example.arweld.feature.arview.tracking.TrackingStatus
 import com.example.arweld.feature.arview.zone.ZoneAligner
@@ -58,6 +62,7 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.math.roundToInt
 
 /**
  * Placeholder controller for AR rendering surface.
@@ -91,8 +96,13 @@ class ARViewController(
     private val lastAlignmentSetNs = AtomicLong(0L)
     private val lastAlignmentEventNs = AtomicLong(0L)
     private val lastAlignmentEventPose = AtomicReference<Pose3D?>()
+    private val lastAppliedPose = AtomicReference<Pose3D?>()
+    private var smoothedPose: Pose3D? = null
     private var lastQualityChangeNs: Long = 0L
     private var lastManualResetNs: Long = 0L
+    private val lastCvRunNs = AtomicLong(0L)
+    private val cvThrottleNs = AtomicLong(DEFAULT_CV_THROTTLE_NS)
+    private var lastDriftEstimateMm: Double = 0.0
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
@@ -104,8 +114,12 @@ class ARViewController(
     val markerWorldPoses: StateFlow<Map<String, Pose3D>> = _markerWorldPoses
     private val _alignmentScore = MutableStateFlow(0f)
     val alignmentScore: StateFlow<Float> = _alignmentScore
+    private val _alignmentDriftMm = MutableStateFlow(0.0)
+    val alignmentDriftMm: StateFlow<Double> = _alignmentDriftMm
     private val _manualAlignmentState = MutableStateFlow(ManualAlignmentState())
     val manualAlignmentState: StateFlow<ManualAlignmentState> = _manualAlignmentState
+    private val _pointCloudStatus = MutableStateFlow(PointCloudStatusReport())
+    val pointCloudStatus: StateFlow<PointCloudStatusReport> = _pointCloudStatus
     private val _trackingStatus = MutableStateFlow(
         TrackingStatus(
             quality = TrackingQuality.POOR,
@@ -115,7 +129,10 @@ class ARViewController(
     val trackingStatus: StateFlow<TrackingStatus> = _trackingStatus
     private val _renderFps = MutableStateFlow(0.0)
     val renderFps: StateFlow<Double> = _renderFps
+    private val _performanceMode = MutableStateFlow(PerformanceMode.NORMAL)
+    val performanceMode: StateFlow<PerformanceMode> = _performanceMode
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val lastPointCloudLogMs = AtomicLong(0L)
 
     fun onCreate() {
         if (BuildConfig.DEBUG) {
@@ -126,6 +143,7 @@ class ARViewController(
         sceneRenderer.setHitTestResultListener(::onHitTestResult)
         sceneRenderer.setRenderRateListener { fps ->
             _renderFps.value = fps
+            updatePerformanceMode(fps)
         }
         surfaceView.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
@@ -187,6 +205,30 @@ class ARViewController(
 
     fun getView(): View = surfaceView
 
+    fun retryIntrinsics() {
+        cachedIntrinsics.set(null)
+        _intrinsicsAvailable.value = false
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Retrying intrinsics capture")
+        }
+    }
+
+    fun restartSession() {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Restarting ARCore session")
+        }
+        sceneRenderer.onPause()
+        sessionManager.onPause()
+        sessionManager.onDestroy()
+        val error = sessionManager.onResume(
+            displayRotation = currentRotation(),
+            viewportWidth = surfaceView.width,
+            viewportHeight = surfaceView.height,
+        )
+        _errorMessage.value = error
+        sceneRenderer.onResume()
+    }
+
     /**
      * Loads the sprint test node model from assets so the renderer can attach it to the scene.
      */
@@ -218,10 +260,23 @@ class ARViewController(
         }
         val cameraIntrinsics = freshIntrinsics ?: cachedIntrinsics.get()
         _intrinsicsAvailable.value = cameraIntrinsics != null
-        val featurePointCount = computeFeaturePointCount(frame)
+        val pointCloudReport = computePointCloudStatus(frame)
+        _pointCloudStatus.value = pointCloudReport
         val trackingState = frame.camera.trackingState
         val frameTimestampNs = frame.timestamp
         val cameraPoseWorld = frame.camera.pose.toPose3D()
+        if (!shouldRunCv(frameTimestampNs)) {
+            val markers = _detectedMarkers.value
+            updateTrackingStatus(
+                trackingState = trackingState,
+                featurePoints = pointCloudReport.pointCount,
+                markerCount = markers.size,
+                frameTimestampNs = frameTimestampNs,
+                driftEstimateMm = lastDriftEstimateMm,
+            )
+            isDetectingMarkers.set(false)
+            return
+        }
         detectorScope.launch {
             try {
                 val markers = markerDetector.detectMarkers(frame)
@@ -233,30 +288,38 @@ class ARViewController(
                 }
                 val intrinsics = cameraIntrinsics
                 if (intrinsics == null) {
-                    _errorMessage.value = "Unable to read camera intrinsics"
+                    if (_errorMessage.value != INTRINSICS_ERROR_MESSAGE) {
+                        _errorMessage.value = INTRINSICS_ERROR_MESSAGE
+                    }
+                } else if (_errorMessage.value == INTRINSICS_ERROR_MESSAGE) {
+                    _errorMessage.value = null
                 }
 
                 val worldPoses = if (intrinsics != null) {
                     markers.mapNotNull { marker ->
                         val zoneTransform = zoneRegistry.get(marker.id)
                         if (zoneTransform == null) {
-                            if (BuildConfig.DEBUG) {
-                                Log.d(TAG, "Marker ${marker.id} not found in zone registry")
-                            }
+                            Log.w(TAG, "No zone alignment configured for markerId=${marker.id}")
                             return@mapNotNull null
                         }
-                        markerPoseEstimator.estimateMarkerPose(
-                            intrinsics = intrinsics,
-                            marker = marker,
-                            markerSizeMeters = zoneTransform.markerSizeMeters,
-                            cameraPoseWorld = cameraPoseWorld,
-                        )?.let { pose ->
-                            marker.id to pose
-                        } ?: run {
-                            if (BuildConfig.DEBUG) {
-                                Log.d(TAG, "Pose estimation returned null for marker ${marker.id}")
+                        when (
+                            val result = markerPoseEstimator.estimateMarkerPoseWithDiagnostics(
+                                intrinsics = intrinsics,
+                                marker = marker,
+                                markerSizeMeters = zoneTransform.markerSizeMeters,
+                                cameraPoseWorld = cameraPoseWorld,
+                            )
+                        ) {
+                            is MarkerPoseEstimateResult.Success -> marker.id to result.pose
+                            is MarkerPoseEstimateResult.Failure -> {
+                                if (BuildConfig.DEBUG) {
+                                    Log.d(
+                                        TAG,
+                                        "Pose estimation failed for marker ${marker.id}: ${result.reason}",
+                                    )
+                                }
+                                null
                             }
-                            null
                         }
                     }.toMap()
                 } else {
@@ -266,7 +329,7 @@ class ARViewController(
                 _markerWorldPoses.value = worldPoses
                 if (worldPoses.isNotEmpty()) {
                     _errorMessage.value = null
-                    maybeAlignModel(worldPoses)
+                    lastDriftEstimateMm = maybeAlignModel(worldPoses)
                 } else {
                     if (markers.isNotEmpty()) {
                         _errorMessage.value = "Failed to estimate marker pose"
@@ -274,13 +337,16 @@ class ARViewController(
                         _errorMessage.value = null
                     }
                     updateAlignmentScoreForStaleFrame()
+                    lastDriftEstimateMm = 0.0
                 }
+                _alignmentDriftMm.value = lastDriftEstimateMm
                 updateMarkerTimestampIfNeeded(markers.isNotEmpty(), frameTimestampNs)
                 updateTrackingStatus(
                     trackingState = trackingState,
-                    featurePoints = featurePointCount,
-                    hasMarker = markers.isNotEmpty(),
+                    featurePoints = pointCloudReport.pointCount,
+                    markerCount = markers.size,
                     frameTimestampNs = frameTimestampNs,
+                    driftEstimateMm = lastDriftEstimateMm,
                 )
             } catch (error: Exception) {
                 Log.w(TAG, "Marker detection failed", error)
@@ -294,6 +360,8 @@ class ARViewController(
         manualAlignmentPoints.clear()
         modelAligned.set(false)
         _alignmentScore.value = 0f
+        smoothedPose = null
+        lastAppliedPose.set(null)
         lastManualResetNs = System.nanoTime()
         _manualAlignmentState.value = ManualAlignmentState(
             isActive = true,
@@ -306,6 +374,8 @@ class ARViewController(
         manualAlignmentPoints.clear()
         modelAligned.set(false)
         _alignmentScore.value = 0f
+        smoothedPose = null
+        lastAppliedPose.set(null)
         lastManualResetNs = System.nanoTime()
         _manualAlignmentState.value = ManualAlignmentState(
             isActive = true,
@@ -324,35 +394,44 @@ class ARViewController(
         )
     }
 
-    private fun maybeAlignModel(markerWorldPoses: Map<String, Pose3D>) {
-        val alignmentResult = markerWorldPoses.entries.firstNotNullOfOrNull { (markerId, pose) ->
+    private fun maybeAlignModel(markerWorldPoses: Map<String, Pose3D>): Double {
+        val alignmentCandidates = markerWorldPoses.mapNotNull { (markerId, pose) ->
             zoneAligner.computeWorldZoneTransform(
                 markerPoseWorld = pose,
                 markerId = markerId,
             )?.let { markerId to it }
-        } ?: run {
-            updateAlignmentScoreForStaleFrame()
-            return
         }
 
-        val (markerId, worldZonePose) = alignmentResult
-        val previousPose = zoneAligner.lastAlignedPose()
-        val poseChanged = isPoseSignificantlyDifferent(previousPose, worldZonePose)
+        if (alignmentCandidates.isEmpty()) {
+            updateAlignmentScoreForStaleFrame()
+            return 0.0
+        }
+
+        val markerCount = alignmentCandidates.size
+        val worldZonePoses = alignmentCandidates.map { it.second }
+        val (fusedPose, driftMm) = fusePoses(worldZonePoses)
+        val primaryMarkerId = alignmentCandidates.first().first
+        val smoothed = smoothPose(fusedPose, markerCount)
+        val previousPose = lastAppliedPose.get()
+        val poseChanged = isPoseSignificantlyDifferent(previousPose, smoothed)
 
         if (poseChanged || !modelAligned.get()) {
-            sceneRenderer.setModelRootPose(worldZonePose)
+            sceneRenderer.setModelRootPose(smoothed)
             modelAligned.set(true)
             lastAlignmentSetNs.set(System.nanoTime())
-            _alignmentScore.value = computeAlignmentScore(markerWorldPoses.size)
+            lastAppliedPose.set(smoothed)
+            _alignmentScore.value = computeAlignmentScore(markerCount)
             logMarkerAlignmentIfNeeded(
-                markerId = markerId,
-                transform = worldZonePose,
+                markerId = primaryMarkerId,
+                transform = smoothed,
                 alignmentScore = _alignmentScore.value.toDouble(),
             )
         } else if (modelAligned.get()) {
             lastAlignmentSetNs.set(System.nanoTime())
-            _alignmentScore.value = computeAlignmentScore(markerWorldPoses.size)
+            _alignmentScore.value = computeAlignmentScore(markerCount)
         }
+
+        return driftMm
     }
 
     private fun markerAligned(): Boolean = modelAligned.get()
@@ -386,6 +465,8 @@ class ARViewController(
             sceneRenderer.setModelRootPose(solvedPose)
             modelAligned.set(true)
             lastAlignmentSetNs.set(System.nanoTime())
+            lastAppliedPose.set(solvedPose)
+            smoothedPose = solvedPose
             _alignmentScore.value = 1f
             manualAlignmentPoints.clear()
             _manualAlignmentState.value = ManualAlignmentState(
@@ -426,6 +507,9 @@ class ARViewController(
     private fun logMarkerAlignmentIfNeeded(markerId: String, transform: Pose3D, alignmentScore: Double?) {
         if (!shouldEmitAlignmentEvent(transform)) return
         markAlignmentEvent(transform)
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "AR_ALIGNMENT_SET emitted for marker=$markerId score=$alignmentScore")
+        }
         detectorScope.launch {
             alignmentEventLogger.logMarkerAlignment(
                 workItemId = workItemId,
@@ -531,6 +615,7 @@ class ARViewController(
     companion object {
         private const val TAG = "ARViewController"
         private const val TEST_NODE_ASSET_PATH = "models/test_node.glb"
+        private const val INTRINSICS_ERROR_MESSAGE = "Unable to read camera intrinsics"
         private const val REQUIRED_POINTS = 3
         // Reference points chosen from test_node.glb: origin and two 20cm offsets along X/Y on the base plane
         private val MODEL_REFERENCE_POINTS = listOf(
@@ -548,18 +633,37 @@ class ARViewController(
         private const val RECENCY_SCORE_WEIGHT = 0.6f
         private const val POSITION_EPS_METERS = 0.01
         private const val ANGLE_EPS_RADIANS = 0.05
+        private const val POINT_CLOUD_LOG_INTERVAL_MS = 3000L
+        private const val DRIFT_WARNING_MM = 8.0
+        private const val DRIFT_CRITICAL_MM = 15.0
+        private const val MULTI_MARKER_THRESHOLD = 2
+        private const val SINGLE_MARKER_SMOOTHING_ALPHA = 0.35
+        private const val MULTI_MARKER_SMOOTHING_ALPHA = 0.55
+        private val DEFAULT_CV_THROTTLE_NS = TimeUnit.MILLISECONDS.toNanos(45)
+        private val LOW_FPS_CV_THROTTLE_NS = TimeUnit.MILLISECONDS.toNanos(120)
+        private const val LOW_FPS_THRESHOLD = 20.0
     }
 
-    private fun computeFeaturePointCount(frame: Frame): Int {
+    private fun computePointCloudStatus(frame: Frame): PointCloudStatusReport {
         return try {
             val pointCloud = frame.acquirePointCloud()
             val count = pointCloud.points.limit() / 4
             pointCloud.release()
-            count
+            val status = if (count > 0) PointCloudStatus.OK else PointCloudStatus.EMPTY
+            PointCloudStatusReport(status = status, pointCount = count)
         } catch (error: Exception) {
-            Log.w(TAG, "Failed to read point cloud", error)
-            0
+            maybeLogPointCloudFailure(error)
+            PointCloudStatusReport(status = PointCloudStatus.FAILED, pointCount = 0)
         }
+    }
+
+    private fun maybeLogPointCloudFailure(error: Exception) {
+        if (!BuildConfig.DEBUG) return
+        val nowMs = System.nanoTime() / 1_000_000
+        val last = lastPointCloudLogMs.get()
+        if (nowMs - last < POINT_CLOUD_LOG_INTERVAL_MS) return
+        if (!lastPointCloudLogMs.compareAndSet(last, nowMs)) return
+        Log.w(TAG, "Failed to read point cloud", error)
     }
 
     private fun rotationDegreesFromSurface(rotation: Int): Int = when (rotation) {
@@ -575,12 +679,96 @@ class ARViewController(
         }
     }
 
+    private fun shouldRunCv(frameTimestampNs: Long): Boolean {
+        val lastRun = lastCvRunNs.get()
+        val throttle = cvThrottleNs.get()
+        if (frameTimestampNs - lastRun < throttle) return false
+        return lastCvRunNs.compareAndSet(lastRun, frameTimestampNs)
+    }
+
+    private fun updatePerformanceMode(fps: Double) {
+        val nextMode = if (fps > 0 && fps < LOW_FPS_THRESHOLD) {
+            PerformanceMode.LOW
+        } else {
+            PerformanceMode.NORMAL
+        }
+        if (nextMode == _performanceMode.value) return
+        _performanceMode.value = nextMode
+        cvThrottleNs.set(if (nextMode == PerformanceMode.LOW) LOW_FPS_CV_THROTTLE_NS else DEFAULT_CV_THROTTLE_NS)
+        sceneRenderer.setPerformanceMode(nextMode)
+    }
+
+    private fun fusePoses(poses: List<Pose3D>): Pair<Pose3D, Double> {
+        val averagedPosition = poses.map { it.position }.reduce { acc, pos -> acc + pos } * (1.0 / poses.size)
+        val averagedRotation = averageQuaternion(poses.map { it.rotation })
+        val fusedPose = Pose3D(averagedPosition, averagedRotation)
+        val driftMeters = poses.maxOf { (it.position - averagedPosition).norm() }
+        val driftMm = driftMeters * 1000.0
+        return fusedPose to driftMm
+    }
+
+    private fun smoothPose(target: Pose3D, markerCount: Int): Pose3D {
+        val previous = smoothedPose
+        val alpha = if (markerCount >= MULTI_MARKER_THRESHOLD) {
+            MULTI_MARKER_SMOOTHING_ALPHA
+        } else {
+            SINGLE_MARKER_SMOOTHING_ALPHA
+        }
+        if (previous == null) {
+            smoothedPose = target
+            return target
+        }
+        val blendedPosition = previous.position * (1.0 - alpha) + target.position * alpha
+        val blendedRotation = nlerp(previous.rotation, target.rotation, alpha)
+        val smoothed = Pose3D(blendedPosition, blendedRotation)
+        smoothedPose = smoothed
+        return smoothed
+    }
+
+    private fun averageQuaternion(rotations: List<Quaternion>): Quaternion {
+        if (rotations.isEmpty()) return Quaternion.Identity
+        val reference = rotations.first()
+        var x = 0.0
+        var y = 0.0
+        var z = 0.0
+        var w = 0.0
+        for (rotation in rotations) {
+            val aligned = if (dot(reference, rotation) < 0.0) {
+                Quaternion(-rotation.x, -rotation.y, -rotation.z, -rotation.w)
+            } else {
+                rotation
+            }
+            x += aligned.x
+            y += aligned.y
+            z += aligned.z
+            w += aligned.w
+        }
+        return Quaternion(x, y, z, w).normalized()
+    }
+
+    private fun nlerp(from: Quaternion, to: Quaternion, alpha: Double): Quaternion {
+        val aligned = if (dot(from, to) < 0.0) {
+            Quaternion(-to.x, -to.y, -to.z, -to.w)
+        } else {
+            to
+        }
+        val x = from.x + (aligned.x - from.x) * alpha
+        val y = from.y + (aligned.y - from.y) * alpha
+        val z = from.z + (aligned.z - from.z) * alpha
+        val w = from.w + (aligned.w - from.w) * alpha
+        return Quaternion(x, y, z, w).normalized()
+    }
+
+    private fun dot(a: Quaternion, b: Quaternion): Double = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
+
     private fun updateTrackingStatus(
         trackingState: TrackingState,
         featurePoints: Int,
-        hasMarker: Boolean,
+        markerCount: Int,
         frameTimestampNs: Long,
+        driftEstimateMm: Double,
     ) {
+        val hasMarker = markerCount > 0
         val recentMarkerSeen = hasMarker ||
             frameTimestampNs - lastMarkerTimestampNs.get() <= RECENT_MARKER_TIMEOUT_NS
 
@@ -591,10 +779,26 @@ class ARViewController(
         val manualModeActive = _manualAlignmentState.value.isActive
         val resetRecently = manualModeActive && now - lastManualResetNs <= RECENT_ALIGNMENT_HORIZON_NS
 
+        val driftWarning = driftEstimateMm >= DRIFT_WARNING_MM
+        val driftCritical = driftEstimateMm >= DRIFT_CRITICAL_MM
+        val performanceMode = _performanceMode.value
+        val performanceHint = when (performanceMode) {
+            PerformanceMode.LOW -> "Performance low: reducing visuals"
+            PerformanceMode.NORMAL -> null
+        }
+
         val desiredStatus = when {
             trackingState != TrackingState.TRACKING -> TrackingStatus(
                 quality = TrackingQuality.POOR,
                 reason = "Camera tracking ${trackingState.name.lowercase()}",
+            )
+            driftCritical -> TrackingStatus(
+                quality = TrackingQuality.POOR,
+                reason = "Alignment drift ~${driftEstimateMm.roundToInt()} mm. Tap to re-align.",
+            )
+            driftWarning -> TrackingStatus(
+                quality = TrackingQuality.WARNING,
+                reason = "Alignment drifting (~${driftEstimateMm.roundToInt()} mm). Tap to re-align.",
             )
             resetRecently -> TrackingStatus(
                 quality = TrackingQuality.WARNING,
@@ -620,7 +824,12 @@ class ARViewController(
                 quality = TrackingQuality.POOR,
                 reason = "Insufficient features for stable tracking",
             )
-        }
+        }.withDiagnostics(
+            markerCount = markerCount,
+            driftEstimateMm = driftEstimateMm,
+            performanceMode = performanceMode,
+            performanceHint = performanceHint,
+        )
 
         val currentStatus = _trackingStatus.value
         if (desiredStatus.quality == currentStatus.quality) {
@@ -638,4 +847,24 @@ class ARViewController(
         lastQualityChangeNs = qualityCheckNow
         _trackingStatus.value = desiredStatus
     }
+
+    private fun TrackingStatus.withDiagnostics(
+        markerCount: Int,
+        driftEstimateMm: Double,
+        performanceMode: PerformanceMode,
+        performanceHint: String?,
+    ): TrackingStatus {
+        val combinedReason = listOfNotNull(reason, performanceHint).joinToString(" • ").ifBlank { null }
+        return copy(
+            reason = combinedReason,
+            markerVisibility = markerCount,
+            driftEstimateMm = driftEstimateMm,
+            performanceMode = performanceMode,
+        )
+    }
 }
+
+data class PointCloudStatusReport(
+    val status: PointCloudStatus = PointCloudStatus.UNKNOWN,
+    val pointCount: Int = 0,
+)

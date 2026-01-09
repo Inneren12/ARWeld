@@ -26,6 +26,7 @@ fun SupervisorDashboardScreen(
     bottleneckThresholdMs: Long,
     onBottleneckThresholdChange: (Long) -> Unit,
     onWorkItemClick: (String) -> Unit,
+    onWorkListClick: () -> Unit,
     isLoading: Boolean = false,
     error: String? = null,
     onRefresh: () -> Unit = {},
@@ -36,6 +37,9 @@ fun SupervisorDashboardScreen(
             TopAppBar(
                 title = { Text("Supervisor Dashboard") },
                 actions = {
+                    TextButton(onClick = onWorkListClick) {
+                        Text("Work List")
+                    }
                     IconButton(onClick = onRefresh) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
