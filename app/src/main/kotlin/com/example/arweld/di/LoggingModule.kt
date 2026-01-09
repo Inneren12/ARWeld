@@ -1,5 +1,6 @@
 package com.example.arweld.di
 
+import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.core.domain.logging.AppLogger
 import com.example.arweld.core.domain.logging.CrashReporter
 import com.example.arweld.logging.NoOpCrashReporter
@@ -22,6 +23,9 @@ abstract class LoggingModule {
     companion object {
         @Provides
         @Singleton
-        fun provideAppLogger(crashReporter: CrashReporter): AppLogger = TimberAppLogger(crashReporter)
+        fun provideAppLogger(
+            crashReporter: CrashReporter,
+            diagnosticsRecorder: DiagnosticsRecorder,
+        ): AppLogger = TimberAppLogger(crashReporter, diagnosticsRecorder)
     }
 }

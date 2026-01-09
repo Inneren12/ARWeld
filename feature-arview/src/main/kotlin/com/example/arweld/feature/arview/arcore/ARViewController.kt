@@ -12,9 +12,11 @@ import android.view.PixelCopy
 import android.view.Surface
 import android.view.SurfaceView
 import android.view.View
-import android.view.WindowManager
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
+import com.example.arweld.core.domain.diagnostics.ArTelemetrySnapshot
+import com.example.arweld.core.domain.diagnostics.DeviceHealthProvider
+import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.core.domain.spatial.AlignmentPoint
@@ -73,6 +75,8 @@ class ARViewController(
     private val alignmentEventLogger: AlignmentEventLogger,
     private val workItemId: String?,
     markerDetector: MarkerDetector? = null,
+    private val diagnosticsRecorder: DiagnosticsRecorder? = null,
+    private val deviceHealthProvider: DeviceHealthProvider? = null,
 ) : ArScreenshotService {
 
     private val surfaceView: SurfaceView = SurfaceView(context).apply {
@@ -131,19 +135,39 @@ class ARViewController(
     val renderFps: StateFlow<Double> = _renderFps
     private val _performanceMode = MutableStateFlow(PerformanceMode.NORMAL)
     val performanceMode: StateFlow<PerformanceMode> = _performanceMode
+    private val _arTelemetry = MutableStateFlow(
+        ArTelemetrySnapshot(
+            timestampMillis = System.currentTimeMillis(),
+            fps = 0.0,
+            frameTimeP95Ms = 0.0,
+            cvLatencyP95Ms = 0.0,
+            performanceMode = PerformanceMode.NORMAL.name.lowercase(),
+        ),
+    )
+    val arTelemetry: StateFlow<ArTelemetrySnapshot> = _arTelemetry
     private val mainHandler = Handler(Looper.getMainLooper())
     private val lastPointCloudLogMs = AtomicLong(0L)
+    private val telemetryTracker = ArTelemetryTracker()
+    private val forceLowPowerMode = AtomicBoolean(false)
+    private val lastThermalOrMemoryReason = AtomicReference<String?>(null)
 
     fun onCreate() {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "ARViewController onCreate")
         }
+        diagnosticsRecorder?.recordEvent("ar_view_created")
         ArScreenshotRegistry.register(this)
         sceneRenderer.setFrameListener(::onFrame)
         sceneRenderer.setHitTestResultListener(::onHitTestResult)
         sceneRenderer.setRenderRateListener { fps ->
             _renderFps.value = fps
+            telemetryTracker.recordRenderFps(fps)
+            updateTelemetrySnapshot()
             updatePerformanceMode(fps)
+        }
+        sceneRenderer.setFrameIntervalListener { intervalNs ->
+            telemetryTracker.recordFrameIntervalNs(intervalNs)
+            updateTelemetrySnapshot()
         }
         surfaceView.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
@@ -153,12 +177,35 @@ class ARViewController(
                 false
             }
         }
+        deviceHealthProvider?.let { provider ->
+            detectorScope.launch {
+                provider.deviceHealth.collect { health ->
+                    val shouldForceLow = health.isDeviceHot ||
+                        (health.memoryTrimLevel != null &&
+                            health.memoryTrimLevel >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW)
+                    val reason = when {
+                        health.isDeviceHot -> "thermal"
+                        health.memoryTrimLevel != null -> "memory"
+                        else -> null
+                    }
+                    if (forceLowPowerMode.getAndSet(shouldForceLow) != shouldForceLow) {
+                        lastThermalOrMemoryReason.set(reason)
+                        diagnosticsRecorder?.recordEvent(
+                            name = "performance_throttle",
+                            attributes = mapOf("source" to (reason ?: "none")),
+                        )
+                        updatePerformanceMode(_renderFps.value)
+                    }
+                }
+            }
+        }
     }
 
     fun onResume() {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "ARViewController onResume")
         }
+        diagnosticsRecorder?.recordEvent("ar_view_resume")
         val rotation = currentRotation()
         val error = sessionManager.onResume(
             displayRotation = rotation,
@@ -173,6 +220,7 @@ class ARViewController(
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "ARViewController onPause")
         }
+        diagnosticsRecorder?.recordEvent("ar_view_pause")
         sessionManager.onPause()
         sceneRenderer.onPause()
     }
@@ -181,6 +229,7 @@ class ARViewController(
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "ARViewController onDestroy")
         }
+        diagnosticsRecorder?.recordEvent("ar_view_destroy")
         ArScreenshotRegistry.unregister(this)
         testNodeModel?.let {
             modelLoader.destroyModel(it)
@@ -188,6 +237,7 @@ class ARViewController(
         }
         sceneRenderer.setFrameListener(null)
         sceneRenderer.setRenderRateListener(null)
+        sceneRenderer.setFrameIntervalListener(null)
         sceneRenderer.destroy()
         sessionManager.onDestroy()
         detectorScope.cancel()
@@ -279,7 +329,10 @@ class ARViewController(
         }
         detectorScope.launch {
             try {
+                val cvStartNs = System.nanoTime()
                 val markers = markerDetector.detectMarkers(frame)
+                telemetryTracker.recordCvLatencyNs(System.nanoTime() - cvStartNs)
+                updateTelemetrySnapshot()
                 _detectedMarkers.value = markers
                 if (markers.isNotEmpty()) {
                     if (BuildConfig.DEBUG) {
@@ -692,10 +745,28 @@ class ARViewController(
         } else {
             PerformanceMode.NORMAL
         }
-        if (nextMode == _performanceMode.value) return
-        _performanceMode.value = nextMode
-        cvThrottleNs.set(if (nextMode == PerformanceMode.LOW) LOW_FPS_CV_THROTTLE_NS else DEFAULT_CV_THROTTLE_NS)
-        sceneRenderer.setPerformanceMode(nextMode)
+        val forcedLow = forceLowPowerMode.get()
+        val resolvedMode = if (forcedLow) PerformanceMode.LOW else nextMode
+        if (resolvedMode == _performanceMode.value) return
+        _performanceMode.value = resolvedMode
+        cvThrottleNs.set(if (resolvedMode == PerformanceMode.LOW) LOW_FPS_CV_THROTTLE_NS else DEFAULT_CV_THROTTLE_NS)
+        sceneRenderer.setPerformanceMode(resolvedMode)
+        diagnosticsRecorder?.recordEvent(
+            name = "performance_mode",
+            attributes = mapOf(
+                "mode" to resolvedMode.name.lowercase(),
+                "reason" to (lastThermalOrMemoryReason.get() ?: if (fps > 0 && fps < LOW_FPS_THRESHOLD) "low_fps" else "normal"),
+            ),
+        )
+        updateTelemetrySnapshot()
+    }
+
+    private fun updateTelemetrySnapshot() {
+        val snapshot = telemetryTracker.snapshot(_performanceMode.value)
+        diagnosticsRecorder?.updateArTelemetry(snapshot)
+        if (_arTelemetry.value != snapshot) {
+            _arTelemetry.value = snapshot
+        }
     }
 
     private fun fusePoses(poses: List<Pose3D>): Pair<Pose3D, Double> {

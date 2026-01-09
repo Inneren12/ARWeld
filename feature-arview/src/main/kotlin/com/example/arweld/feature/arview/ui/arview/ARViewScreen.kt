@@ -38,6 +38,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.arweld.core.domain.diagnostics.DeviceHealthProvider
+import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.feature.arview.R
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
@@ -72,15 +74,29 @@ fun ARViewScreen(
             AlignmentEventLoggerEntryPoint::class.java,
         ).alignmentEventLogger()
     }
+    val diagnosticsEntryPoint = remember(context) {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            DiagnosticsEntryPoint::class.java,
+        )
+    }
+    val diagnosticsRecorder = remember(diagnosticsEntryPoint) {
+        diagnosticsEntryPoint.diagnosticsRecorder()
+    }
+    val deviceHealthProvider = remember(diagnosticsEntryPoint) {
+        diagnosticsEntryPoint.deviceHealthProvider()
+    }
     val isDebuggable = remember(context) {
         (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
     val scope = rememberCoroutineScope()
-    val controller = remember(alignmentEventLogger, workItemId, context) {
+    val controller = remember(alignmentEventLogger, workItemId, context, diagnosticsRecorder, deviceHealthProvider) {
         ARViewController(
             context = context,
             alignmentEventLogger = alignmentEventLogger,
             workItemId = workItemId,
+            diagnosticsRecorder = diagnosticsRecorder,
+            deviceHealthProvider = deviceHealthProvider,
         )
     }
     val errorMessage = controller.errorMessage.collectAsState()
@@ -91,8 +107,10 @@ fun ARViewScreen(
     val detectedMarkers by controller.detectedMarkers.collectAsState()
     val intrinsicsReady by controller.intrinsicsAvailable.collectAsState()
     val renderFps by controller.renderFps.collectAsState()
+    val arTelemetry by controller.arTelemetry.collectAsState()
     val pointCloudStatus by controller.pointCloudStatus.collectAsState()
     val performanceMode by controller.performanceMode.collectAsState()
+    val deviceHealth by deviceHealthProvider.deviceHealth.collectAsState()
 
     LaunchedEffect(controller) {
         controller.loadTestNodeModel()
@@ -138,6 +156,10 @@ fun ARViewScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
+                if (deviceHealth.isDeviceHot) {
+                    ThermalWarningBanner()
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 if (!intrinsicsReady) {
                     IntrinsicsBanner(
                         onRetry = controller::retryIntrinsics,
@@ -152,6 +174,8 @@ fun ARViewScreen(
                     alignmentScore = alignmentScore,
                     alignmentDriftMm = alignmentDriftMm,
                     renderFps = renderFps,
+                    frameTimeP95Ms = arTelemetry.frameTimeP95Ms,
+                    cvLatencyP95Ms = arTelemetry.cvLatencyP95Ms,
                     pointCloudStatus = pointCloudStatus,
                     performanceMode = performanceMode,
                     modifier = Modifier
@@ -228,6 +252,13 @@ internal interface AlignmentEventLoggerEntryPoint {
     fun alignmentEventLogger(): AlignmentEventLogger
 }
 
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+internal interface DiagnosticsEntryPoint {
+    fun diagnosticsRecorder(): DiagnosticsRecorder
+    fun deviceHealthProvider(): DeviceHealthProvider
+}
+
 @Composable
 private fun ManualAlignmentOverlay(
     state: ManualAlignmentState,
@@ -276,6 +307,8 @@ private fun DiagnosticOverlay(
     alignmentScore: Float,
     alignmentDriftMm: Double,
     renderFps: Double,
+    frameTimeP95Ms: Double,
+    cvLatencyP95Ms: Double,
     pointCloudStatus: PointCloudStatusReport,
     performanceMode: PerformanceMode,
     modifier: Modifier = Modifier,
@@ -340,6 +373,16 @@ private fun DiagnosticOverlay(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
+                text = stringResource(id = R.string.diagnostic_frame_time_p95, frameTimeP95Ms),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(id = R.string.diagnostic_cv_latency_p95, cvLatencyP95Ms),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
                 text = stringResource(
                     id = R.string.diagnostic_perf_mode,
                     if (performanceMode == PerformanceMode.LOW) {
@@ -352,6 +395,23 @@ private fun DiagnosticOverlay(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+@Composable
+private fun ThermalWarningBanner(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f),
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 2.dp,
+    ) {
+        Text(
+            text = stringResource(id = R.string.device_hot_banner),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+        )
     }
 }
 
