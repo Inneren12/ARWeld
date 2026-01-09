@@ -31,6 +31,9 @@ import com.example.arweld.ui.scanner.ScanCodeRoute
 import com.example.arweld.ui.supervisor.SupervisorDashboardRoute
 import com.example.arweld.ui.supervisor.SupervisorWorkListRoute
 import com.example.arweld.ui.supervisor.WorkItemDetailRoute
+import com.example.arweld.ui.supervisor.ExportCenterRoute
+import com.example.arweld.ui.supervisor.ReportsRoute
+import com.example.arweld.ui.supervisor.OfflineQueueRoute
 import javax.inject.Inject
 
 @Composable
@@ -253,6 +256,15 @@ fun AppNavigation(
                         navController.navigate(workItemDetailRoute(workItemId))
                     }
                 )
+            }
+            composable(ROUTE_EXPORT_CENTER) {
+                ExportCenterRoute()
+            }
+            composable(ROUTE_REPORTS) {
+                ReportsRoute()
+            }
+            composable(ROUTE_OFFLINE_QUEUE) {
+                OfflineQueueRoute()
             }
             composable(
                 route = "$ROUTE_WORK_ITEM_DETAIL/{workItemId}",
