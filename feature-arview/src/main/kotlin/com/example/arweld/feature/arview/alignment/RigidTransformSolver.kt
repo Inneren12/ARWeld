@@ -47,15 +47,15 @@ class RigidTransformSolver {
         for (i in modelPoints.indices) {
             val m = modelPoints[i]
             val w = worldPoints[i]
-            matrix[0][0] += w.x * m.x
-            matrix[0][1] += w.x * m.y
-            matrix[0][2] += w.x * m.z
-            matrix[1][0] += w.y * m.x
-            matrix[1][1] += w.y * m.y
-            matrix[1][2] += w.y * m.z
-            matrix[2][0] += w.z * m.x
-            matrix[2][1] += w.z * m.y
-            matrix[2][2] += w.z * m.z
+            matrix[0][0] += m.x * w.x
+            matrix[0][1] += m.x * w.y
+            matrix[0][2] += m.x * w.z
+            matrix[1][0] += m.y * w.x
+            matrix[1][1] += m.y * w.y
+            matrix[1][2] += m.y * w.z
+            matrix[2][0] += m.z * w.x
+            matrix[2][1] += m.z * w.y
+            matrix[2][2] += m.z * w.z
         }
         return matrix
     }
@@ -97,11 +97,31 @@ class RigidTransformSolver {
 
     private fun dominantEigenVector(matrix: Array<DoubleArray>, iterations: Int = 50): DoubleArray? {
         var vector = doubleArrayOf(1.0, 0.0, 0.0, 0.0)
+        // Power iteration can oscillate when A has eigenvalues ±λ with equal magnitude (common for Horn matrix on perfect data).
+        // Eigenvectors of (A + μI) are the same as A, but oscillations disappear.
+        val shift = matrix.maxOf { row -> row.sumOf { abs(it) } } + 1e-9
+
         for (i in 0 until iterations) {
             val next = multiply4(matrix, vector)
+            // Apply shift: (A + μI)v = Av + μv
+            next[0] += shift * vector[0]
+            next[1] += shift * vector[1]
+            next[2] += shift * vector[2]
+            next[3] += shift * vector[3]
+
             val norm = sqrt(next.sumOf { it * it })
             if (norm < 1e-12) return null
-            val normalized = next.map { it / norm }.toDoubleArray()
+            var normalized = next.map { it / norm }.toDoubleArray()
+
+            // Stabilize sign to avoid occasional flips (q and -q are equivalent)
+            val dot = normalized[0]*vector[0] + normalized[1]*vector[1] + normalized[2]*vector[2] + normalized[3]*vector[3]
+            if (dot < 0.0) {
+                normalized[0] = -normalized[0]
+                normalized[1] = -normalized[1]
+                normalized[2] = -normalized[2]
+                normalized[3] = -normalized[3]
+            }
+
             val delta = normalized.zip(vector) { a, b -> abs(a - b) }.maxOrNull() ?: 0.0
             vector = normalized
             if (delta < 1e-9) break
