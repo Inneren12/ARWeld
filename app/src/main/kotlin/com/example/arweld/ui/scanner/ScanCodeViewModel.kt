@@ -6,6 +6,7 @@ import com.example.arweld.core.domain.logging.AppLogger
 import com.example.arweld.core.domain.work.ResolveWorkItemByCodeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import com.example.arweld.feature.scanner.ui.ScanCodeResolutionState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -16,29 +17,35 @@ class ScanCodeViewModel @Inject constructor(
     private val appLogger: AppLogger,
 ) : ViewModel() {
 
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
+    private val _resolutionState = MutableStateFlow<ScanCodeResolutionState>(
+        ScanCodeResolutionState.Idle
+    )
+    val resolutionState: StateFlow<ScanCodeResolutionState> = _resolutionState
 
-    fun clearError() {
-        _errorMessage.value = null
+    fun resetResolution() {
+        _resolutionState.value = ScanCodeResolutionState.Idle
     }
 
     fun resolveCode(
         code: String,
         onFound: (String) -> Unit,
     ) {
+        if (_resolutionState.value is ScanCodeResolutionState.Resolving) {
+            return
+        }
         viewModelScope.launch {
+            _resolutionState.value = ScanCodeResolutionState.Resolving
             runCatching { resolveWorkItemByCode(code) }
                 .onSuccess { workItem ->
                     if (workItem != null) {
-                        _errorMessage.value = null
+                        _resolutionState.value = ScanCodeResolutionState.Idle
                         onFound(workItem.id)
                     } else {
-                        _errorMessage.value = "Work item not found"
+                        _resolutionState.value = ScanCodeResolutionState.NotFound(code)
                     }
                 }
                 .onFailure { throwable ->
-                    _errorMessage.value = "Failed to resolve code"
+                    _resolutionState.value = ScanCodeResolutionState.Error("Failed to resolve code")
                     appLogger.logRepositoryError("resolveWorkItemByCode", throwable)
                 }
         }

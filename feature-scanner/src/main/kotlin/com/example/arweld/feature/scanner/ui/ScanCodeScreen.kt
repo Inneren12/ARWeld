@@ -2,26 +2,20 @@ package com.example.arweld.feature.scanner.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,22 +28,13 @@ import androidx.compose.ui.unit.dp
 fun ScanCodeScreen(
     onCodeResolved: (String) -> Unit,
     onBack: () -> Unit,
-    errorMessage: String? = null,
-    onErrorConsumed: () -> Unit = {},
+    resolutionState: ScanCodeResolutionState,
+    onResolutionReset: () -> Unit,
 ) {
     var lastCode by remember { mutableStateOf<String?>(null) }
-    val canContinue = !lastCode.isNullOrBlank()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
-            onErrorConsumed()
-        }
-    }
+    var permissionState by remember { mutableStateOf(CameraPermissionState.Requesting) }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = "Scan code") },
@@ -74,7 +59,18 @@ fun ScanCodeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                onCodeDetected = { detected -> lastCode = detected }
+                onPermissionStateChanged = { state -> permissionState = state },
+                onCodeDetected = { detected ->
+                    if (permissionState != CameraPermissionState.Granted) {
+                        return@ScannerPreview
+                    }
+                    if (resolutionState is ScanCodeResolutionState.Resolving) {
+                        return@ScannerPreview
+                    }
+                    onResolutionReset()
+                    lastCode = detected
+                    onCodeResolved(detected)
+                }
             )
 
             Column(
@@ -83,21 +79,30 @@ fun ScanCodeScreen(
                     .padding(horizontal = 16.dp, vertical = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                val statusText = when {
+                    permissionState == CameraPermissionState.Denied ->
+                        "Camera permission denied. Enable it in settings to scan."
+                    resolutionState is ScanCodeResolutionState.Resolving ->
+                        "Resolving code…"
+                    resolutionState is ScanCodeResolutionState.NotFound ->
+                        "No work item found for ${resolutionState.code}"
+                    resolutionState is ScanCodeResolutionState.Error ->
+                        resolutionState.message
+                    !lastCode.isNullOrBlank() -> "Code detected: $lastCode"
+                    else -> "Scanning…"
+                }
+
                 Text(
-                    text = lastCode?.let { "Last code: $it" } ?: "No code yet",
+                    text = statusText,
                     style = MaterialTheme.typography.bodyLarge,
                 )
-                Button(
-                    onClick = { lastCode?.let(onCodeResolved) },
-                    enabled = canContinue,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null
+
+                if (resolutionState is ScanCodeResolutionState.Resolving) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = "Please hold steady…",
+                        style = MaterialTheme.typography.bodyMedium,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Continue")
                 }
             }
         }
