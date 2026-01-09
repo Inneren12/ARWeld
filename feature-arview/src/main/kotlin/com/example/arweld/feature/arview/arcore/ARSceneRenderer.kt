@@ -297,7 +297,7 @@ class ARSceneRenderer(
 
     private fun setViewAntiAliasing(modeName: String) {
         runCatching {
-            val enumClass = Class.forName("com.google.android.filament.View$AntiAliasing")
+            val enumClass = Class.forName("com.google.android.filament.View\$AntiAliasing")
             val method = view.javaClass.methods.firstOrNull { it.name == "setAntiAliasing" }
             val value = java.lang.Enum.valueOf(enumClass as Class<out Enum<*>>, modeName)
             method?.invoke(view, value)
@@ -306,7 +306,7 @@ class ARSceneRenderer(
 
     private fun setViewDithering(modeName: String) {
         runCatching {
-            val enumClass = Class.forName("com.google.android.filament.View$Dithering")
+            val enumClass = Class.forName("com.google.android.filament.View\$Dithering")
             val method = view.javaClass.methods.firstOrNull { it.name == "setDithering" }
             val value = java.lang.Enum.valueOf(enumClass as Class<out Enum<*>>, modeName)
             method?.invoke(view, value)

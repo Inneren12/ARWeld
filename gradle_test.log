@@ -158,18 +158,12 @@
 > Task :feature-scanner:compileDebugJavaWithJavac NO-SOURCE
 > Task :feature-scanner:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :feature-supervisor:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :feature-supervisor:kspDebugKotlin UP-TO-DATE
-> Task :feature-supervisor:compileDebugKotlin UP-TO-DATE
 > Task :feature-supervisor:javaPreCompileDebug UP-TO-DATE
-> Task :feature-supervisor:compileDebugJavaWithJavac UP-TO-DATE
-> Task :feature-supervisor:transformDebugClassesWithAsm UP-TO-DATE
-> Task :feature-supervisor:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :feature-work:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :feature-work:javaPreCompileDebug UP-TO-DATE
 > Task :app:javaPreCompileDebug UP-TO-DATE
 > Task :feature-home:bundleLibRuntimeToJarDebug UP-TO-DATE
 > Task :feature-scanner:bundleLibRuntimeToJarDebug UP-TO-DATE
-> Task :feature-supervisor:bundleLibRuntimeToJarDebug UP-TO-DATE
 > Task :feature-assembler:bundleLibRuntimeToJarDebug UP-TO-DATE
 > Task :feature-qc:bundleLibRuntimeToJarDebug UP-TO-DATE
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
@@ -179,7 +173,6 @@
 > Task :feature-home:processDebugJavaRes UP-TO-DATE
 > Task :feature-qc:processDebugJavaRes UP-TO-DATE
 > Task :feature-scanner:processDebugJavaRes UP-TO-DATE
-> Task :feature-supervisor:processDebugJavaRes UP-TO-DATE
 > Task :core-auth:preBuild UP-TO-DATE
 > Task :core-auth:preDebugBuild UP-TO-DATE
 > Task :core-auth:checkKotlinGradlePluginConfigurationErrors SKIPPED
@@ -189,25 +182,10 @@
 > Task :core-auth:processDebugNavigationResources UP-TO-DATE
 > Task :core-auth:parseDebugLocalResources UP-TO-DATE
 > Task :core-auth:generateDebugRFile UP-TO-DATE
-> Task :core-auth:kspDebugKotlin UP-TO-DATE
-> Task :core-auth:compileDebugKotlin UP-TO-DATE
 > Task :core-auth:javaPreCompileDebug UP-TO-DATE
-> Task :core-auth:compileDebugJavaWithJavac UP-TO-DATE
-> Task :core-auth:transformDebugClassesWithAsm UP-TO-DATE
-> Task :core-auth:bundleLibRuntimeToJarDebug UP-TO-DATE
 > Task :core-auth:preDebugUnitTestBuild UP-TO-DATE
 > Task :core-auth:generateDebugUnitTestStubRFile UP-TO-DATE
-> Task :core-auth:processDebugJavaRes UP-TO-DATE
-> Task :core-auth:bundleLibCompileToJarDebug UP-TO-DATE
-> Task :core-auth:kspDebugUnitTestKotlin NO-SOURCE
-> Task :core-auth:compileDebugUnitTestKotlin NO-SOURCE
 > Task :core-auth:javaPreCompileDebugUnitTest UP-TO-DATE
-> Task :core-auth:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :core-auth:hiltAggregateDepsDebugUnitTest UP-TO-DATE
-> Task :core-auth:hiltJavaCompileDebugUnitTest NO-SOURCE
-> Task :core-auth:processDebugUnitTestJavaRes NO-SOURCE
-> Task :core-auth:transformDebugUnitTestClassesWithAsm UP-TO-DATE
-> Task :core-auth:testDebugUnitTest NO-SOURCE
 > Task :core-data:generateDebugUnitTestAssets UP-TO-DATE
 > Task :core-data:mergeDebugShaders UP-TO-DATE
 > Task :core-data:compileDebugShaders NO-SOURCE
@@ -271,19 +249,24 @@
 > Task :feature-scanner:testDebugUnitTest NO-SOURCE
 > Task :feature-supervisor:preDebugUnitTestBuild UP-TO-DATE
 > Task :feature-supervisor:generateDebugUnitTestStubRFile UP-TO-DATE
-> Task :feature-supervisor:kspDebugUnitTestKotlin UP-TO-DATE
-> Task :feature-supervisor:compileDebugUnitTestKotlin UP-TO-DATE
 > Task :feature-supervisor:javaPreCompileDebugUnitTest UP-TO-DATE
-> Task :feature-supervisor:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :feature-supervisor:hiltAggregateDepsDebugUnitTest UP-TO-DATE
-> Task :feature-supervisor:hiltJavaCompileDebugUnitTest NO-SOURCE
-> Task :feature-supervisor:processDebugUnitTestJavaRes UP-TO-DATE
-> Task :feature-supervisor:transformDebugUnitTestClassesWithAsm UP-TO-DATE
-> Task :feature-supervisor:testDebugUnitTest UP-TO-DATE
 > Task :feature-work:preDebugUnitTestBuild UP-TO-DATE
 > Task :feature-work:generateDebugUnitTestStubRFile UP-TO-DATE
 > Task :feature-work:javaPreCompileDebugUnitTest UP-TO-DATE
+
+> Task :core-auth:kspDebugKotlin FAILED
+
+> Task :feature-supervisor:kspDebugKotlin
+
 > Task :feature-arview:compileDebugKotlin
+w: file:///C:/B/ARWeld1/feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARSceneRenderer.kt:302:58 Unchecked cast of 'java.lang.Class<*>!' to 'java.lang.Class<out kotlin.Enum<*>>'.
+w: file:///C:/B/ARWeld1/feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARSceneRenderer.kt:311:58 Unchecked cast of 'java.lang.Class<*>!' to 'java.lang.Class<out kotlin.Enum<*>>'.
+w: file:///C:/B/ARWeld1/feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARViewController.kt:250:46 'val defaultDisplay: Display!' is deprecated. Deprecated in Java.
+w: file:///C:/B/ARWeld1/feature-arview/src/main/kotlin/com/example/arweld/feature/arview/ui/arview/ARViewScreen.kt:67:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///C:/B/ARWeld1/feature-arview/src/main/kotlin/com/example/arweld/feature/arview/zone/ZoneRegistry.kt:77:26 Redundant creation of Json format. Creating instances for each usage can be slow.
+
+> Task :feature-supervisor:compileDebugKotlin FAILED
+
 > Task :feature-arview:compileDebugJavaWithJavac UP-TO-DATE
 > Task :feature-arview:processDebugJavaRes UP-TO-DATE
 > Task :feature-arview:transformDebugClassesWithAsm
@@ -295,40 +278,19 @@
 > Task :feature-arview:hiltAggregateDepsDebugUnitTest UP-TO-DATE
 > Task :feature-arview:hiltJavaCompileDebugUnitTest NO-SOURCE
 > Task :feature-arview:processDebugUnitTestJavaRes UP-TO-DATE
-> Task :feature-arview:transformDebugUnitTestClassesWithAsm
 > Task :feature-work:kspDebugKotlin
-> Task :feature-arview:testDebugUnitTest
-> Task :feature-work:compileDebugKotlin
-> Task :feature-work:compileDebugJavaWithJavac UP-TO-DATE
-> Task :feature-work:processDebugJavaRes UP-TO-DATE
-> Task :feature-work:transformDebugClassesWithAsm
-> Task :feature-work:bundleLibCompileToJarDebug UP-TO-DATE
-> Task :feature-work:bundleLibRuntimeToJarDebug UP-TO-DATE
-> Task :feature-work:kspDebugUnitTestKotlin
-> Task :feature-work:compileDebugUnitTestKotlin
-> Task :feature-work:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :feature-work:hiltAggregateDepsDebugUnitTest UP-TO-DATE
-> Task :feature-work:hiltJavaCompileDebugUnitTest NO-SOURCE
-> Task :feature-work:processDebugUnitTestJavaRes UP-TO-DATE
-> Task :feature-work:transformDebugUnitTestClassesWithAsm
-> Task :feature-work:testDebugUnitTest
-> Task :app:kspDebugKotlin
-> Task :app:compileDebugKotlin
-> Task :app:compileDebugJavaWithJavac UP-TO-DATE
-> Task :app:hiltAggregateDepsDebug UP-TO-DATE
-> Task :app:hiltJavaCompileDebug UP-TO-DATE
-> Task :app:processDebugJavaRes UP-TO-DATE
-> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
-> Task :app:transformDebugClassesWithAsm
-> Task :app:bundleDebugClassesToRuntimeJar UP-TO-DATE
-> Task :app:kspDebugUnitTestKotlin
-> Task :app:compileDebugUnitTestKotlin
-> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :app:hiltAggregateDepsDebugUnitTest UP-TO-DATE
-> Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
-> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
-> Task :app:transformDebugUnitTestClassesWithAsm
-> Task :app:testDebugUnitTest
+> Task :feature-arview:transformDebugUnitTestClassesWithAsm
 
-BUILD SUCCESSFUL in 17s
-244 actionable tasks: 23 executed, 221 up-to-date
+> Task :feature-work:compileDebugKotlin
+w: file:///C:/B/ARWeld1/feature-work/src/main/kotlin/com/example/arweld/feature/work/ui/QcChecklistScreen.kt:54:57 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+
+> Task :feature-arview:testDebugUnitTest
+> Task :feature-work:compileDebugJavaWithJavac
+> Task :feature-work:processDebugJavaRes
+> Task :feature-work:transformDebugClassesWithAsm
+> Task :feature-work:bundleLibCompileToJarDebug
+> Task :feature-work:bundleLibRuntimeToJarDebug
+> Task :feature-work:kspDebugUnitTestKotlin
+
+> Task :feature-work:compileDebugUnitTestKotlin FAILED
+206 actionable tasks: 21 executed, 185 up-to-date

@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,6 +22,15 @@ class InMemoryAuthRepository @Inject constructor() : AuthRepository {
     private var cachedUser: User? = null
     private val _currentUserFlow = MutableStateFlow<User?>(null)
     override val currentUserFlow: StateFlow<User?> = _currentUserFlow.asStateFlow()
+
+    private val _currentUserFlow = MutableStateFlow<User?>(null)
+    override val currentUserFlow: StateFlow<User?> = _currentUserFlow.asStateFlow()
+
+    private val _currentUserFlow = MutableStateFlow<User?>(null)
+    override val currentUserFlow: StateFlow<User?> = _currentUserFlow.asStateFlow()
+
+    private val _currentUserFlow = MutableStateFlow<User?>(null)
+    overrid
 
     override suspend fun loginMock(role: Role): User = mutex.withLock {
         val user = User(
