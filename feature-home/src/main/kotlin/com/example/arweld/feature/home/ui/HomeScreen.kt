@@ -33,6 +33,9 @@ fun HomeScreen(
     onNavigateToQcQueue: () -> Unit = {},
     onNavigateToScan: () -> Unit = {},
     onNavigateToSupervisorDashboard: () -> Unit = {},
+    onNavigateToReports: () -> Unit = {},
+    onNavigateToExportCenter: () -> Unit = {},
+    onNavigateToOfflineQueue: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -63,6 +66,9 @@ fun HomeScreen(
                     onNavigateToQcQueue = onNavigateToQcQueue,
                     onNavigateToScan = onNavigateToScan,
                     onNavigateToSupervisorDashboard = onNavigateToSupervisorDashboard,
+                    onNavigateToReports = onNavigateToReports,
+                    onNavigateToExportCenter = onNavigateToExportCenter,
+                    onNavigateToOfflineQueue = onNavigateToOfflineQueue,
                     onLogout = { viewModel.logout() }
                 )
             }
@@ -92,6 +98,9 @@ private fun HomeContent(
     onNavigateToQcQueue: () -> Unit,
     onNavigateToScan: () -> Unit,
     onNavigateToSupervisorDashboard: () -> Unit,
+    onNavigateToReports: () -> Unit,
+    onNavigateToExportCenter: () -> Unit,
+    onNavigateToOfflineQueue: () -> Unit,
     onLogout: () -> Unit
 ) {
     Column(
@@ -194,6 +203,27 @@ private fun HomeContent(
                     modifier = Modifier.fillMaxWidth(0.7f)
                 ) {
                     Text("Supervisor Dashboard")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onNavigateToReports,
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Text("Reports")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onNavigateToExportCenter,
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Text("Export Center")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onNavigateToOfflineQueue,
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Text("Offline Queue")
                 }
             }
 
