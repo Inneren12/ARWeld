@@ -22,12 +22,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.example.arweld.feature.scanner.camera.BarcodeAnalyzer
-import com.example.arweld.feature.scanner.camera.CameraPreviewController
+import com.example.arweld.feature.scanner.camera.ScannerEngine
 
 @Composable
 fun ScannerPreview(
     modifier: Modifier = Modifier,
+    scannerEngine: ScannerEngine,
     onPermissionStateChanged: (CameraPermissionState) -> Unit = {},
     onCodeDetected: (String) -> Unit,
 ) {
@@ -38,9 +38,6 @@ fun ScannerPreview(
             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         }
     }
-    val cameraController = remember { CameraPreviewController(context) }
-    val analyzer = remember(onCodeDetected) { BarcodeAnalyzer(onCodeDetected) }
-
     var permissionState by remember {
         mutableStateOf(
             if (
@@ -76,12 +73,12 @@ fun ScannerPreview(
         onPermissionStateChanged(permissionState)
     }
 
-    DisposableEffect(lifecycleOwner, hasCameraPermission) {
+    DisposableEffect(lifecycleOwner, hasCameraPermission, scannerEngine) {
         if (hasCameraPermission) {
-            cameraController.bind(previewView, lifecycleOwner, analyzer)
+            scannerEngine.bind(previewView, lifecycleOwner, onCodeDetected)
         }
         onDispose {
-            cameraController.shutdown()
+            scannerEngine.shutdown()
         }
     }
 

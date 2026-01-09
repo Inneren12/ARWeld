@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.arweld.feature.scanner.camera.ScannerEngine
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,6 +31,7 @@ fun ScanCodeScreen(
     onBack: () -> Unit,
     resolutionState: ScanCodeResolutionState,
     onResolutionReset: () -> Unit,
+    scannerEngine: ScannerEngine,
 ) {
     var lastCode by remember { mutableStateOf<String?>(null) }
     var permissionState by remember { mutableStateOf(CameraPermissionState.Requesting) }
@@ -59,6 +61,7 @@ fun ScanCodeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
+                scannerEngine = scannerEngine,
                 onPermissionStateChanged = { state -> permissionState = state },
                 onCodeDetected = { detected ->
                     if (permissionState != CameraPermissionState.Granted) {
