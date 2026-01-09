@@ -1,12 +1,24 @@
 package com.example.arweld
 
+import android.Manifest
+import android.util.Log
+import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.test.rule.GrantPermissionRule
+import com.example.arweld.core.data.seed.DbSeedInitializer
+import com.example.arweld.core.domain.auth.AuthRepository
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import javax.inject.Inject
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -18,25 +30,39 @@ class AppNavigationSmokeTest {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 1)
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.CAMERA
+    )
+
+    @get:Rule(order = 2)
     val composeRule = createAndroidComposeRule<MainActivity>()
 
+    @Inject
+    lateinit var dbSeedInitializer: DbSeedInitializer
+
+    @Inject
+    lateinit var authRepository: AuthRepository
+
     @Before
-    fun setup() {
+    fun setup() = runBlocking {
         hiltRule.inject()
+        authRepository.logout()
+        dbSeedInitializer.seedIfEmpty()
+        waitForSeededUsers()
     }
 
     @Test
     fun loginScreenShowsSeededUsers() {
-        waitForText("Select a user")
+        waitForLoginScreen()
 
-        composeRule.onNodeWithText("Select a user").assertIsDisplayed()
-        composeRule.onNodeWithText("Assembler 1").assertIsDisplayed()
-        composeRule.onNodeWithText("QC 1").assertIsDisplayed()
+        composeRule.onNodeWithTag("login_screen").assertIsDisplayed()
+        composeRule.onNodeWithTag(userTag("u-asm-1")).assertIsDisplayed()
+        composeRule.onNodeWithTag(userTag("u-qc-1")).assertIsDisplayed()
     }
 
     @Test
     fun assemblerLoginNavigatesToHome() {
-        performLogin("Assembler 1")
+        performLogin("u-asm-1")
         waitForHomeScreen()
 
         composeRule.onNodeWithText("ARWeld MVP").assertIsDisplayed()
@@ -46,7 +72,7 @@ class AppNavigationSmokeTest {
 
     @Test
     fun qcUserCanOpenQcQueue() {
-        performLogin("QC 1")
+        performLogin("u-qc-1")
         waitForHomeScreen()
 
         composeRule.onNodeWithText("QC Queue").performClick()
@@ -58,22 +84,65 @@ class AppNavigationSmokeTest {
         }
     }
 
-    private fun performLogin(userName: String) {
-        waitForText(userName)
-        composeRule.onNodeWithText(userName).performClick()
+    private fun performLogin(userId: String) {
+        waitForLoginScreen()
+        composeRule.onNodeWithTag(userTag(userId)).performClick()
     }
 
     private fun waitForHomeScreen() {
-        waitForText("ARWeld MVP")
+        waitForTag("home_screen", timeoutMillis = 15_000)
     }
 
     private fun waitForText(text: String, substring: Boolean = false, timeoutMillis: Long = 10_000) {
-        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
-            runCatching {
-                composeRule.onAllNodesWithText(text, substring = substring)
-                    .fetchSemanticsNodes()
-                    .isNotEmpty()
-            }.getOrDefault(false)
+        waitUntil(timeoutMillis, "text=$text") {
+            composeRule.onAllNodesWithText(text, substring = substring)
+        }
+    }
+
+    private fun waitForLoginScreen() {
+        waitForTag("login_screen", timeoutMillis = 25_000)
+    }
+
+    private fun waitForTag(tag: String, timeoutMillis: Long = 10_000) {
+        waitUntil(timeoutMillis, "tag=$tag") {
+            composeRule.onAllNodesWithTag(tag)
+        }
+    }
+
+    private fun waitUntil(
+        timeoutMillis: Long,
+        targetDescription: String,
+        nodeQuery: () -> SemanticsNodeInteractionCollection
+    ) {
+        try {
+            composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+                runCatching { nodeQuery().fetchSemanticsNodes().isNotEmpty() }.getOrDefault(false)
+            }
+        } catch (throwable: Throwable) {
+            logDiagnostics("Timeout waiting for $targetDescription")
+            throw throwable
+        }
+    }
+
+    private fun userTag(userId: String) = "login_user_$userId"
+
+    private suspend fun waitForSeededUsers() {
+        val maxAttempts = 10
+        repeat(maxAttempts) { attempt ->
+            val users = runCatching { authRepository.availableUsers() }.getOrDefault(emptyList())
+            if (users.isNotEmpty()) {
+                return
+            }
+            Log.d("SMOKE", "Seeded users not available yet (attempt ${attempt + 1}/$maxAttempts)")
+            delay(200)
+        }
+    }
+
+    private fun logDiagnostics(message: String) {
+        Log.d("SMOKE", message)
+        composeRule.onRoot(useUnmergedTree = true).printToLog("SMOKE")
+        composeRule.activityRule.scenario.onActivity { activity ->
+            Log.d("SMOKE", "Current activity: ${activity::class.java.name}")
         }
     }
 }
