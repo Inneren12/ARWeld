@@ -9,10 +9,10 @@ import com.example.arweld.core.domain.event.EventType
 import com.example.arweld.core.domain.model.Role
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.test.assertEquals
 
 @RunWith(AndroidJUnit4::class)
 class EventRepositoryImplTest {

@@ -11,11 +11,11 @@ import com.example.arweld.core.data.db.entity.SyncQueueEntity
 import com.example.arweld.core.data.db.entity.WorkItemEntity
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 class DaoTest {
