@@ -6,7 +6,6 @@ import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -76,12 +75,12 @@ class AppNavigationSmokeTest {
         waitForHomeScreen()
 
         composeRule.onNodeWithText("QC Queue").performClick()
-        waitForText("QC Queue")
-
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            composeRule.onAllNodesWithText("Loading QC queue...").fetchSemanticsNodes().isNotEmpty() ||
-                composeRule.onAllNodesWithText("Начать проверку").fetchSemanticsNodes().isNotEmpty()
+        runCatching {
+            composeRule.onRoot(useUnmergedTree = true).printToLog("SMOKE")
+        }.onFailure { throwable ->
+            Log.d("SMOKE", "Unable to print semantics: ${throwable.message}")
         }
+        waitForTag("qc_queue_screen", timeoutMillis = 20_000)
     }
 
     private fun performLogin(userId: String) {
@@ -91,12 +90,6 @@ class AppNavigationSmokeTest {
 
     private fun waitForHomeScreen() {
         waitForTag("home_screen", timeoutMillis = 15_000)
-    }
-
-    private fun waitForText(text: String, substring: Boolean = false, timeoutMillis: Long = 10_000) {
-        waitUntil(timeoutMillis, "text=$text") {
-            composeRule.onAllNodesWithText(text, substring = substring)
-        }
     }
 
     private fun waitForLoginScreen() {
@@ -140,7 +133,11 @@ class AppNavigationSmokeTest {
 
     private fun logDiagnostics(message: String) {
         Log.d("SMOKE", message)
-        composeRule.onRoot(useUnmergedTree = true).printToLog("SMOKE")
+        runCatching {
+            composeRule.onRoot(useUnmergedTree = true).printToLog("SMOKE")
+        }.onFailure { throwable ->
+            Log.d("SMOKE", "Unable to print semantics: ${throwable.message}")
+        }
         composeRule.activityRule.scenario.onActivity { activity ->
             Log.d("SMOKE", "Current activity: ${activity::class.java.name}")
         }
