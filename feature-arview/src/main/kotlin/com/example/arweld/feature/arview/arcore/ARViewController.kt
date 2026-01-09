@@ -32,9 +32,11 @@ import com.example.arweld.feature.arview.alignment.RigidTransformSolver
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.feature.arview.arcore.ArScreenshotRegistry
 import com.example.arweld.feature.arview.pose.MarkerPoseEstimator
+import com.example.arweld.feature.arview.pose.MarkerPoseEstimateResult
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.render.ModelLoader
+import com.example.arweld.feature.arview.tracking.PointCloudStatus
 import com.example.arweld.feature.arview.tracking.TrackingQuality
 import com.example.arweld.feature.arview.tracking.TrackingStatus
 import com.example.arweld.feature.arview.zone.ZoneAligner
@@ -106,6 +108,8 @@ class ARViewController(
     val alignmentScore: StateFlow<Float> = _alignmentScore
     private val _manualAlignmentState = MutableStateFlow(ManualAlignmentState())
     val manualAlignmentState: StateFlow<ManualAlignmentState> = _manualAlignmentState
+    private val _pointCloudStatus = MutableStateFlow(PointCloudStatusReport())
+    val pointCloudStatus: StateFlow<PointCloudStatusReport> = _pointCloudStatus
     private val _trackingStatus = MutableStateFlow(
         TrackingStatus(
             quality = TrackingQuality.POOR,
@@ -116,6 +120,7 @@ class ARViewController(
     private val _renderFps = MutableStateFlow(0.0)
     val renderFps: StateFlow<Double> = _renderFps
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val lastPointCloudLogMs = AtomicLong(0L)
 
     fun onCreate() {
         if (BuildConfig.DEBUG) {
@@ -187,6 +192,30 @@ class ARViewController(
 
     fun getView(): View = surfaceView
 
+    fun retryIntrinsics() {
+        cachedIntrinsics.set(null)
+        _intrinsicsAvailable.value = false
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Retrying intrinsics capture")
+        }
+    }
+
+    fun restartSession() {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Restarting ARCore session")
+        }
+        sceneRenderer.onPause()
+        sessionManager.onPause()
+        sessionManager.onDestroy()
+        val error = sessionManager.onResume(
+            displayRotation = currentRotation(),
+            viewportWidth = surfaceView.width,
+            viewportHeight = surfaceView.height,
+        )
+        _errorMessage.value = error
+        sceneRenderer.onResume()
+    }
+
     /**
      * Loads the sprint test node model from assets so the renderer can attach it to the scene.
      */
@@ -218,7 +247,8 @@ class ARViewController(
         }
         val cameraIntrinsics = freshIntrinsics ?: cachedIntrinsics.get()
         _intrinsicsAvailable.value = cameraIntrinsics != null
-        val featurePointCount = computeFeaturePointCount(frame)
+        val pointCloudReport = computePointCloudStatus(frame)
+        _pointCloudStatus.value = pointCloudReport
         val trackingState = frame.camera.trackingState
         val frameTimestampNs = frame.timestamp
         val cameraPoseWorld = frame.camera.pose.toPose3D()
@@ -233,7 +263,11 @@ class ARViewController(
                 }
                 val intrinsics = cameraIntrinsics
                 if (intrinsics == null) {
-                    _errorMessage.value = "Unable to read camera intrinsics"
+                    if (_errorMessage.value != INTRINSICS_ERROR_MESSAGE) {
+                        _errorMessage.value = INTRINSICS_ERROR_MESSAGE
+                    }
+                } else if (_errorMessage.value == INTRINSICS_ERROR_MESSAGE) {
+                    _errorMessage.value = null
                 }
 
                 val worldPoses = if (intrinsics != null) {
@@ -245,18 +279,24 @@ class ARViewController(
                             }
                             return@mapNotNull null
                         }
-                        markerPoseEstimator.estimateMarkerPose(
-                            intrinsics = intrinsics,
-                            marker = marker,
-                            markerSizeMeters = zoneTransform.markerSizeMeters,
-                            cameraPoseWorld = cameraPoseWorld,
-                        )?.let { pose ->
-                            marker.id to pose
-                        } ?: run {
-                            if (BuildConfig.DEBUG) {
-                                Log.d(TAG, "Pose estimation returned null for marker ${marker.id}")
+                        when (
+                            val result = markerPoseEstimator.estimateMarkerPoseWithDiagnostics(
+                                intrinsics = intrinsics,
+                                marker = marker,
+                                markerSizeMeters = zoneTransform.markerSizeMeters,
+                                cameraPoseWorld = cameraPoseWorld,
+                            )
+                        ) {
+                            is MarkerPoseEstimateResult.Success -> marker.id to result.pose
+                            is MarkerPoseEstimateResult.Failure -> {
+                                if (BuildConfig.DEBUG) {
+                                    Log.d(
+                                        TAG,
+                                        "Pose estimation failed for marker ${marker.id}: ${result.reason}",
+                                    )
+                                }
+                                null
                             }
-                            null
                         }
                     }.toMap()
                 } else {
@@ -278,7 +318,7 @@ class ARViewController(
                 updateMarkerTimestampIfNeeded(markers.isNotEmpty(), frameTimestampNs)
                 updateTrackingStatus(
                     trackingState = trackingState,
-                    featurePoints = featurePointCount,
+                    featurePoints = pointCloudReport.pointCount,
                     hasMarker = markers.isNotEmpty(),
                     frameTimestampNs = frameTimestampNs,
                 )
@@ -426,6 +466,9 @@ class ARViewController(
     private fun logMarkerAlignmentIfNeeded(markerId: String, transform: Pose3D, alignmentScore: Double?) {
         if (!shouldEmitAlignmentEvent(transform)) return
         markAlignmentEvent(transform)
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "AR_ALIGNMENT_SET emitted for marker=$markerId score=$alignmentScore")
+        }
         detectorScope.launch {
             alignmentEventLogger.logMarkerAlignment(
                 workItemId = workItemId,
@@ -531,6 +574,7 @@ class ARViewController(
     companion object {
         private const val TAG = "ARViewController"
         private const val TEST_NODE_ASSET_PATH = "models/test_node.glb"
+        private const val INTRINSICS_ERROR_MESSAGE = "Unable to read camera intrinsics"
         private const val REQUIRED_POINTS = 3
         // Reference points chosen from test_node.glb: origin and two 20cm offsets along X/Y on the base plane
         private val MODEL_REFERENCE_POINTS = listOf(
@@ -548,18 +592,29 @@ class ARViewController(
         private const val RECENCY_SCORE_WEIGHT = 0.6f
         private const val POSITION_EPS_METERS = 0.01
         private const val ANGLE_EPS_RADIANS = 0.05
+        private const val POINT_CLOUD_LOG_INTERVAL_MS = 3000L
     }
 
-    private fun computeFeaturePointCount(frame: Frame): Int {
+    private fun computePointCloudStatus(frame: Frame): PointCloudStatusReport {
         return try {
             val pointCloud = frame.acquirePointCloud()
             val count = pointCloud.points.limit() / 4
             pointCloud.release()
-            count
+            val status = if (count > 0) PointCloudStatus.OK else PointCloudStatus.EMPTY
+            PointCloudStatusReport(status = status, pointCount = count)
         } catch (error: Exception) {
-            Log.w(TAG, "Failed to read point cloud", error)
-            0
+            maybeLogPointCloudFailure(error)
+            PointCloudStatusReport(status = PointCloudStatus.FAILED, pointCount = 0)
         }
+    }
+
+    private fun maybeLogPointCloudFailure(error: Exception) {
+        if (!BuildConfig.DEBUG) return
+        val nowMs = System.nanoTime() / 1_000_000
+        val last = lastPointCloudLogMs.get()
+        if (nowMs - last < POINT_CLOUD_LOG_INTERVAL_MS) return
+        if (!lastPointCloudLogMs.compareAndSet(last, nowMs)) return
+        Log.w(TAG, "Failed to read point cloud", error)
     }
 
     private fun rotationDegreesFromSurface(rotation: Int): Int = when (rotation) {
@@ -639,3 +694,8 @@ class ARViewController(
         _trackingStatus.value = desiredStatus
     }
 }
+
+data class PointCloudStatusReport(
+    val status: PointCloudStatus = PointCloudStatus.UNKNOWN,
+    val pointCount: Int = 0,
+)

@@ -28,7 +28,28 @@ class MarkerPoseEstimator {
         markerSizeMeters: Float,
         cameraPoseWorld: Pose3D,
     ): Pose3D? {
-        if (marker.corners.size < 4) return null
+        return when (
+            val result = estimateMarkerPoseWithDiagnostics(
+                intrinsics = intrinsics,
+                marker = marker,
+                markerSizeMeters = markerSizeMeters,
+                cameraPoseWorld = cameraPoseWorld,
+            )
+        ) {
+            is MarkerPoseEstimateResult.Success -> result.pose
+            is MarkerPoseEstimateResult.Failure -> null
+        }
+    }
+
+    fun estimateMarkerPoseWithDiagnostics(
+        intrinsics: CameraIntrinsics,
+        marker: DetectedMarker,
+        markerSizeMeters: Float,
+        cameraPoseWorld: Pose3D,
+    ): MarkerPoseEstimateResult {
+        if (marker.corners.size < 4) {
+            return MarkerPoseEstimateResult.Failure("insufficient_corners")
+        }
         // Ensure corners are properly ordered (TL, TR, BR, BL clockwise from top-left)
         // Convert to Point2f for pure Kotlin processing to avoid JVM test issues
         val point2fCorners = marker.corners.map { it.toPoint2f() }
@@ -37,10 +58,12 @@ class MarkerPoseEstimator {
 
         val objectPoints = buildSquarePoints(markerSizeMeters.toDouble())
         val imagePoints = orderedCorners.take(4)
-        val homography = computeHomography(objectPoints, imagePoints) ?: return null
-        val (rotation, translation) = decomposeHomography(intrinsics, homography) ?: return null
+        val homography = computeHomography(objectPoints, imagePoints)
+            ?: return MarkerPoseEstimateResult.Failure("homography_unsolved")
+        val (rotation, translation) = decomposeHomography(intrinsics, homography)
+            ?: return MarkerPoseEstimateResult.Failure("pnp_decompose_failed")
         val markerPoseCamera = Pose3D(translation, rotation)
-        return cameraPoseWorld.compose(markerPoseCamera)
+        return MarkerPoseEstimateResult.Success(cameraPoseWorld.compose(markerPoseCamera))
     }
 
     private fun buildSquarePoints(sizeMeters: Double): List<Vector3> {
@@ -229,4 +252,9 @@ class MarkerPoseEstimator {
             a[0] * b[1] - a[1] * b[0],
         )
     }
+}
+
+sealed class MarkerPoseEstimateResult {
+    data class Success(val pose: Pose3D) : MarkerPoseEstimateResult()
+    data class Failure(val reason: String) : MarkerPoseEstimateResult()
 }
