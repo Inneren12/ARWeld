@@ -29,6 +29,7 @@ import com.example.arweld.ui.work.WorkItemSummaryRoute
 import com.example.arweld.feature.work.ui.TimelineScreen
 import com.example.arweld.ui.scanner.ScanCodeRoute
 import com.example.arweld.ui.supervisor.SupervisorDashboardRoute
+import com.example.arweld.ui.supervisor.SupervisorWorkListRoute
 import com.example.arweld.ui.supervisor.WorkItemDetailRoute
 import javax.inject.Inject
 
@@ -237,6 +238,17 @@ fun AppNavigation(
             }
             composable(ROUTE_SUPERVISOR_DASHBOARD) {
                 SupervisorDashboardRoute(
+                    onWorkItemClick = { workItemId ->
+                        navController.navigate(workItemDetailRoute(workItemId))
+                    },
+                    onWorkListClick = {
+                        navController.navigate(ROUTE_SUPERVISOR_WORK_LIST)
+                    }
+                )
+            }
+            composable(ROUTE_SUPERVISOR_WORK_LIST) {
+                SupervisorWorkListRoute(
+                    onNavigateBack = { navController.popBackStack() },
                     onWorkItemClick = { workItemId ->
                         navController.navigate(workItemDetailRoute(workItemId))
                     }
