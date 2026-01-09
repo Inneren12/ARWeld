@@ -2,9 +2,14 @@ package com.example.arweld.feature.arview.marker
 
 import android.graphics.Point
 import android.graphics.PointF
+import com.example.arweld.feature.arview.geometry.Point2f
+import com.example.arweld.feature.arview.geometry.orderCornersClockwiseFromTopLeft
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class RealMarkerDetectorTest {
 
     private val detector = RealMarkerDetector()
@@ -32,14 +37,15 @@ class RealMarkerDetectorTest {
 
     @Test
     fun `orders marker corners clockwise from top-left`() {
+        // Use Point2f directly to avoid PointF issues in JVM unit tests
         val unordered = listOf(
-            PointF(50f, 80f),
-            PointF(10f, 10f),
-            PointF(90f, 20f),
-            PointF(20f, 70f),
+            Point2f(50f, 80f),
+            Point2f(10f, 10f),
+            Point2f(90f, 20f),
+            Point2f(20f, 70f),
         )
 
-        val ordered = detector.orderCorners(unordered)
+        val ordered = orderCornersClockwiseFromTopLeft(unordered)
 
         val orderedPairs = ordered.map { it.x to it.y }
         assertThat(orderedPairs).containsExactly(

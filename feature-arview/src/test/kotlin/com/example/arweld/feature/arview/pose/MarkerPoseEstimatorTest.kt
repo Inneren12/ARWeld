@@ -9,7 +9,10 @@ import com.example.arweld.core.domain.spatial.angularDistance
 import com.example.arweld.feature.arview.marker.DetectedMarker
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class MarkerPoseEstimatorTest {
 
     private val estimator = MarkerPoseEstimator()
