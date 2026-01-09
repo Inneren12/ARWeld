@@ -9,6 +9,7 @@ import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.arcore.toArCorePose
+import com.example.arweld.feature.arview.tracking.PerformanceMode
 import com.google.android.filament.Engine
 import com.google.android.filament.EntityManager
 import com.google.android.filament.Camera
@@ -54,6 +55,8 @@ class ARSceneRenderer(
     private var frameListener: ((Frame) -> Unit)? = null
     private var hitTestResultListener: ((Pose3D) -> Unit)? = null
     private var renderRateListener: ((Double) -> Unit)? = null
+    private var performanceMode: PerformanceMode = PerformanceMode.NORMAL
+    private var sunlightEntity: Int? = null
     private val tapQueue = ConcurrentLinkedQueue<Pair<Float, Float>>()
 
     private var rendering = false
@@ -88,6 +91,12 @@ class ARSceneRenderer(
 
     fun setRenderRateListener(listener: ((Double) -> Unit)?) {
         renderRateListener = listener
+    }
+
+    fun setPerformanceMode(mode: PerformanceMode) {
+        if (performanceMode == mode) return
+        performanceMode = mode
+        applyPerformanceMode()
     }
 
     fun onResume() {
@@ -250,14 +259,68 @@ class ARSceneRenderer(
     }
 
     private fun addDirectionalLight() {
-        val sunlight = com.google.android.filament.EntityManager.get().create()
+        val sunlight = EntityManager.get().create()
         LightManager.Builder(LightManager.Type.DIRECTIONAL)
             .color(1.0f, 1.0f, 1.0f)
             .intensity(50000.0f)
             .direction(0.0f, -1.0f, -0.2f)
             .castShadows(true)
             .build(engine, sunlight)
+        sunlightEntity = sunlight
         scene.addEntity(sunlight)
+        applyPerformanceMode()
+    }
+
+    private fun applyPerformanceMode() {
+        when (performanceMode) {
+            PerformanceMode.NORMAL -> {
+                setViewPostProcessing(enabled = true)
+                setViewAntiAliasing(modeName = "FXAA")
+                setViewDithering(modeName = "TEMPORAL")
+                setLightShadows(enabled = true)
+            }
+            PerformanceMode.LOW -> {
+                setViewPostProcessing(enabled = false)
+                setViewAntiAliasing(modeName = "NONE")
+                setViewDithering(modeName = "NONE")
+                setLightShadows(enabled = false)
+            }
+        }
+    }
+
+    private fun setViewPostProcessing(enabled: Boolean) {
+        runCatching {
+            val method = view.javaClass.methods.firstOrNull { it.name == "setPostProcessingEnabled" }
+            method?.invoke(view, enabled)
+        }
+    }
+
+    private fun setViewAntiAliasing(modeName: String) {
+        runCatching {
+            val enumClass = Class.forName("com.google.android.filament.View$AntiAliasing")
+            val method = view.javaClass.methods.firstOrNull { it.name == "setAntiAliasing" }
+            val value = java.lang.Enum.valueOf(enumClass as Class<out Enum<*>>, modeName)
+            method?.invoke(view, value)
+        }
+    }
+
+    private fun setViewDithering(modeName: String) {
+        runCatching {
+            val enumClass = Class.forName("com.google.android.filament.View$Dithering")
+            val method = view.javaClass.methods.firstOrNull { it.name == "setDithering" }
+            val value = java.lang.Enum.valueOf(enumClass as Class<out Enum<*>>, modeName)
+            method?.invoke(view, value)
+        }
+    }
+
+    private fun setLightShadows(enabled: Boolean) {
+        val lightEntity = sunlightEntity ?: return
+        runCatching {
+            val lightManager = engine.lightManager
+            val instance = lightManager.getInstance(lightEntity)
+            val method = lightManager.javaClass.methods.firstOrNull { it.name == "setShadowCaster" }
+            method?.invoke(lightManager, instance, enabled)
+        }
     }
 
     private fun shouldRenderFrame(frameTimeNanos: Long): Boolean {
