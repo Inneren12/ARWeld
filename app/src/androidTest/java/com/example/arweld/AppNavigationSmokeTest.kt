@@ -1,10 +1,14 @@
 package com.example.arweld
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.example.arweld.navigation.AppNavigation
+import com.example.arweld.ui.components.AppErrorBoundary
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
@@ -23,6 +27,15 @@ class AppNavigationSmokeTest {
     @Before
     fun setup() {
         hiltRule.inject()
+        composeRule.setContent {
+            MaterialTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    AppErrorBoundary {
+                        AppNavigation()
+                    }
+                }
+            }
+        }
     }
 
     @Test
@@ -69,7 +82,9 @@ class AppNavigationSmokeTest {
 
     private fun waitForText(text: String) {
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+            runCatching {
+                composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+            }.getOrDefault(false)
         }
     }
 }
