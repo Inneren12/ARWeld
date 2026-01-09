@@ -1,14 +1,10 @@
 package com.example.arweld
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.example.arweld.navigation.AppNavigation
-import com.example.arweld.ui.components.AppErrorBoundary
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
@@ -27,15 +23,6 @@ class AppNavigationSmokeTest {
     @Before
     fun setup() {
         hiltRule.inject()
-        composeRule.setContent {
-            MaterialTheme {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    AppErrorBoundary {
-                        AppNavigation()
-                    }
-                }
-            }
-        }
     }
 
     @Test
@@ -80,10 +67,12 @@ class AppNavigationSmokeTest {
         waitForText("ARWeld MVP")
     }
 
-    private fun waitForText(text: String) {
-        composeRule.waitUntil(timeoutMillis = 10_000) {
+    private fun waitForText(text: String, substring: Boolean = false, timeoutMillis: Long = 10_000) {
+        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
             runCatching {
-                composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodesWithText(text, substring = substring)
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
             }.getOrDefault(false)
         }
     }
