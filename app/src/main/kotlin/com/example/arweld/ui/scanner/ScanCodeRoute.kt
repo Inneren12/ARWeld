@@ -12,7 +12,7 @@ fun ScanCodeRoute(
     navController: NavHostController,
     viewModel: ScanCodeViewModel = hiltViewModel(),
 ) {
-    val errorMessage = viewModel.errorMessage.collectAsState().value
+    val resolutionState = viewModel.resolutionState.collectAsState().value
 
     ScanCodeScreen(
         onCodeResolved = { code ->
@@ -24,7 +24,7 @@ fun ScanCodeRoute(
             )
         },
         onBack = { navController.popBackStack() },
-        errorMessage = errorMessage,
-        onErrorConsumed = viewModel::clearError,
+        resolutionState = resolutionState,
+        onResolutionReset = viewModel::resetResolution,
     )
 }

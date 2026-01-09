@@ -12,10 +12,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -28,6 +28,7 @@ import com.example.arweld.feature.scanner.camera.CameraPreviewController
 @Composable
 fun ScannerPreview(
     modifier: Modifier = Modifier,
+    onPermissionStateChanged: (CameraPermissionState) -> Unit = {},
     onCodeDetected: (String) -> Unit,
 ) {
     val context = LocalContext.current
@@ -40,22 +41,39 @@ fun ScannerPreview(
     val cameraController = remember { CameraPreviewController(context) }
     val analyzer = remember(onCodeDetected) { BarcodeAnalyzer(onCodeDetected) }
 
-    var hasCameraPermission by remember {
+    var permissionState by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+            if (
+                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
                 PackageManager.PERMISSION_GRANTED
+            ) {
+                CameraPermissionState.Granted
+            } else {
+                CameraPermissionState.Requesting
+            }
         )
     }
+    val hasCameraPermission = permissionState == CameraPermissionState.Granted
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { granted -> hasCameraPermission = granted },
+        onResult = { granted ->
+            permissionState = if (granted) {
+                CameraPermissionState.Granted
+            } else {
+                CameraPermissionState.Denied
+            }
+        },
     )
 
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
+    }
+
+    LaunchedEffect(permissionState) {
+        onPermissionStateChanged(permissionState)
     }
 
     DisposableEffect(lifecycleOwner, hasCameraPermission) {
@@ -74,13 +92,18 @@ fun ScannerPreview(
                 factory = { previewView },
             )
         } else {
+            val message = when (permissionState) {
+                CameraPermissionState.Requesting -> "Requesting camera permission…"
+                CameraPermissionState.Denied -> "Camera permission denied"
+                CameraPermissionState.Granted -> "Camera permission required to scan"
+            }
             Text(
-                text = "Camera permission required to scan",
+                text = message,
                 modifier = Modifier.align(Alignment.Center),
             )
         }
 
-        if (hasCameraPermission.not()) {
+        if (permissionState == CameraPermissionState.Requesting) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.BottomCenter))
         }
     }
