@@ -43,6 +43,7 @@ import com.example.arweld.feature.supervisor.model.SupervisorWorkItem
 import com.example.arweld.feature.supervisor.model.WorkListAssignee
 import com.example.arweld.feature.supervisor.viewmodel.WorkListDateRange
 import com.example.arweld.feature.supervisor.viewmodel.WorkListFilters
+import com.example.arweld.feature.supervisor.viewmodel.WorkListSortOrder
 import com.example.arweld.feature.supervisor.viewmodel.WorkListUiState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -57,7 +58,9 @@ fun SupervisorWorkListScreen(
     onZoneChange: (String?) -> Unit,
     onAssigneeChange: (String?) -> Unit,
     onDateRangeChange: (WorkListDateRange) -> Unit,
-    onClearFilters: () -> Unit,
+    onSortOrderChange: (WorkListSortOrder) -> Unit,
+    onApplyFilters: () -> Unit,
+    onResetFilters: () -> Unit,
     onWorkItemClick: (String) -> Unit,
     onRefresh: () -> Unit,
     onNavigateBack: () -> Unit,
@@ -116,7 +119,8 @@ fun SupervisorWorkListScreen(
         ) {
             item {
                 FilterHeader(
-                    filters = state.filters,
+                    draftFilters = state.draftFilters,
+                    appliedFilters = state.filters,
                     availableZones = state.availableZones,
                     availableAssignees = state.availableAssignees,
                     onSearchChange = onSearchChange,
@@ -124,7 +128,9 @@ fun SupervisorWorkListScreen(
                     onZoneChange = onZoneChange,
                     onAssigneeChange = onAssigneeChange,
                     onDateRangeChange = onDateRangeChange,
-                    onClearFilters = onClearFilters,
+                    onSortOrderChange = onSortOrderChange,
+                    onApplyFilters = onApplyFilters,
+                    onResetFilters = onResetFilters,
                 )
             }
 
@@ -148,7 +154,8 @@ fun SupervisorWorkListScreen(
 
 @Composable
 private fun FilterHeader(
-    filters: WorkListFilters,
+    draftFilters: WorkListFilters,
+    appliedFilters: WorkListFilters,
     availableZones: List<String>,
     availableAssignees: List<WorkListAssignee>,
     onSearchChange: (String) -> Unit,
@@ -156,11 +163,15 @@ private fun FilterHeader(
     onZoneChange: (String?) -> Unit,
     onAssigneeChange: (String?) -> Unit,
     onDateRangeChange: (WorkListDateRange) -> Unit,
-    onClearFilters: () -> Unit,
+    onSortOrderChange: (WorkListSortOrder) -> Unit,
+    onApplyFilters: () -> Unit,
+    onResetFilters: () -> Unit,
 ) {
+    val hasPendingChanges = draftFilters != appliedFilters
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
-            value = filters.searchQuery,
+            value = draftFilters.searchQuery,
             onValueChange = onSearchChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Search by code, description, zone, assignee") },
@@ -173,7 +184,7 @@ private fun FilterHeader(
         ) {
             FilterMenu(
                 label = "Status",
-                current = filters.status?.displayLabel() ?: "All",
+                current = draftFilters.status?.displayLabel() ?: "All",
                 options = listOf("All") + WorkStatus.values().map { it.displayLabel() },
                 onSelected = { selected ->
                     val status = WorkStatus.values().firstOrNull { it.displayLabel() == selected }
@@ -184,7 +195,7 @@ private fun FilterHeader(
 
             FilterMenu(
                 label = "Zone",
-                current = filters.zoneId ?: "All",
+                current = draftFilters.zoneId ?: "All",
                 options = listOf("All") + availableZones,
                 onSelected = { selected ->
                     onZoneChange(selected.takeIf { it != "All" })
@@ -199,7 +210,7 @@ private fun FilterHeader(
         ) {
             FilterMenu(
                 label = "Assignee",
-                current = filters.assigneeId?.let { id ->
+                current = draftFilters.assigneeId?.let { id ->
                     availableAssignees.firstOrNull { it.id == id }?.name ?: id
                 } ?: "All",
                 options = listOf("All") + availableAssignees.map { it.name },
@@ -212,7 +223,7 @@ private fun FilterHeader(
 
             FilterMenu(
                 label = "Date",
-                current = filters.dateRange.label,
+                current = draftFilters.dateRange.label,
                 options = WorkListDateRange.values().map { it.label },
                 onSelected = { selected ->
                     val range = WorkListDateRange.values().first { it.label == selected }
@@ -222,18 +233,37 @@ private fun FilterHeader(
             )
         }
 
+        FilterMenu(
+            label = "Sort",
+            current = draftFilters.sortOrder.label,
+            options = WorkListSortOrder.values().map { it.label },
+            onSelected = { selected ->
+                val order = WorkListSortOrder.values().first { it.label == selected }
+                onSortOrderChange(order)
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Sorted by last change",
+                text = "Applied: ${appliedFilters.sortOrder.label}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            TextButton(onClick = onClearFilters) {
-                Text("Clear filters")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onResetFilters) {
+                    Text("Reset")
+                }
+                Button(
+                    onClick = onApplyFilters,
+                    enabled = hasPendingChanges
+                ) {
+                    Text(if (hasPendingChanges) "Apply" else "Applied")
+                }
             }
         }
     }
