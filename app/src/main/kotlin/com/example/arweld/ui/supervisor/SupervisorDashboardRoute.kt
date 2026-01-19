@@ -4,12 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.arweld.core.domain.state.WorkStatus
 import com.example.arweld.feature.supervisor.ui.SupervisorDashboardScreen
 import com.example.arweld.feature.supervisor.viewmodel.SupervisorDashboardViewModel
 
 @Composable
 fun SupervisorDashboardRoute(
     onWorkItemClick: (String) -> Unit,
+    onKpiClick: (WorkStatus?) -> Unit,
     onWorkListClick: () -> Unit,
     viewModel: SupervisorDashboardViewModel = hiltViewModel()
 ) {
@@ -27,6 +29,7 @@ fun SupervisorDashboardRoute(
             viewModel.setBottleneckThreshold(threshold)
         },
         onWorkItemClick = onWorkItemClick,
+        onKpiClick = onKpiClick,
         onWorkListClick = onWorkListClick
     )
 }

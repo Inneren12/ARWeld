@@ -1,6 +1,7 @@
 package com.example.arweld.navigation
 
 import android.net.Uri
+import com.example.arweld.core.domain.state.WorkStatus
 
 const val ROUTE_AUTH_GRAPH = "auth_graph"
 const val ROUTE_MAIN_GRAPH = "main_graph"
@@ -62,3 +63,8 @@ fun arViewRoute(workItemId: String): String =
 
 fun workItemDetailRoute(workItemId: String): String =
     "$ROUTE_WORK_ITEM_DETAIL/$workItemId"
+
+fun supervisorWorkListRoute(status: WorkStatus? = null): String {
+    val statusParam = status?.let { "?status=${Uri.encode(it.name)}" } ?: ""
+    return "$ROUTE_SUPERVISOR_WORK_LIST$statusParam"
+}
