@@ -12,7 +12,7 @@ import com.example.arweld.core.data.db.entity.SyncQueueEntity
 @Dao
 interface SyncQueueDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(item: SyncQueueEntity)
+    suspend fun enqueueEvent(item: SyncQueueEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<SyncQueueEntity>)
@@ -33,12 +33,17 @@ interface SyncQueueDao {
         limit: Int = 100,
     ): List<SyncQueueEntity>
 
+    @Query("SELECT COUNT(*) FROM sync_queue WHERE status = :pendingStatus")
+    suspend fun getPendingCount(pendingStatus: String = "PENDING"): Int
+
+    @Query("SELECT COUNT(*) FROM sync_queue WHERE status = :errorStatus")
+    suspend fun getErrorCount(errorStatus: String = "ERROR"): Int
+
     @Query(
-        "UPDATE sync_queue SET status = :status, retryCount = :retryCount WHERE id = :id"
+        "UPDATE sync_queue SET status = :status WHERE id = :id"
     )
     suspend fun updateStatus(
         id: String,
         status: String,
-        retryCount: Int,
     )
 }

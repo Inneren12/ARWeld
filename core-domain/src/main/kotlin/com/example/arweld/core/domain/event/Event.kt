@@ -1,6 +1,7 @@
 package com.example.arweld.core.domain.event
 
 import com.example.arweld.core.domain.model.Role
+import kotlinx.serialization.Serializable
 
 /**
  * Immutable domain event. Acts as the source of truth for state reconstruction.
@@ -8,6 +9,7 @@ import com.example.arweld.core.domain.model.Role
  * @param timestamp milliseconds since Unix epoch
  * @param payloadJson optional JSON-encoded payload with event-specific details
  */
+@Serializable
 data class Event(
     val id: String,
     val workItemId: String,

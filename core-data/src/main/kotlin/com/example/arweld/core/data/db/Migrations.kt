@@ -23,3 +23,47 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         )
     }
 }
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sync_queue_new (
+                id TEXT NOT NULL,
+                type TEXT NOT NULL,
+                eventType TEXT NOT NULL,
+                workItemId TEXT,
+                payloadJson TEXT NOT NULL,
+                status TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                PRIMARY KEY(id)
+            )
+            """.trimIndent()
+        )
+        database.execSQL(
+            """
+            INSERT INTO sync_queue_new (
+                id,
+                type,
+                eventType,
+                workItemId,
+                payloadJson,
+                status,
+                createdAt
+            )
+            SELECT
+                id,
+                'EVENT' AS type,
+                'UNKNOWN' AS eventType,
+                NULL AS workItemId,
+                payloadJson,
+                status,
+                createdAt
+            FROM sync_queue
+            """.trimIndent()
+        )
+        database.execSQL("DROP TABLE sync_queue")
+        database.execSQL("ALTER TABLE sync_queue_new RENAME TO sync_queue")
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_sync_queue_status ON sync_queue(status)")
+    }
+}

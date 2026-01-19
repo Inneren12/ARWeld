@@ -46,7 +46,11 @@ class EvidenceRepositoryImplTest {
             .allowMainThreadQueries()
             .build()
 
-        eventRepository = EventRepositoryImpl(database.eventDao())
+        eventRepository = EventRepositoryImpl(
+            database = database,
+            eventDao = database.eventDao(),
+            syncQueueDao = database.syncQueueDao(),
+        )
         evidenceRepository = EvidenceRepositoryImpl(
             evidenceDao = database.evidenceDao(),
             eventRepository = eventRepository,

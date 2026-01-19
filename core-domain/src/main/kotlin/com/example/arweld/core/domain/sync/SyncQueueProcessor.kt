@@ -11,26 +11,13 @@ class SyncQueueProcessor(
     suspend fun processPending(limit: Int = 25) {
         val pendingItems = repository.listPending(limit)
         pendingItems.forEach { item ->
-            repository.updateStatus(
-                id = item.id,
-                status = SyncQueueStatus.PROCESSING,
-                retryCount = item.retryCount,
-            )
-
             val result = runCatching { handler.process(item) }
-                .getOrElse { SyncQueueResult.failure(retryable = true) }
+                .getOrElse { SyncQueueResult.failure(retryable = false) }
 
-            if (result.success) {
-                repository.updateStatus(
-                    id = item.id,
-                    status = SyncQueueStatus.DONE,
-                    retryCount = item.retryCount,
-                )
-            } else {
+            if (!result.success) {
                 repository.updateStatus(
                     id = item.id,
                     status = SyncQueueStatus.ERROR,
-                    retryCount = item.retryCount + 1,
                 )
             }
         }
