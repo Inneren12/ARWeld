@@ -1,8 +1,11 @@
 package com.example.arweld.core.domain.event
 
+import kotlinx.serialization.Serializable
+
 /**
  * Enumerates all domain events captured in the ARWeld workflow.
  */
+@Serializable
 enum class EventType {
     WORK_CLAIMED,
     WORK_STARTED,

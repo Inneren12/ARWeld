@@ -13,8 +13,10 @@ import androidx.room.PrimaryKey
 )
 data class SyncQueueEntity(
     @PrimaryKey val id: String,
+    val type: String,
+    val eventType: String,
+    val workItemId: String?,
     val payloadJson: String,
-    val createdAt: Long,
     val status: String,
-    val retryCount: Int,
+    val createdAt: Long,
 )

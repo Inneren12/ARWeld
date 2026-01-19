@@ -1,13 +1,15 @@
 package com.example.arweld.core.domain.sync
 
+import com.example.arweld.core.domain.event.Event
+
 /**
  * Domain-facing repository for offline sync queue operations.
  */
 interface SyncQueueRepository {
     /**
-     * Enqueue a JSON payload for later sync.
+     * Enqueue a domain event for later sync/export.
      */
-    suspend fun enqueue(payloadJson: String): SyncQueueItem
+    suspend fun enqueueEvent(event: Event): SyncQueueItem
 
     /**
      * Fetch pending items ordered by creation time.
@@ -20,22 +22,36 @@ interface SyncQueueRepository {
     suspend fun listErrors(limit: Int = 100): List<SyncQueueItem>
 
     /**
-     * Update the status and retry count for a queue item.
+     * Count pending items.
      */
-    suspend fun updateStatus(id: String, status: SyncQueueStatus, retryCount: Int)
+    suspend fun getPendingCount(): Int
+
+    /**
+     * Count items marked with an error.
+     */
+    suspend fun getErrorCount(): Int
+
+    /**
+     * Update the status for a queue item.
+     */
+    suspend fun updateStatus(id: String, status: SyncQueueStatus)
 }
 
 data class SyncQueueItem(
     val id: String,
+    val type: SyncQueueType,
+    val eventType: String,
+    val workItemId: String?,
     val payloadJson: String,
-    val createdAt: Long,
     val status: SyncQueueStatus,
-    val retryCount: Int,
+    val createdAt: Long,
 )
 
 enum class SyncQueueStatus {
     PENDING,
-    PROCESSING,
     ERROR,
-    DONE,
+}
+
+enum class SyncQueueType {
+    EVENT,
 }

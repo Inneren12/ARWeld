@@ -111,27 +111,33 @@ class DaoTest {
     fun syncQueueDao_returnsPendingOrderedByCreatedAt() = runBlocking {
         val pendingA = SyncQueueEntity(
             id = "q1",
+            type = "EVENT",
+            eventType = "WORK_STARTED",
+            workItemId = "w1",
             payloadJson = "{}",
-            createdAt = 50L,
             status = "PENDING",
-            retryCount = 0,
+            createdAt = 50L,
         )
         val pendingB = SyncQueueEntity(
             id = "q2",
+            type = "EVENT",
+            eventType = "QC_STARTED",
+            workItemId = "w1",
             payloadJson = "{}",
-            createdAt = 75L,
             status = "PENDING",
-            retryCount = 0,
+            createdAt = 75L,
         )
-        val done = SyncQueueEntity(
+        val error = SyncQueueEntity(
             id = "q3",
+            type = "EVENT",
+            eventType = "WORK_READY_FOR_QC",
+            workItemId = "w2",
             payloadJson = "{}",
+            status = "ERROR",
             createdAt = 10L,
-            status = "DONE",
-            retryCount = 0,
         )
 
-        syncQueueDao.insertAll(listOf(pendingB, pendingA, done))
+        syncQueueDao.insertAll(listOf(pendingB, pendingA, error))
 
         val pendingItems = syncQueueDao.getPending(limit = 1)
         assertEquals(1, pendingItems.size)
@@ -139,6 +145,6 @@ class DaoTest {
 
         val allPending = syncQueueDao.getPending(limit = 5)
         assertEquals(listOf(pendingA, pendingB), allPending)
-        assertTrue(allPending.none { it.status == "DONE" })
+        assertTrue(allPending.none { it.status == "ERROR" })
     }
 }

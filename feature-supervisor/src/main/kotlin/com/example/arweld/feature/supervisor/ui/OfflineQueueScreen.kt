@@ -73,7 +73,9 @@ private fun QueueList(items: List<SyncQueueItem>, emptyLabel: String) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(text = "ID: ${item.id}", style = MaterialTheme.typography.bodyMedium)
-                    Text(text = "Status: ${item.status} • Retries: ${item.retryCount}")
+                    Text(text = "Type: ${item.type} • Event: ${item.eventType}")
+                    Text(text = "Status: ${item.status}")
+                    Text(text = "WorkItem: ${item.workItemId ?: "N/A"}")
                     Text(text = "Created: ${item.createdAt}")
                     Text(text = item.payloadJson, style = MaterialTheme.typography.bodySmall)
                 }

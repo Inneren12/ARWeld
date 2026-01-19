@@ -29,7 +29,11 @@ class EventRepositoryImplTest {
             .allowMainThreadQueries()
             .build()
 
-        repository = EventRepositoryImpl(database.eventDao())
+        repository = EventRepositoryImpl(
+            database = database,
+            eventDao = database.eventDao(),
+            syncQueueDao = database.syncQueueDao(),
+        )
     }
 
     @After

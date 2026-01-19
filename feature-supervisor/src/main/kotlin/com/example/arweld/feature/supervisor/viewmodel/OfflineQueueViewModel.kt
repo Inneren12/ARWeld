@@ -2,6 +2,9 @@ package com.example.arweld.feature.supervisor.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.arweld.core.domain.event.Event
+import com.example.arweld.core.domain.event.EventType
+import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.sync.SyncQueueItem
 import com.example.arweld.core.domain.sync.SyncQueueProcessor
 import com.example.arweld.core.domain.sync.SyncQueueWriter
@@ -12,8 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import java.util.UUID
 
 data class OfflineQueueUiState(
     val isLoading: Boolean = false,
@@ -68,8 +70,17 @@ class OfflineQueueViewModel @Inject constructor(
 
     fun enqueueSample() {
         viewModelScope.launch {
-            val payload = Json.encodeToString(mapOf("type" to "sample", "detail" to "offline-queue"))
-            writer.enqueue(payload)
+            val event = Event(
+                id = UUID.randomUUID().toString(),
+                workItemId = "sample-work-item",
+                type = EventType.WORK_CLAIMED,
+                timestamp = System.currentTimeMillis(),
+                actorId = "sample-user",
+                actorRole = Role.ASSEMBLER,
+                deviceId = "sample-device",
+                payloadJson = "{\"sample\":\"offline-queue\"}",
+            )
+            writer.enqueueEvent(event)
             refresh()
         }
     }
