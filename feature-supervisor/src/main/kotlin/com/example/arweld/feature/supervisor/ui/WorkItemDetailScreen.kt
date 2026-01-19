@@ -38,9 +38,10 @@ fun WorkItemDetailScreen(
     var selectedEvidence by remember { mutableStateOf<Evidence?>(null) }
 
     // Show evidence viewer dialog when evidence is selected
-    selectedEvidence?.let { evidence ->
+    selectedEvidence?.let { selected ->
         EvidenceViewerDialog(
-            evidence = evidence,
+            evidence = selected,
+            evidenceList = evidence,
             onDismiss = { selectedEvidence = null }
         )
     }
