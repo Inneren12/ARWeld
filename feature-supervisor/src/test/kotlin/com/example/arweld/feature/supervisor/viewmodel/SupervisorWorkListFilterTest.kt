@@ -89,6 +89,48 @@ class SupervisorWorkListFilterTest {
     }
 
     @Test
+    fun `sorts by last change ascending`() {
+        val now = TimeUnit.DAYS.toMillis(2)
+        val items = listOf(
+            SupervisorWorkItem(
+                workItemId = "wi-1",
+                code = "W-001",
+                description = "Alpha",
+                zoneId = "Z1",
+                status = WorkStatus.NEW,
+                lastChangedAt = now - TimeUnit.HOURS.toMillis(3),
+                assigneeId = null,
+                assigneeName = null
+            ),
+            SupervisorWorkItem(
+                workItemId = "wi-2",
+                code = "W-002",
+                description = "Beta",
+                zoneId = "Z1",
+                status = WorkStatus.NEW,
+                lastChangedAt = now - TimeUnit.HOURS.toMillis(1),
+                assigneeId = null,
+                assigneeName = null
+            ),
+            SupervisorWorkItem(
+                workItemId = "wi-3",
+                code = "W-003",
+                description = "Gamma",
+                zoneId = "Z1",
+                status = WorkStatus.NEW,
+                lastChangedAt = now - TimeUnit.HOURS.toMillis(2),
+                assigneeId = null,
+                assigneeName = null
+            )
+        )
+        val filters = WorkListFilters(sortOrder = WorkListSortOrder.LAST_CHANGED_ASC)
+
+        val filtered = applyWorkListFilters(items, filters, nowMs = now)
+
+        assertEquals(listOf("wi-1", "wi-3", "wi-2"), filtered.map { it.workItemId })
+    }
+
+    @Test
     fun `filters by date range excludes older entries`() {
         val now = TimeUnit.DAYS.toMillis(10)
         val items = listOf(

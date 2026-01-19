@@ -63,25 +63,42 @@ class SupervisorWorkListViewModel @Inject constructor(
         }
     }
 
-    fun updateSearchQuery(query: String) = updateFilters { it.copy(searchQuery = query) }
+    fun updateSearchQuery(query: String) = updateDraftFilters { it.copy(searchQuery = query) }
 
-    fun updateStatus(status: WorkStatus?) = updateFilters { it.copy(status = status) }
+    fun updateStatus(status: WorkStatus?) = updateDraftFilters { it.copy(status = status) }
 
-    fun updateZone(zoneId: String?) = updateFilters { it.copy(zoneId = zoneId) }
+    fun updateZone(zoneId: String?) = updateDraftFilters { it.copy(zoneId = zoneId) }
 
-    fun updateAssignee(assigneeId: String?) = updateFilters { it.copy(assigneeId = assigneeId) }
+    fun updateAssignee(assigneeId: String?) = updateDraftFilters { it.copy(assigneeId = assigneeId) }
 
-    fun updateDateRange(dateRange: WorkListDateRange) = updateFilters { it.copy(dateRange = dateRange) }
+    fun updateDateRange(dateRange: WorkListDateRange) = updateDraftFilters { it.copy(dateRange = dateRange) }
 
-    fun clearFilters() = updateFilters { WorkListFilters() }
+    fun updateSortOrder(sortOrder: WorkListSortOrder) = updateDraftFilters { it.copy(sortOrder = sortOrder) }
 
-    private fun updateFilters(update: (WorkListFilters) -> WorkListFilters) {
+    fun applyFilters() {
         _uiState.update { current ->
-            val updatedFilters = update(current.filters)
+            val appliedFilters = current.draftFilters
             current.copy(
-                filters = updatedFilters,
-                filteredItems = applyWorkListFilters(current.items, updatedFilters),
+                filters = appliedFilters,
+                filteredItems = applyWorkListFilters(current.items, appliedFilters),
             )
+        }
+    }
+
+    fun resetFilters() {
+        _uiState.update { current ->
+            val reset = WorkListFilters()
+            current.copy(
+                filters = reset,
+                draftFilters = reset,
+                filteredItems = applyWorkListFilters(current.items, reset),
+            )
+        }
+    }
+
+    private fun updateDraftFilters(update: (WorkListFilters) -> WorkListFilters) {
+        _uiState.update { current ->
+            current.copy(draftFilters = update(current.draftFilters))
         }
     }
 }
@@ -91,6 +108,7 @@ data class WorkListUiState(
     val items: List<SupervisorWorkItem> = emptyList(),
     val filteredItems: List<SupervisorWorkItem> = emptyList(),
     val filters: WorkListFilters = WorkListFilters(),
+    val draftFilters: WorkListFilters = WorkListFilters(),
     val availableZones: List<String> = emptyList(),
     val availableAssignees: List<WorkListAssignee> = emptyList(),
     val error: String? = null,
@@ -102,6 +120,7 @@ data class WorkListFilters(
     val zoneId: String? = null,
     val assigneeId: String? = null,
     val dateRange: WorkListDateRange = WorkListDateRange.ALL,
+    val sortOrder: WorkListSortOrder = WorkListSortOrder.LAST_CHANGED_DESC,
 )
 
 enum class WorkListDateRange(val label: String, val durationMs: Long?) {
@@ -111,6 +130,11 @@ enum class WorkListDateRange(val label: String, val durationMs: Long?) {
     LAST_30_DAYS("Last 30d", TimeUnit.DAYS.toMillis(30)),
 }
 
+enum class WorkListSortOrder(val label: String) {
+    LAST_CHANGED_DESC("Last change (newest)"),
+    LAST_CHANGED_ASC("Last change (oldest)"),
+}
+
 internal fun applyWorkListFilters(
     items: List<SupervisorWorkItem>,
     filters: WorkListFilters,
@@ -118,6 +142,11 @@ internal fun applyWorkListFilters(
 ): List<SupervisorWorkItem> {
     val normalizedQuery = filters.searchQuery.trim().lowercase()
     val threshold = filters.dateRange.durationMs?.let { nowMs - it }
+
+    val comparator = when (filters.sortOrder) {
+        WorkListSortOrder.LAST_CHANGED_DESC -> compareByDescending<SupervisorWorkItem> { it.lastChangedAt }
+        WorkListSortOrder.LAST_CHANGED_ASC -> compareBy<SupervisorWorkItem> { it.lastChangedAt }
+    }.thenBy { it.code }.thenBy { it.workItemId }
 
     return items.asSequence()
         .filter { item ->
@@ -138,10 +167,6 @@ internal fun applyWorkListFilters(
 
             haystack.contains(normalizedQuery)
         }
-        .sortedWith(
-            compareByDescending<SupervisorWorkItem> { it.lastChangedAt }
-                .thenBy { it.code }
-                .thenBy { it.workItemId }
-        )
+        .sortedWith(comparator)
         .toList()
 }
