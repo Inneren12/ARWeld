@@ -15,6 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import androidx.navigation.navArgument
 import com.example.arweld.core.domain.auth.AuthRepository
+import com.example.arweld.core.domain.state.WorkStatus
 import com.example.arweld.ui.auth.LoginRoute
 import com.example.arweld.ui.auth.SplashScreen
 import com.example.arweld.ui.home.HomeRoute
@@ -244,17 +245,34 @@ fun AppNavigation(
                     onWorkItemClick = { workItemId ->
                         navController.navigate(workItemDetailRoute(workItemId))
                     },
+                    onKpiClick = { status ->
+                        navController.navigate(supervisorWorkListRoute(status))
+                    },
                     onWorkListClick = {
-                        navController.navigate(ROUTE_SUPERVISOR_WORK_LIST)
+                        navController.navigate(supervisorWorkListRoute())
                     }
                 )
             }
-            composable(ROUTE_SUPERVISOR_WORK_LIST) {
+            composable(
+                route = "$ROUTE_SUPERVISOR_WORK_LIST?status={status}",
+                arguments = listOf(
+                    navArgument("status") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val statusArg = backStackEntry.arguments?.getString("status")
+                val initialStatus = statusArg?.let { value ->
+                    runCatching { WorkStatus.valueOf(value) }.getOrNull()
+                }
                 SupervisorWorkListRoute(
                     onNavigateBack = { navController.popBackStack() },
                     onWorkItemClick = { workItemId ->
                         navController.navigate(workItemDetailRoute(workItemId))
-                    }
+                    },
+                    initialStatus = initialStatus,
                 )
             }
             composable(ROUTE_EXPORT_CENTER) {

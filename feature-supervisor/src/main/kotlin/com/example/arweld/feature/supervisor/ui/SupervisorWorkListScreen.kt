@@ -123,6 +123,7 @@ fun SupervisorWorkListScreen(
                     appliedFilters = state.filters,
                     availableZones = state.availableZones,
                     availableAssignees = state.availableAssignees,
+                    searchError = state.searchError,
                     onSearchChange = onSearchChange,
                     onStatusChange = onStatusChange,
                     onZoneChange = onZoneChange,
@@ -136,9 +137,16 @@ fun SupervisorWorkListScreen(
 
             if (state.filteredItems.isEmpty()) {
                 item {
+                    val emptyMessage = when {
+                        state.isLoading -> "Loading work list..."
+                        state.searchError != null -> state.searchError
+                        state.filters.searchQuery.isNotBlank() ->
+                            "No work items found for that code or ID."
+                        else -> "No work items match the filters."
+                    }
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = if (state.isLoading) "Loading work list..." else "No work items match the filters.",
+                            text = emptyMessage,
                             modifier = Modifier.padding(16.dp),
                         )
                     }
@@ -158,6 +166,7 @@ private fun FilterHeader(
     appliedFilters: WorkListFilters,
     availableZones: List<String>,
     availableAssignees: List<WorkListAssignee>,
+    searchError: String?,
     onSearchChange: (String) -> Unit,
     onStatusChange: (WorkStatus?) -> Unit,
     onZoneChange: (String?) -> Unit,
@@ -174,8 +183,12 @@ private fun FilterHeader(
             value = draftFilters.searchQuery,
             onValueChange = onSearchChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Search by code, description, zone, assignee") },
+            label = { Text("Search by code or work item ID") },
+            supportingText = {
+                Text(searchError ?: "Use codes like ARWELD-W-001 or internal IDs.")
+            },
             singleLine = true,
+            isError = searchError != null,
         )
 
         Row(

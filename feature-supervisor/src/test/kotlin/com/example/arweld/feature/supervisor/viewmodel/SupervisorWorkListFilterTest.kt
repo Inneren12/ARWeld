@@ -34,7 +34,7 @@ class SupervisorWorkListFilterTest {
         )
 
         val filters = WorkListFilters(
-            searchQuery = "pipe",
+            searchQuery = "W-001",
             status = WorkStatus.IN_PROGRESS,
             zoneId = "Z1",
             assigneeId = "u1",

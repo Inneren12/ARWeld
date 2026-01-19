@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.arweld.core.domain.state.WorkStatus
 import com.example.arweld.feature.supervisor.model.BottleneckItem
 import com.example.arweld.feature.supervisor.model.ShopKpis
 import com.example.arweld.feature.supervisor.model.UserActivity
@@ -27,6 +28,7 @@ fun SupervisorDashboardScreen(
     onBottleneckThresholdChange: (Long) -> Unit,
     onWorkItemClick: (String) -> Unit,
     onWorkListClick: () -> Unit,
+    onKpiClick: (WorkStatus?) -> Unit,
     isLoading: Boolean = false,
     error: String? = null,
     onRefresh: () -> Unit = {},
@@ -134,7 +136,10 @@ fun SupervisorDashboardScreen(
             }
 
             item {
-                KpiCards(kpis = kpis)
+                KpiCards(
+                    kpis = kpis,
+                    onKpiClick = onKpiClick,
+                )
             }
 
             // QC Bottleneck Section
@@ -219,7 +224,10 @@ fun SupervisorDashboardScreen(
 }
 
 @Composable
-private fun KpiCards(kpis: ShopKpis) {
+private fun KpiCards(
+    kpis: ShopKpis,
+    onKpiClick: (WorkStatus?) -> Unit,
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -231,12 +239,14 @@ private fun KpiCards(kpis: ShopKpis) {
             KpiCard(
                 title = "Total",
                 value = kpis.totalWorkItems.toString(),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onKpiClick(null) }
             )
             KpiCard(
                 title = "In Progress",
                 value = kpis.inProgress.toString(),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onKpiClick(WorkStatus.IN_PROGRESS) }
             )
         }
 
@@ -248,12 +258,14 @@ private fun KpiCards(kpis: ShopKpis) {
             KpiCard(
                 title = "Ready for QC",
                 value = kpis.readyForQc.toString(),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onKpiClick(WorkStatus.READY_FOR_QC) }
             )
             KpiCard(
                 title = "QC In Progress",
                 value = kpis.qcInProgress.toString(),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onKpiClick(WorkStatus.QC_IN_PROGRESS) }
             )
         }
 
@@ -265,12 +277,14 @@ private fun KpiCards(kpis: ShopKpis) {
             KpiCard(
                 title = "Approved",
                 value = kpis.approved.toString(),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onKpiClick(WorkStatus.APPROVED) }
             )
             KpiCard(
                 title = "Rework",
                 value = kpis.rework.toString(),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onKpiClick(WorkStatus.REWORK_REQUIRED) }
             )
         }
 
@@ -282,12 +296,14 @@ private fun KpiCards(kpis: ShopKpis) {
             KpiCard(
                 title = "Avg QC Wait",
                 value = formatDuration(kpis.avgQcWaitTimeMs),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onKpiClick(WorkStatus.READY_FOR_QC) }
             )
             KpiCard(
                 title = "QC Pass Rate",
                 value = "${(kpis.qcPassRate * 100).toInt()}%",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onKpiClick(WorkStatus.APPROVED) }
             )
         }
     }
@@ -297,10 +313,17 @@ private fun KpiCards(kpis: ShopKpis) {
 private fun KpiCard(
     title: String,
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     Card(
-        modifier = modifier
+        modifier = modifier.then(
+            if (onClick != null) {
+                Modifier.clickable(onClick = onClick)
+            } else {
+                Modifier
+            }
+        )
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
