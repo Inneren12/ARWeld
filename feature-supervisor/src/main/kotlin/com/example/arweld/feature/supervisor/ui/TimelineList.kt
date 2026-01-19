@@ -37,7 +37,7 @@ fun TimelineList(
     emptyLabel: String = "No timeline events"
 ) {
     val orderedTimeline = remember(timeline) {
-        timeline.sortedWith(compareBy({ it.timestamp }, { it.eventId }))
+        orderTimelineEntries(timeline)
     }
 
     if (orderedTimeline.isEmpty()) {
@@ -62,6 +62,10 @@ fun TimelineList(
             TimelineEventRow(entry = entry)
         }
     }
+}
+
+internal fun orderTimelineEntries(timeline: List<TimelineEntry>): List<TimelineEntry> {
+    return timeline.sortedWith(compareBy({ it.timestamp }, { it.eventId }))
 }
 
 @Composable
