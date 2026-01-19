@@ -1719,6 +1719,13 @@ mapOf(
 
 **Result:** Supervisor sees the whole shop like a dispatcher and can inspect any WorkItem in detail.
 
+**Status:** ✅ DONE
+
+**Evidence:**
+- Closeout doc: `docs/sprints/S4_CLOSEOUT.md`
+- Filters/search tests: `feature-supervisor/src/test/kotlin/com/example/arweld/feature/supervisor/viewmodel/SupervisorWorkListFilterTest.kt`
+- Timeline ordering tests: `feature-supervisor/src/test/kotlin/com/example/arweld/feature/supervisor/usecase/GetWorkItemDetailUseCaseTest.kt`, `feature-supervisor/src/test/kotlin/com/example/arweld/feature/supervisor/ui/TimelineListTest.kt`
+
 ### 4.1 Supervisor Dashboard v1 (feature:supervisor)
 
 **Dashboard Sections:**
