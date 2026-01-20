@@ -23,7 +23,10 @@ import com.example.arweld.feature.supervisor.export.ExportSummary
 import com.example.arweld.feature.supervisor.export.ExportWorkItem
 import com.example.arweld.feature.supervisor.export.FailReasonEntry
 import com.example.arweld.feature.supervisor.export.JsonExporter
-import com.example.arweld.feature.supervisor.export.ManifestWriter
+import com.example.arweld.core.data.reporting.ExportedFileReference
+import com.example.arweld.core.data.reporting.ManifestBuilder
+import com.example.arweld.core.domain.reporting.ExportManifestV1Json
+import com.example.arweld.core.domain.reporting.ReportPeriod
 import com.example.arweld.feature.supervisor.export.NodeIssueEntry
 import com.example.arweld.feature.supervisor.export.ShiftReportEntry
 import com.example.arweld.feature.supervisor.export.ZipPackager
@@ -69,7 +72,7 @@ class ExportReportUseCase @Inject constructor(
     private val timeProvider: TimeProvider,
     private val jsonExporter: JsonExporter = JsonExporter(),
     private val csvExporter: CsvExporter = CsvExporter(),
-    private val manifestWriter: ManifestWriter = ManifestWriter(),
+    private val manifestBuilder: ManifestBuilder,
     private val zipPackager: ZipPackager = ZipPackager(),
 ) {
 
@@ -190,14 +193,18 @@ class ExportReportUseCase @Inject constructor(
         }
 
         val manifestFile = if (options.includeManifest) {
-            File(exportDir, "manifest.sha256").also { manifest ->
-                val files = mutableListOf<File>()
-                files.add(jsonFile)
-                csvFile?.let { files.add(it) }
-                zipFile?.let { files.add(it) }
-                files.addAll(evidenceDir.walkTopDown().filter { it.isFile }.toList())
-                val entries = manifestWriter.buildEntries(exportDir, files)
-                manifestWriter.writeManifest(entries, manifest)
+            val warnings = buildManifestWarnings(csvFile, zipFile)
+            val manifest = manifestBuilder.build(
+                period = ReportPeriod(startMillis = period.startMillis, endMillis = period.endMillis),
+                exportedFiles = listOfNotNull(
+                    ExportedFileReference(file = jsonFile),
+                    csvFile?.let { ExportedFileReference(file = it) },
+                    zipFile?.let { ExportedFileReference(file = it) },
+                ),
+                warnings = warnings,
+            )
+            File(exportDir, buildManifestFileName(period)).also { manifestFile ->
+                manifestFile.writeText(ExportManifestV1Json.encode(manifest))
             }
         } else {
             null
@@ -324,5 +331,27 @@ class ExportReportUseCase @Inject constructor(
 
     private fun formatInstant(timestampMillis: Long): String {
         return Instant.ofEpochMilli(timestampMillis).toString()
+    }
+
+    private fun buildManifestFileName(period: ExportPeriod): String {
+        val date = Instant.ofEpochMilli(period.endMillis)
+            .atZone(ZoneOffset.UTC)
+            .toLocalDate()
+        return "arweld-manifest-v1-${MANIFEST_DATE_FORMAT.format(date)}.json"
+    }
+
+    private fun buildManifestWarnings(csvFile: File?, zipFile: File?): List<String> {
+        val warnings = mutableListOf<String>()
+        if (csvFile == null) {
+            warnings.add("Summary CSV not exported.")
+        }
+        if (zipFile == null) {
+            warnings.add("Evidence zip not exported.")
+        }
+        return warnings
+    }
+
+    private companion object {
+        private val MANIFEST_DATE_FORMAT = DateTimeFormatter.ISO_DATE.withZone(ZoneOffset.UTC)
     }
 }

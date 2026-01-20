@@ -1,13 +1,18 @@
 package com.example.arweld.feature.supervisor.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.arweld.core.data.reporting.ExportedFileReference
+import com.example.arweld.core.data.reporting.ManifestBuilder
+import com.example.arweld.core.data.reporting.ManifestJsonWriter
+import com.example.arweld.core.data.reporting.ReportExportService
 import com.example.arweld.core.domain.diagnostics.DiagnosticsExportService
 import com.example.arweld.core.domain.logging.AppLogger
+import com.example.arweld.core.domain.reporting.ExportManifestV1Json
 import com.example.arweld.core.domain.reporting.ExportResult
 import com.example.arweld.core.domain.reporting.ReportPeriod
 import com.example.arweld.core.domain.system.TimeProvider
-import com.example.arweld.core.data.reporting.ReportExportService
 import com.example.arweld.feature.supervisor.usecase.EvidenceZipExportUseCase
 import com.example.arweld.feature.supervisor.usecase.ExportOptions
 import com.example.arweld.feature.supervisor.usecase.ExportPeriod
@@ -25,7 +30,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import android.net.Uri
 
 data class ExportUiState(
     val isExporting: Boolean = false,
@@ -33,16 +37,19 @@ data class ExportUiState(
     val isReportJsonExporting: Boolean = false,
     val isReportCsvExporting: Boolean = false,
     val isEvidenceZipExporting: Boolean = false,
+    val isManifestExporting: Boolean = false,
     val error: String? = null,
     val diagnosticsError: String? = null,
     val reportJsonError: String? = null,
     val reportCsvError: String? = null,
     val evidenceZipError: String? = null,
+    val manifestError: String? = null,
     val lastExportPath: String? = null,
     val lastDiagnosticsPath: String? = null,
     val lastReportJsonMessage: String? = null,
     val lastReportCsvMessage: String? = null,
     val lastEvidenceZipPath: String? = null,
+    val lastManifestMessage: String? = null,
     val evidenceZipMissingCount: Int? = null,
     val selectedPeriod: ExportPeriod? = null,
     val options: ExportOptions = ExportOptions(),
@@ -55,12 +62,17 @@ class ExportViewModel @Inject constructor(
     private val evidenceZipExportUseCase: EvidenceZipExportUseCase,
     private val diagnosticsExportService: DiagnosticsExportService,
     private val reportExportService: ReportExportService,
+    private val manifestBuilder: ManifestBuilder,
+    private val manifestJsonWriter: ManifestJsonWriter,
     private val timeProvider: TimeProvider,
     private val appLogger: AppLogger,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExportUiState())
     val uiState: StateFlow<ExportUiState> = _uiState.asStateFlow()
+    private var lastReportJsonReference: ExportedFileReference? = null
+    private var lastReportCsvReference: ExportedFileReference? = null
+    private var lastEvidenceZipReference: ExportedFileReference? = null
 
     init {
         refreshPeriods()
@@ -158,6 +170,7 @@ class ExportViewModel @Inject constructor(
                     lastEvidenceZipPath = result.zipFile.absolutePath,
                     evidenceZipMissingCount = result.missingFiles.size,
                 )
+                lastEvidenceZipReference = ExportedFileReference(file = result.zipFile)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isEvidenceZipExporting = false,
@@ -193,6 +206,7 @@ class ExportViewModel @Inject constructor(
                             isReportJsonExporting = false,
                             lastReportJsonMessage = "Report JSON saved (${result.bytesWritten} bytes).",
                         )
+                        lastReportJsonReference = ExportedFileReference(uri = uri)
                     }
                     is ExportResult.Failure -> {
                         appLogger.logRepositoryError(REPORT_JSON_OPERATION, result.throwable ?: Exception(result.message))
@@ -238,6 +252,7 @@ class ExportViewModel @Inject constructor(
                             isReportCsvExporting = false,
                             lastReportCsvMessage = "Summary CSV saved (${result.bytesWritten} bytes).",
                         )
+                        lastReportCsvReference = ExportedFileReference(uri = uri)
                     }
                     is ExportResult.Failure -> {
                         appLogger.logRepositoryError(REPORT_CSV_OPERATION, result.throwable ?: Exception(result.message))
@@ -252,6 +267,56 @@ class ExportViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isReportCsvExporting = false,
                     reportCsvError = buildReportCsvError(e),
+                )
+            }
+        }
+    }
+
+    fun exportManifest(uri: Uri?) {
+        val period = _uiState.value.selectedPeriod
+        val reportPeriod = period?.toReportPeriod()
+            ?: ReportPeriod(startMillis = timeProvider.nowMillis(), endMillis = timeProvider.nowMillis())
+
+        if (uri == null) {
+            val exception = IllegalStateException("No destination Uri selected for manifest export")
+            appLogger.logRepositoryError(MANIFEST_OPERATION, exception)
+            _uiState.value = _uiState.value.copy(manifestError = "Export canceled. No file selected.")
+            return
+        }
+
+        val exportedFiles = listOfNotNull(
+            lastReportJsonReference,
+            lastReportCsvReference,
+            lastEvidenceZipReference,
+        )
+
+        if (exportedFiles.isEmpty()) {
+            _uiState.value = _uiState.value.copy(
+                manifestError = "No exported files available. Export JSON, CSV, or evidence zip first.",
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isManifestExporting = true,
+                manifestError = null,
+                lastManifestMessage = null,
+            )
+            try {
+                val warnings = buildManifestWarnings()
+                val manifest = manifestBuilder.build(reportPeriod, exportedFiles, warnings)
+                val json = ExportManifestV1Json.encode(manifest)
+                val bytes = manifestJsonWriter.writeJson(uri, json)
+                _uiState.value = _uiState.value.copy(
+                    isManifestExporting = false,
+                    lastManifestMessage = "Manifest saved (${bytes} bytes).",
+                )
+            } catch (e: Exception) {
+                appLogger.logRepositoryError(MANIFEST_OPERATION, e)
+                _uiState.value = _uiState.value.copy(
+                    isManifestExporting = false,
+                    manifestError = buildManifestError(e),
                 )
             }
         }
@@ -275,6 +340,15 @@ class ExportViewModel @Inject constructor(
         return "arweld-summary-v1-${REPORT_DATE_FORMAT.format(date)}.csv"
     }
 
+    fun suggestedManifestFileName(): String {
+        val period = _uiState.value.selectedPeriod?.toReportPeriod()
+            ?: ReportPeriod(startMillis = timeProvider.nowMillis(), endMillis = timeProvider.nowMillis())
+        val date = Instant.ofEpochMilli(period.endMillis)
+            .atZone(ZoneOffset.UTC)
+            .toLocalDate()
+        return "arweld-manifest-v1-${REPORT_DATE_FORMAT.format(date)}.json"
+    }
+
     private fun ExportPeriod.toReportPeriod(): ReportPeriod {
         return ReportPeriod(startMillis = startMillis, endMillis = endMillis)
     }
@@ -293,10 +367,32 @@ class ExportViewModel @Inject constructor(
         }
     }
 
+    private fun buildManifestError(throwable: Throwable?): String {
+        return when (throwable) {
+            is SecurityException -> "Permission denied. Choose a different location and try again."
+            else -> "Unable to export manifest. Please try again."
+        }
+    }
+
+    private fun buildManifestWarnings(): List<String> {
+        val warnings = mutableListOf<String>()
+        if (lastReportJsonReference == null) {
+            warnings.add("Report JSON not exported.")
+        }
+        if (lastReportCsvReference == null) {
+            warnings.add("Summary CSV not exported.")
+        }
+        if (lastEvidenceZipReference == null) {
+            warnings.add("Evidence zip not exported.")
+        }
+        return warnings
+    }
+
     companion object {
         private const val SHIFT_DURATION_MILLIS = 8 * 60 * 60 * 1000L
         private const val REPORT_JSON_OPERATION = "report_json_export"
         private const val REPORT_CSV_OPERATION = "report_csv_export"
+        private const val MANIFEST_OPERATION = "manifest_export"
         private val REPORT_DATE_FORMAT = DateTimeFormatter.ISO_DATE.withZone(ZoneId.of("UTC"))
     }
 }
