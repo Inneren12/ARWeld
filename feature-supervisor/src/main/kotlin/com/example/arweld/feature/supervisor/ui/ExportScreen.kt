@@ -33,6 +33,7 @@ fun ExportScreen(
     onToggleManifest: (Boolean) -> Unit,
     onExport: () -> Unit,
     onExportDiagnostics: () -> Unit,
+    onExportEvidenceZip: () -> Unit,
     onExportReportJson: () -> Unit,
     onExportReportCsv: () -> Unit,
     modifier: Modifier = Modifier,
@@ -93,6 +94,40 @@ fun ExportScreen(
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Text(text = if (state.isExporting) "Exporting..." else "Export")
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = "Evidence ZIP", style = MaterialTheme.typography.titleMedium)
+                if (state.evidenceZipError != null) {
+                    Text(text = state.evidenceZipError, color = MaterialTheme.colorScheme.error)
+                }
+                if (state.lastEvidenceZipPath != null) {
+                    Text(
+                        text = "Evidence zip: ${state.lastEvidenceZipPath}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                if (state.evidenceZipMissingCount != null) {
+                    Text(
+                        text = "Missing evidence files: ${state.evidenceZipMissingCount}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Button(
+                    onClick = onExportEvidenceZip,
+                    enabled = !state.isEvidenceZipExporting && state.selectedPeriod != null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (state.isEvidenceZipExporting) {
+                        CircularProgressIndicator(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = if (state.isEvidenceZipExporting) "Exporting evidence..." else "Export evidence zip",
+                    )
+                }
+            }
         }
 
         Card(modifier = Modifier.fillMaxWidth()) {

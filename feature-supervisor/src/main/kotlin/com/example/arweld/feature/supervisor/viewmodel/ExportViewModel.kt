@@ -8,6 +8,7 @@ import com.example.arweld.core.domain.reporting.ExportResult
 import com.example.arweld.core.domain.reporting.ReportPeriod
 import com.example.arweld.core.domain.system.TimeProvider
 import com.example.arweld.core.data.reporting.ReportExportService
+import com.example.arweld.feature.supervisor.usecase.EvidenceZipExportUseCase
 import com.example.arweld.feature.supervisor.usecase.ExportOptions
 import com.example.arweld.feature.supervisor.usecase.ExportPeriod
 import com.example.arweld.feature.supervisor.usecase.ExportReportUseCase
@@ -31,14 +32,18 @@ data class ExportUiState(
     val isDiagnosticsExporting: Boolean = false,
     val isReportJsonExporting: Boolean = false,
     val isReportCsvExporting: Boolean = false,
+    val isEvidenceZipExporting: Boolean = false,
     val error: String? = null,
     val diagnosticsError: String? = null,
     val reportJsonError: String? = null,
     val reportCsvError: String? = null,
+    val evidenceZipError: String? = null,
     val lastExportPath: String? = null,
     val lastDiagnosticsPath: String? = null,
     val lastReportJsonMessage: String? = null,
     val lastReportCsvMessage: String? = null,
+    val lastEvidenceZipPath: String? = null,
+    val evidenceZipMissingCount: Int? = null,
     val selectedPeriod: ExportPeriod? = null,
     val options: ExportOptions = ExportOptions(),
     val availablePeriods: List<ExportPeriod> = emptyList(),
@@ -47,6 +52,7 @@ data class ExportUiState(
 @HiltViewModel
 class ExportViewModel @Inject constructor(
     private val exportReportUseCase: ExportReportUseCase,
+    private val evidenceZipExportUseCase: EvidenceZipExportUseCase,
     private val diagnosticsExportService: DiagnosticsExportService,
     private val reportExportService: ReportExportService,
     private val timeProvider: TimeProvider,
@@ -126,6 +132,36 @@ class ExportViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isDiagnosticsExporting = false,
                     diagnosticsError = e.message ?: "Diagnostics export failed",
+                )
+            }
+        }
+    }
+
+    fun exportEvidenceZip(outputRoot: File) {
+        val period = _uiState.value.selectedPeriod
+        if (period == null) {
+            _uiState.value = _uiState.value.copy(evidenceZipError = "Select a period first.")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isEvidenceZipExporting = true,
+                evidenceZipError = null,
+                lastEvidenceZipPath = null,
+                evidenceZipMissingCount = null,
+            )
+            try {
+                val result = evidenceZipExportUseCase(period, outputRoot)
+                _uiState.value = _uiState.value.copy(
+                    isEvidenceZipExporting = false,
+                    lastEvidenceZipPath = result.zipFile.absolutePath,
+                    evidenceZipMissingCount = result.missingFiles.size,
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isEvidenceZipExporting = false,
+                    evidenceZipError = e.message ?: "Evidence zip export failed",
                 )
             }
         }
