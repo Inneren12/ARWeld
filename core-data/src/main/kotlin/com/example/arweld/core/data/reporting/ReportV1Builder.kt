@@ -5,6 +5,7 @@ import com.example.arweld.core.data.db.dao.WorkItemDao
 import com.example.arweld.core.data.event.toDomain
 import com.example.arweld.core.data.work.toDomain
 import com.example.arweld.core.domain.event.EventType
+import com.example.arweld.core.domain.reporting.FailReasonAggregation
 import com.example.arweld.core.domain.reporting.QcOutcome
 import com.example.arweld.core.domain.reporting.QcResult
 import com.example.arweld.core.domain.reporting.ReportV1
@@ -44,6 +45,7 @@ class ReportV1Builder @Inject constructor(
                 )
             }
         }.sortedWith(compareBy({ it.timestamp }, { it.eventId }))
+        val topFailReasons = FailReasonAggregation.aggregateFromEvents(events)
 
         return ReportV1(
             reportVersion = 1,
@@ -51,6 +53,7 @@ class ReportV1Builder @Inject constructor(
             workItems = workItems,
             events = events,
             qcResults = qcResults,
+            topFailReasons = topFailReasons,
         )
     }
 

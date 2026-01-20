@@ -9,6 +9,7 @@ import com.example.arweld.core.data.evidence.toDomain
 import com.example.arweld.core.domain.auth.AuthRepository
 import com.example.arweld.core.domain.event.Event
 import com.example.arweld.core.domain.event.EventType
+import com.example.arweld.core.domain.reporting.FailReasonAggregation
 import com.example.arweld.core.domain.evidence.Evidence
 import com.example.arweld.core.domain.state.WorkStatus
 import com.example.arweld.core.domain.state.reduce
@@ -36,12 +37,6 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 data class ExportOptions(
     val includeCsv: Boolean = true,
@@ -251,15 +246,8 @@ class ExportReportUseCase @Inject constructor(
             }
             .sortedBy { it.label }
 
-        val failReasons = eventsInPeriod.filter { it.type == EventType.QC_FAILED_REWORK }
-            .flatMap { event ->
-                parseFailReasons(event.payloadJson)
-            }
-            .groupingBy { it }
-            .eachCount()
-            .entries
-            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-            .map { (reason, count) -> FailReasonEntry(reason = reason, count = count) }
+        val failReasons = FailReasonAggregation.aggregateFromEvents(eventsInPeriod)
+            .map { FailReasonEntry(reason = it.reason, count = it.count) }
 
         val nodeIdCounts = nodeIds.filterNotNull().groupingBy { it }.eachCount()
         val nodeFailures = items.filter { it.status == WorkStatus.REWORK_REQUIRED.name }
@@ -289,18 +277,6 @@ class ExportReportUseCase @Inject constructor(
             in 14 until 22 -> "Shift 14:00-22:00"
             else -> "Shift 22:00-06:00"
         }
-    }
-
-    private fun parseFailReasons(payloadJson: String?): List<String> {
-        if (payloadJson.isNullOrBlank()) return emptyList()
-        return runCatching {
-            val json = Json { ignoreUnknownKeys = true }
-            val element = json.decodeFromString<JsonElement>(payloadJson)
-            element.jsonObject["reasons"]
-                ?.jsonArray
-                ?.mapNotNull { it.jsonPrimitive.contentOrNull }
-                .orEmpty()
-        }.getOrDefault(emptyList())
     }
 
     private fun copyEvidenceIfExists(evidence: Evidence, evidenceDir: File): String? {

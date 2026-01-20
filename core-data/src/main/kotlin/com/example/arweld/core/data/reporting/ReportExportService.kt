@@ -2,6 +2,7 @@ package com.example.arweld.core.data.reporting
 
 import android.net.Uri
 import com.example.arweld.core.domain.reporting.ExportResult
+import com.example.arweld.core.domain.reporting.FailReasonAggregation
 import com.example.arweld.core.domain.reporting.ReportPeriod
 import com.example.arweld.core.domain.reporting.ReportV1
 import com.example.arweld.core.domain.reporting.ReportV1Json
@@ -24,6 +25,7 @@ class ReportExportService @Inject constructor(
             workItems = report.workItems.filter { includedWorkItemIds.contains(it.id) },
             events = filteredEvents,
             qcResults = report.qcResults.filter { period.contains(it.timestamp) },
+            topFailReasons = FailReasonAggregation.aggregateFromEvents(filteredEvents),
         )
     }
 

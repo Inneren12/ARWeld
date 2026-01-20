@@ -12,6 +12,7 @@ data class ReportV1(
     val workItems: List<WorkItem> = emptyList(),
     val events: List<Event> = emptyList(),
     val qcResults: List<QcResult> = emptyList(),
+    val topFailReasons: List<FailReasonCount> = emptyList(),
 )
 
 @Serializable
