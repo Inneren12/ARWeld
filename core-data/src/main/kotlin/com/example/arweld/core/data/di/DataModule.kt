@@ -222,6 +222,12 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindReportProvider(
+        impl: com.example.arweld.core.data.reporting.ReportExportServiceProvider
+    ): com.example.arweld.core.data.reporting.ReportProvider
+
+    @Binds
+    @Singleton
     abstract fun bindClaimWorkUseCase(
         impl: ClaimWorkUseCaseImpl
     ): ClaimWorkUseCase
