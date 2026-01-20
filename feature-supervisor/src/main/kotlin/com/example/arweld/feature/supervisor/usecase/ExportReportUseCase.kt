@@ -8,8 +8,6 @@ import com.example.arweld.core.data.event.toDomain
 import com.example.arweld.core.data.evidence.toDomain
 import com.example.arweld.core.domain.auth.AuthRepository
 import com.example.arweld.core.domain.event.Event
-import com.example.arweld.core.domain.event.EventType
-import com.example.arweld.core.domain.reporting.FailReasonAggregation
 import com.example.arweld.core.domain.evidence.Evidence
 import com.example.arweld.core.domain.state.WorkStatus
 import com.example.arweld.core.domain.state.reduce
@@ -69,6 +67,7 @@ class ExportReportUseCase @Inject constructor(
     private val csvExporter: CsvExporter = CsvExporter(),
     private val manifestBuilder: ManifestBuilder,
     private val zipPackager: ZipPackager = ZipPackager(),
+    private val reportAnalyticsCalculator: ReportAnalyticsCalculator,
 ) {
 
     suspend operator fun invoke(
@@ -156,7 +155,33 @@ class ExportReportUseCase @Inject constructor(
         }.sortedBy { it.id }
 
         val summary = buildSummary(exportWorkItems)
-        val reporting = buildReporting(exportWorkItems, eventsInPeriod, includedWorkItems.map { it.nodeId })
+        val workItemStatuses = exportWorkItems.map { item ->
+            ReportWorkItemStatus(
+                nodeId = item.nodeId,
+                status = WorkStatus.valueOf(item.status),
+            )
+        }
+        val analytics = reportAnalyticsCalculator.calculate(eventsInPeriod, workItemStatuses)
+        val reporting = ExportReporting(
+            shiftCounts = analytics.shiftCounts.map { summary ->
+                ShiftReportEntry(
+                    label = summary.label,
+                    total = summary.total,
+                    passed = summary.passed,
+                    failed = summary.failed,
+                )
+            },
+            topFailReasons = analytics.topFailReasons.map { summary ->
+                FailReasonEntry(reason = summary.reason, count = summary.count)
+            },
+            problematicNodes = analytics.problematicNodes.map { summary ->
+                NodeIssueEntry(
+                    nodeId = summary.nodeId,
+                    failures = summary.failures,
+                    totalItems = summary.totalItems,
+                )
+            },
+        )
         val report = ExportReport(
             metadata = ExportMetadata(
                 exportId = exportId,
@@ -225,58 +250,6 @@ class ExportReportUseCase @Inject constructor(
             failed = failed,
             qcPassRate = passRate,
         )
-    }
-
-    private fun buildReporting(
-        items: List<ExportWorkItem>,
-        eventsInPeriod: List<Event>,
-        nodeIds: List<String?>,
-    ): ExportReporting {
-        val qcEvents = eventsInPeriod.filter { it.type == EventType.QC_PASSED || it.type == EventType.QC_FAILED_REWORK }
-        val shiftCounts = qcEvents.groupBy { shiftLabel(it.timestamp) }
-            .map { (label, events) ->
-                val passed = events.count { it.type == EventType.QC_PASSED }
-                val failed = events.count { it.type == EventType.QC_FAILED_REWORK }
-                ShiftReportEntry(
-                    label = label,
-                    total = events.size,
-                    passed = passed,
-                    failed = failed,
-                )
-            }
-            .sortedBy { it.label }
-
-        val failReasons = FailReasonAggregation.aggregateFromEvents(eventsInPeriod)
-            .map { FailReasonEntry(reason = it.reason, count = it.count) }
-
-        val nodeIdCounts = nodeIds.filterNotNull().groupingBy { it }.eachCount()
-        val nodeFailures = items.filter { it.status == WorkStatus.REWORK_REQUIRED.name }
-            .mapNotNull { it.nodeId }
-            .groupingBy { it }
-            .eachCount()
-
-        val problematicNodes = nodeFailures.entries.map { (nodeId, failures) ->
-            NodeIssueEntry(
-                nodeId = nodeId,
-                failures = failures,
-                totalItems = nodeIdCounts[nodeId] ?: failures,
-            )
-        }.sortedWith(compareByDescending<NodeIssueEntry> { it.failures }.thenBy { it.nodeId })
-
-        return ExportReporting(
-            shiftCounts = shiftCounts,
-            topFailReasons = failReasons,
-            problematicNodes = problematicNodes,
-        )
-    }
-
-    private fun shiftLabel(timestamp: Long): String {
-        val hour = Instant.ofEpochMilli(timestamp).atZone(ZoneOffset.UTC).hour
-        return when (hour) {
-            in 6 until 14 -> "Shift 06:00-14:00"
-            in 14 until 22 -> "Shift 14:00-22:00"
-            else -> "Shift 22:00-06:00"
-        }
     }
 
     private fun copyEvidenceIfExists(evidence: Evidence, evidenceDir: File): String? {
