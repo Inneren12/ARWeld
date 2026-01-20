@@ -84,16 +84,17 @@ class ARViewController(
     private val deviceHealthProvider: DeviceHealthProvider? = null,
 ) : ArScreenshotService {
 
+    private val appContext: Context = context.applicationContext
     private val surfaceView: SurfaceView = SurfaceView(context).apply {
         setBackgroundColor(Color.BLACK)
     }
-    private val sessionManager = ARCoreSessionManager(context)
-    private val modelLoader: ModelLoader = AndroidFilamentModelLoader(context)
+    private val sessionManager = ARCoreSessionManager(appContext)
+    private val modelLoader: ModelLoader = AndroidFilamentModelLoader(appContext)
     private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
     private val markerDetector: MarkerDetector = markerDetector ?: RealMarkerDetector(::currentRotation)
     private val markerPoseEstimator = MarkerPoseEstimator()
     private val multiMarkerPoseRefiner = MultiMarkerPoseRefiner()
-    private val zoneRegistry = ZoneRegistry.fromAssets(context.assets)
+    private val zoneRegistry = ZoneRegistry.fromAssets(appContext.assets)
     private val zoneAligner = ZoneAligner(zoneRegistry)
     private val rigidTransformSolver = RigidTransformSolver()
     private val detectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -196,12 +197,13 @@ class ARViewController(
         deviceHealthProvider?.let { provider ->
             detectorScope.launch {
                 provider.deviceHealth.collect { health ->
+                    val trimLevel = health.memoryTrimLevel
                     val shouldForceLow = health.isDeviceHot ||
-                        (health.memoryTrimLevel != null &&
-                            health.memoryTrimLevel >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW)
+                        (trimLevel != null &&
+                            trimLevel >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW)
                     val reason = when {
                         health.isDeviceHot -> "thermal"
-                        health.memoryTrimLevel != null -> "memory"
+                        trimLevel != null -> "memory"
                         else -> null
                     }
                     if (forceLowPowerMode.getAndSet(shouldForceLow) != shouldForceLow) {
@@ -306,7 +308,7 @@ class ARViewController(
             loadedModel
         } catch (error: ModelTooComplexException) {
             Log.w(TAG, "Model rejected for AR rendering: ${error.assetPath}", error)
-            _errorMessage.value = context.getString(R.string.model_too_complex)
+            _errorMessage.value = appContext.getString(R.string.model_too_complex)
             null
         } catch (error: Exception) {
             Log.e(TAG, "Failed to load test node model", error)
@@ -923,10 +925,12 @@ class ARViewController(
     }
 
     private fun logAlignmentDiagnostics(markerCount: Int, residualMm: Double) {
-        Log.d(
-            TAG,
-            "Alignment updated with $markerCount marker(s), residual=${"%.2f".format(residualMm)}mm",
-        )
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                TAG,
+                "Alignment updated with $markerCount marker(s), residual=${"%.2f".format(residualMm)}mm",
+            )
+        }
     }
 
     private fun smoothPose(target: Pose3D, markerCount: Int, reset: Boolean): Pose3D {
@@ -973,14 +977,16 @@ class ARViewController(
         val smoothedPositionDeltaMm = (smoothed.position - previous.position).norm() * 1000.0
         val rawAngleDeltaDeg = Math.toDegrees(previous.rotation.angularDistance(raw.rotation))
         val smoothedAngleDeltaDeg = Math.toDegrees(previous.rotation.angularDistance(smoothed.rotation))
-        Log.d(
-            TAG,
-            "Pose smoothing (markers=$markerCount) posΔ raw=${"%.2f".format(rawPositionDeltaMm)}mm " +
-                "smooth=${"%.2f".format(smoothedPositionDeltaMm)}mm " +
-                "rotΔ raw=${"%.2f".format(rawAngleDeltaDeg)}° " +
-                "smooth=${"%.2f".format(smoothedAngleDeltaDeg)}° " +
-                "alpha(pos=${"%.2f".format(positionAlpha)}, rot=${"%.2f".format(rotationAlpha)})",
-        )
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                TAG,
+                "Pose smoothing (markers=$markerCount) posΔ raw=${"%.2f".format(rawPositionDeltaMm)}mm " +
+                    "smooth=${"%.2f".format(smoothedPositionDeltaMm)}mm " +
+                    "rotΔ raw=${"%.2f".format(rawAngleDeltaDeg)}° " +
+                    "smooth=${"%.2f".format(smoothedAngleDeltaDeg)}° " +
+                    "alpha(pos=${"%.2f".format(positionAlpha)}, rot=${"%.2f".format(rotationAlpha)})",
+            )
+        }
     }
 
     private fun nlerp(from: Quaternion, to: Quaternion, alpha: Double): Quaternion {

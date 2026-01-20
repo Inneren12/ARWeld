@@ -57,7 +57,9 @@ class ArTelemetryTracker(
 
     private fun recordSample(buffer: ArrayDeque<Long>, value: Long, maxSize: Int) {
         if (buffer.size >= maxSize) {
-            buffer.removeFirstOrNull()
+            if (buffer.isNotEmpty()) {
+                buffer.removeFirst()
+            }
         }
         buffer.addLast(value)
     }
