@@ -36,6 +36,7 @@ fun ExportScreen(
     onExportEvidenceZip: () -> Unit,
     onExportReportJson: () -> Unit,
     onExportReportCsv: () -> Unit,
+    onExportManifest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -145,6 +146,12 @@ fun ExportScreen(
                 if (state.lastReportCsvMessage != null) {
                     Text(text = state.lastReportCsvMessage, style = MaterialTheme.typography.bodyMedium)
                 }
+                if (state.manifestError != null) {
+                    Text(text = state.manifestError, color = MaterialTheme.colorScheme.error)
+                }
+                if (state.lastManifestMessage != null) {
+                    Text(text = state.lastManifestMessage, style = MaterialTheme.typography.bodyMedium)
+                }
                 Button(
                     onClick = onExportReportJson,
                     enabled = !state.isReportJsonExporting,
@@ -166,6 +173,17 @@ fun ExportScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     Text(text = if (state.isReportCsvExporting) "Exporting CSV..." else "Export CSV")
+                }
+                Button(
+                    onClick = onExportManifest,
+                    enabled = !state.isManifestExporting,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (state.isManifestExporting) {
+                        CircularProgressIndicator(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(text = if (state.isManifestExporting) "Exporting manifest..." else "Export manifest")
                 }
             }
         }
