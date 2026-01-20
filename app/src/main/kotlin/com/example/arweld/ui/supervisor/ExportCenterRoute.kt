@@ -1,5 +1,7 @@
 package com.example.arweld.ui.supervisor
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -16,6 +18,11 @@ fun ExportCenterRoute(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val outputRoot = File(context.getExternalFilesDir(null), "exports")
+    val reportJsonLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        viewModel.exportReportJson(uri)
+    }
 
     ExportScreen(
         state = uiState,
@@ -25,5 +32,6 @@ fun ExportCenterRoute(
         onToggleManifest = { viewModel.toggleManifest(it) },
         onExport = { viewModel.export(outputRoot) },
         onExportDiagnostics = { viewModel.exportDiagnostics(outputRoot) },
+        onExportReportJson = { reportJsonLauncher.launch(viewModel.suggestedReportFileName()) },
     )
 }

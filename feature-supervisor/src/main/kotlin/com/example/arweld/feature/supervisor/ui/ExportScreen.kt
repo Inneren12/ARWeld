@@ -33,6 +33,7 @@ fun ExportScreen(
     onToggleManifest: (Boolean) -> Unit,
     onExport: () -> Unit,
     onExportDiagnostics: () -> Unit,
+    onExportReportJson: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -91,6 +92,29 @@ fun ExportScreen(
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Text(text = if (state.isExporting) "Exporting..." else "Export")
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = "Report JSON (SAF)", style = MaterialTheme.typography.titleMedium)
+                if (state.reportJsonError != null) {
+                    Text(text = state.reportJsonError, color = MaterialTheme.colorScheme.error)
+                }
+                if (state.lastReportJsonMessage != null) {
+                    Text(text = state.lastReportJsonMessage, style = MaterialTheme.typography.bodyMedium)
+                }
+                Button(
+                    onClick = onExportReportJson,
+                    enabled = !state.isReportJsonExporting,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (state.isReportJsonExporting) {
+                        CircularProgressIndicator(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(text = if (state.isReportJsonExporting) "Exporting JSON..." else "Export JSON")
+                }
+            }
         }
 
         Card(modifier = Modifier.fillMaxWidth()) {
