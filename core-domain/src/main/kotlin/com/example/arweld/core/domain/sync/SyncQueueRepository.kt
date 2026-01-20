@@ -1,6 +1,7 @@
 package com.example.arweld.core.domain.sync
 
 import com.example.arweld.core.domain.event.Event
+import com.example.arweld.core.domain.evidence.Evidence
 
 /**
  * Domain-facing repository for offline sync queue operations.
@@ -10,6 +11,15 @@ interface SyncQueueRepository {
      * Enqueue a domain event for later sync/export.
      */
     suspend fun enqueueEvent(event: Event): SyncQueueItem
+
+    /**
+     * Enqueue an evidence file for later sync/export.
+     */
+    suspend fun enqueueEvidence(
+        evidence: Evidence,
+        mimeType: String,
+        status: SyncQueueStatus,
+    ): SyncQueueItem
 
     /**
      * Fetch pending items ordered by creation time.
@@ -43,6 +53,9 @@ data class SyncQueueItem(
     val eventType: String,
     val workItemId: String?,
     val payloadJson: String,
+    val fileUri: String,
+    val mimeType: String,
+    val sizeBytes: Long,
     val status: SyncQueueStatus,
     val createdAt: Long,
 )
@@ -54,4 +67,5 @@ enum class SyncQueueStatus {
 
 enum class SyncQueueType {
     EVENT,
+    EVIDENCE,
 }

@@ -14,8 +14,10 @@ import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.core.domain.evidence.EvidenceKind
 import com.example.arweld.core.domain.model.Role
 import com.example.arweld.core.domain.model.User
+import com.example.arweld.core.domain.sync.SyncQueueRepository
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
+import com.example.arweld.core.data.sync.SyncQueueRepositoryImpl
 import java.io.File
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
@@ -33,6 +35,7 @@ class EvidenceRepositoryImplTest {
 
     private lateinit var database: AppDatabase
     private lateinit var eventRepository: EventRepository
+    private lateinit var syncQueueRepository: SyncQueueRepository
     private lateinit var evidenceRepository: EvidenceRepositoryImpl
 
     private val timeProvider = TimeProvider { FIXED_TIME }
@@ -51,10 +54,14 @@ class EvidenceRepositoryImplTest {
             eventDao = database.eventDao(),
             syncQueueDao = database.syncQueueDao(),
         )
+        syncQueueRepository = SyncQueueRepositoryImpl(
+            syncQueueDao = database.syncQueueDao(),
+        )
         evidenceRepository = EvidenceRepositoryImpl(
             evidenceDao = database.evidenceDao(),
             eventRepository = eventRepository,
             authRepository = authRepository,
+            syncQueueRepository = syncQueueRepository,
             deviceInfoProvider = deviceInfoProvider,
             timeProvider = timeProvider,
         )

@@ -25,7 +25,7 @@ import com.example.arweld.core.data.db.entity.WorkItemEntity
         UserEntity::class,
         SyncQueueEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

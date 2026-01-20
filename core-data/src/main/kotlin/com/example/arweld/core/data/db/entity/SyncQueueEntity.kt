@@ -17,6 +17,9 @@ data class SyncQueueEntity(
     val eventType: String,
     val workItemId: String?,
     val payloadJson: String,
+    val fileUri: String = "",
+    val mimeType: String = "",
+    val sizeBytes: Long = 0,
     val status: String,
     val createdAt: Long,
 )
