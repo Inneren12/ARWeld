@@ -11,7 +11,10 @@ class ArTelemetryTracker(
 ) {
     private val frameIntervalsNs = ArrayDeque<Long>()
     private val cvLatenciesNs = ArrayDeque<Long>()
+    private val cvIntervalsNs = ArrayDeque<Long>()
     private var lastFps: Double = 0.0
+    private var lastCvTimestampNs: Long? = null
+    private var cvSkippedFrames: Int = 0
 
     fun recordFrameIntervalNs(intervalNs: Long) {
         recordSample(frameIntervalsNs, intervalNs, maxFrameSamples)
@@ -19,6 +22,21 @@ class ArTelemetryTracker(
 
     fun recordCvLatencyNs(latencyNs: Long) {
         recordSample(cvLatenciesNs, latencyNs, maxCvSamples)
+    }
+
+    fun recordCvFrameTimestampNs(timestampNs: Long) {
+        val previous = lastCvTimestampNs
+        if (previous != null) {
+            val interval = timestampNs - previous
+            if (interval > 0) {
+                recordSample(cvIntervalsNs, interval, maxCvSamples)
+            }
+        }
+        lastCvTimestampNs = timestampNs
+    }
+
+    fun recordCvFrameSkipped() {
+        cvSkippedFrames += 1
     }
 
     fun recordRenderFps(fps: Double) {
@@ -31,6 +49,8 @@ class ArTelemetryTracker(
             fps = lastFps,
             frameTimeP95Ms = percentileMs(frameIntervalsNs),
             cvLatencyP95Ms = percentileMs(cvLatenciesNs),
+            cvFps = fpsFromIntervals(),
+            cvSkippedFrames = cvSkippedFrames,
             performanceMode = performanceMode.name.lowercase(),
         )
     }
@@ -49,10 +69,18 @@ class ArTelemetryTracker(
         return sorted[index] / NANOS_TO_MS
     }
 
+    private fun fpsFromIntervals(): Double {
+        if (cvIntervalsNs.isEmpty()) return 0.0
+        val averageInterval = cvIntervalsNs.average()
+        if (averageInterval <= 0.0) return 0.0
+        return NANOS_PER_SECOND / averageInterval
+    }
+
     private companion object {
         const val DEFAULT_FRAME_SAMPLES = 120
         const val DEFAULT_CV_SAMPLES = 60
         const val NANOS_TO_MS = 1_000_000.0
+        const val NANOS_PER_SECOND = 1_000_000_000.0
         const val P95_RATIO = 0.95
     }
 }

@@ -21,6 +21,8 @@
     <string name="diagnostic_render_fps">Render Hz: %1$.1f</string>
     <string name="diagnostic_frame_time_p95">Frame time p95: %1$.1f ms</string>
     <string name="diagnostic_cv_latency_p95">CV latency p95: %1$.1f ms</string>
+    <string name="diagnostic_cv_fps">CV Hz: %1$.1f</string>
+    <string name="diagnostic_cv_skipped_frames">CV skipped frames: %1$d</string>
     <string name="diagnostic_perf_mode">Perf mode: %1$s</string>
     <string name="performance_mode_normal">normal</string>
     <string name="performance_mode_low">low</string>

@@ -3,6 +3,7 @@ package com.example.arweld.feature.arview.arcore
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.RectF
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -109,6 +110,9 @@ class ARViewController(
     private var lastManualResetNs: Long = 0L
     private val lastCvRunNs = AtomicLong(0L)
     private val cvThrottleNs = AtomicLong(DEFAULT_CV_THROTTLE_NS)
+    private val lastCvCameraPose = AtomicReference<Pose3D?>()
+    private val lastMarkerRois = AtomicReference<List<RectF>>(emptyList())
+    private val lastMarkerRoiTimestampNs = AtomicLong(0L)
     private var lastDriftEstimateMm: Double = 0.0
     private var lastResidualMm: Double = 0.0
     private val driftMonitor = DriftMonitor()
@@ -148,6 +152,8 @@ class ARViewController(
             fps = 0.0,
             frameTimeP95Ms = 0.0,
             cvLatencyP95Ms = 0.0,
+            cvFps = 0.0,
+            cvSkippedFrames = 0,
             performanceMode = PerformanceMode.NORMAL.name.lowercase(),
         ),
     )
@@ -322,7 +328,8 @@ class ARViewController(
         val trackingState = frame.camera.trackingState
         val frameTimestampNs = frame.timestamp
         val cameraPoseWorld = frame.camera.pose.toPose3D()
-        if (!shouldRunCv(frameTimestampNs)) {
+        if (!shouldRunCv(frameTimestampNs, cameraPoseWorld)) {
+            telemetryTracker.recordCvFrameSkipped()
             val markers = _detectedMarkers.value
             updateTrackingStatus(
                 trackingState = trackingState,
@@ -334,6 +341,7 @@ class ARViewController(
             isDetectingMarkers.set(false)
             return
         }
+        telemetryTracker.recordCvFrameTimestampNs(frameTimestampNs)
         detectorScope.launch {
             try {
                 val cvStartNs = System.nanoTime()
@@ -398,6 +406,7 @@ class ARViewController(
                 }
 
                 _markerWorldPoses.value = worldPoses
+                updateMarkerRois(markers, intrinsics, cameraPoseWorld, frameTimestampNs)
                 if (worldPoses.isNotEmpty()) {
                     _errorMessage.value = null
                     lastDriftEstimateMm = maybeAlignModel(
@@ -771,9 +780,12 @@ class ARViewController(
         private const val MULTI_MARKER_THRESHOLD = 2
         private const val SINGLE_MARKER_SMOOTHING_ALPHA = 0.35
         private const val MULTI_MARKER_SMOOTHING_ALPHA = 0.55
-        private val DEFAULT_CV_THROTTLE_NS = TimeUnit.MILLISECONDS.toNanos(45)
-        private val LOW_FPS_CV_THROTTLE_NS = TimeUnit.MILLISECONDS.toNanos(120)
+        private val DEFAULT_CV_THROTTLE_NS = TimeUnit.MILLISECONDS.toNanos(80)
+        private val LOW_FPS_CV_THROTTLE_NS = TimeUnit.MILLISECONDS.toNanos(100)
         private const val LOW_FPS_THRESHOLD = 20.0
+        private val MAX_ROI_AGE_NS = TimeUnit.MILLISECONDS.toNanos(500)
+        private const val ROI_TRANSLATION_EPS_METERS = 0.005
+        private const val ROI_ROTATION_EPS_RADIANS = 0.03
     }
 
     private fun computePointCloudStatus(frame: Frame): PointCloudStatusReport {
@@ -811,11 +823,58 @@ class ARViewController(
         }
     }
 
-    private fun shouldRunCv(frameTimestampNs: Long): Boolean {
+    private fun shouldRunCv(frameTimestampNs: Long, cameraPoseWorld: Pose3D): Boolean {
         val lastRun = lastCvRunNs.get()
         val throttle = cvThrottleNs.get()
         if (frameTimestampNs - lastRun < throttle) return false
+        if (shouldSkipForStableRoi(frameTimestampNs, cameraPoseWorld)) return false
         return lastCvRunNs.compareAndSet(lastRun, frameTimestampNs)
+    }
+
+    private fun shouldSkipForStableRoi(frameTimestampNs: Long, cameraPoseWorld: Pose3D): Boolean {
+        val roiTimestamp = lastMarkerRoiTimestampNs.get()
+        if (roiTimestamp == 0L) return false
+        if (frameTimestampNs - roiTimestamp > MAX_ROI_AGE_NS) return false
+        val rois = lastMarkerRois.get()
+        if (rois.isEmpty()) return false
+        val lastPose = lastCvCameraPose.get() ?: return false
+        val translationDelta = (cameraPoseWorld.position - lastPose.position).norm()
+        val rotationDelta = lastPose.rotation.angularDistance(cameraPoseWorld.rotation)
+        return translationDelta <= ROI_TRANSLATION_EPS_METERS && rotationDelta <= ROI_ROTATION_EPS_RADIANS
+    }
+
+    private fun updateMarkerRois(
+        markers: List<DetectedMarker>,
+        intrinsics: CameraIntrinsics?,
+        cameraPoseWorld: Pose3D,
+        frameTimestampNs: Long,
+    ) {
+        if (markers.isEmpty() || intrinsics == null) {
+            lastMarkerRois.set(emptyList())
+            lastCvCameraPose.set(null)
+            lastMarkerRoiTimestampNs.set(0L)
+            return
+        }
+        val rois = markers.mapNotNull { marker ->
+            roiFromCorners(marker.corners, intrinsics)
+        }
+        lastMarkerRois.set(rois)
+        lastCvCameraPose.set(cameraPoseWorld)
+        lastMarkerRoiTimestampNs.set(frameTimestampNs)
+    }
+
+    private fun roiFromCorners(corners: List<android.graphics.PointF>, intrinsics: CameraIntrinsics): RectF? {
+        if (corners.isEmpty()) return null
+        val width = intrinsics.width.toFloat()
+        val height = intrinsics.height.toFloat()
+        if (width <= 0f || height <= 0f) return null
+        val xs = corners.map { (it.x / width).coerceIn(0f, 1f) }
+        val ys = corners.map { (it.y / height).coerceIn(0f, 1f) }
+        val minX = xs.minOrNull() ?: return null
+        val maxX = xs.maxOrNull() ?: return null
+        val minY = ys.minOrNull() ?: return null
+        val maxY = ys.maxOrNull() ?: return null
+        return RectF(minX, minY, maxX, maxY)
     }
 
     private fun updatePerformanceMode(fps: Double) {
