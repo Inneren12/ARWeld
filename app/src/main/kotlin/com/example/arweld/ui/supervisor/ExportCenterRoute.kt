@@ -37,6 +37,7 @@ fun ExportCenterRoute(
         onToggleManifest = { viewModel.toggleManifest(it) },
         onExport = { viewModel.export(outputRoot) },
         onExportDiagnostics = { viewModel.exportDiagnostics(outputRoot) },
+        onExportEvidenceZip = { viewModel.exportEvidenceZip(outputRoot) },
         onExportReportJson = { reportJsonLauncher.launch(viewModel.suggestedReportFileName()) },
         onExportReportCsv = { reportCsvLauncher.launch(viewModel.suggestedSummaryCsvFileName()) },
     )
