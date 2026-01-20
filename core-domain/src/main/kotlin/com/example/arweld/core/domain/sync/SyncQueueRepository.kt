@@ -2,6 +2,7 @@ package com.example.arweld.core.domain.sync
 
 import com.example.arweld.core.domain.event.Event
 import com.example.arweld.core.domain.evidence.Evidence
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Domain-facing repository for offline sync queue operations.
@@ -40,6 +41,21 @@ interface SyncQueueRepository {
      * Count items marked with an error.
      */
     suspend fun getErrorCount(): Int
+
+    /**
+     * Observe pending item count as a flow.
+     */
+    fun observePendingCount(): Flow<Int>
+
+    /**
+     * Observe error item count as a flow.
+     */
+    fun observeErrorCount(): Flow<Int>
+
+    /**
+     * Observe the last enqueue timestamp.
+     */
+    fun observeLastEnqueuedAt(): Flow<Long?>
 
     /**
      * Update the status for a queue item.

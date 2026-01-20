@@ -12,6 +12,7 @@ import com.example.arweld.core.domain.sync.SyncQueueType
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
 
 @Singleton
 class SyncQueueRepositoryImpl @Inject constructor(
@@ -67,6 +68,12 @@ class SyncQueueRepositoryImpl @Inject constructor(
     override suspend fun getPendingCount(): Int = syncQueueDao.getPendingCount()
 
     override suspend fun getErrorCount(): Int = syncQueueDao.getErrorCount()
+
+    override fun observePendingCount(): Flow<Int> = syncQueueDao.observePendingCount()
+
+    override fun observeErrorCount(): Flow<Int> = syncQueueDao.observeErrorCount()
+
+    override fun observeLastEnqueuedAt(): Flow<Long?> = syncQueueDao.observeLastEnqueuedAt()
 
     override suspend fun updateStatus(id: String, status: SyncQueueStatus) {
         syncQueueDao.updateStatus(id = id, status = status.name)

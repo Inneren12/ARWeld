@@ -15,8 +15,5 @@ fun OfflineQueueRoute(
 
     OfflineQueueScreen(
         state = uiState,
-        onRefresh = { viewModel.refresh() },
-        onProcess = { viewModel.processPending() },
-        onEnqueueSample = { viewModel.enqueueSample() },
     )
 }

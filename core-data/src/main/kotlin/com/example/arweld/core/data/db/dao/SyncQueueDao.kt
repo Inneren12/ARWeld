@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.arweld.core.data.db.entity.SyncQueueEntity
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Data Access Object for the sync queue table.
@@ -38,6 +39,15 @@ interface SyncQueueDao {
 
     @Query("SELECT COUNT(*) FROM sync_queue WHERE status = :errorStatus")
     suspend fun getErrorCount(errorStatus: String = "ERROR"): Int
+
+    @Query("SELECT COUNT(*) FROM sync_queue WHERE status = :pendingStatus")
+    fun observePendingCount(pendingStatus: String = "PENDING"): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM sync_queue WHERE status = :errorStatus")
+    fun observeErrorCount(errorStatus: String = "ERROR"): Flow<Int>
+
+    @Query("SELECT MAX(createdAt) FROM sync_queue")
+    fun observeLastEnqueuedAt(): Flow<Long?>
 
     @Query(
         "UPDATE sync_queue SET status = :status WHERE id = :id"
