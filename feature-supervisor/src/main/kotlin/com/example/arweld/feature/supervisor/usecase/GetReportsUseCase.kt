@@ -3,8 +3,9 @@ package com.example.arweld.feature.supervisor.usecase
 import com.example.arweld.core.data.db.dao.EventDao
 import com.example.arweld.core.data.db.dao.WorkItemDao
 import com.example.arweld.core.data.event.toDomain
-import com.example.arweld.core.domain.event.Event
+import com.example.arweld.core.data.reporting.FailReasonAggregator
 import com.example.arweld.core.domain.event.EventType
+import com.example.arweld.core.domain.reporting.ReportPeriod
 import com.example.arweld.core.domain.state.WorkStatus
 import com.example.arweld.core.domain.state.reduce
 import com.example.arweld.feature.supervisor.model.FailReasonSummary
@@ -14,12 +15,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 data class ReportsPeriod(
     val startMillis: Long,
@@ -35,6 +30,7 @@ data class ReportsSnapshot(
 class GetReportsUseCase @Inject constructor(
     private val workItemDao: WorkItemDao,
     private val eventDao: EventDao,
+    private val failReasonAggregator: FailReasonAggregator,
 ) {
     suspend operator fun invoke(period: ReportsPeriod): ReportsSnapshot {
         val workItems = workItemDao.observeAll().first()
@@ -61,13 +57,12 @@ class GetReportsUseCase @Inject constructor(
             }
             .sortedBy { it.label }
 
-        val topFailReasons = eventsInPeriod.filter { it.type == EventType.QC_FAILED_REWORK }
-            .flatMap { event -> parseFailReasons(event.payloadJson) }
-            .groupingBy { it }
-            .eachCount()
-            .entries
-            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-            .map { (reason, count) -> FailReasonSummary(reason = reason, count = count) }
+        val reportPeriod = ReportPeriod(
+            startMillis = period.startMillis,
+            endMillis = period.endMillis,
+        )
+        val topFailReasons = failReasonAggregator(reportPeriod)
+            .map { FailReasonSummary(reason = it.reason, count = it.count) }
 
         val eventsByWorkItem = events.groupBy { it.workItemId }
         val nodeIdCounts = workItems.mapNotNull { it.nodeId }.groupingBy { it }.eachCount()
@@ -104,15 +99,4 @@ class GetReportsUseCase @Inject constructor(
         }
     }
 
-    private fun parseFailReasons(payloadJson: String?): List<String> {
-        if (payloadJson.isNullOrBlank()) return emptyList()
-        return runCatching {
-            val json = Json { ignoreUnknownKeys = true }
-            val element = json.decodeFromString<JsonElement>(payloadJson)
-            element.jsonObject["reasons"]
-                ?.jsonArray
-                ?.mapNotNull { it.jsonPrimitive.contentOrNull }
-                .orEmpty()
-        }.getOrDefault(emptyList())
-    }
 }
