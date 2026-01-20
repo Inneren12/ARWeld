@@ -34,6 +34,7 @@ fun ExportScreen(
     onExport: () -> Unit,
     onExportDiagnostics: () -> Unit,
     onExportReportJson: () -> Unit,
+    onExportReportCsv: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -96,12 +97,18 @@ fun ExportScreen(
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(text = "Report JSON (SAF)", style = MaterialTheme.typography.titleMedium)
+                Text(text = "Report exports (SAF)", style = MaterialTheme.typography.titleMedium)
                 if (state.reportJsonError != null) {
                     Text(text = state.reportJsonError, color = MaterialTheme.colorScheme.error)
                 }
                 if (state.lastReportJsonMessage != null) {
                     Text(text = state.lastReportJsonMessage, style = MaterialTheme.typography.bodyMedium)
+                }
+                if (state.reportCsvError != null) {
+                    Text(text = state.reportCsvError, color = MaterialTheme.colorScheme.error)
+                }
+                if (state.lastReportCsvMessage != null) {
+                    Text(text = state.lastReportCsvMessage, style = MaterialTheme.typography.bodyMedium)
                 }
                 Button(
                     onClick = onExportReportJson,
@@ -113,6 +120,17 @@ fun ExportScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     Text(text = if (state.isReportJsonExporting) "Exporting JSON..." else "Export JSON")
+                }
+                Button(
+                    onClick = onExportReportCsv,
+                    enabled = !state.isReportCsvExporting,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (state.isReportCsvExporting) {
+                        CircularProgressIndicator(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(text = if (state.isReportCsvExporting) "Exporting CSV..." else "Export CSV")
                 }
             }
         }

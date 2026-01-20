@@ -30,12 +30,15 @@ data class ExportUiState(
     val isExporting: Boolean = false,
     val isDiagnosticsExporting: Boolean = false,
     val isReportJsonExporting: Boolean = false,
+    val isReportCsvExporting: Boolean = false,
     val error: String? = null,
     val diagnosticsError: String? = null,
     val reportJsonError: String? = null,
+    val reportCsvError: String? = null,
     val lastExportPath: String? = null,
     val lastDiagnosticsPath: String? = null,
     val lastReportJsonMessage: String? = null,
+    val lastReportCsvMessage: String? = null,
     val selectedPeriod: ExportPeriod? = null,
     val options: ExportOptions = ExportOptions(),
     val availablePeriods: List<ExportPeriod> = emptyList(),
@@ -173,6 +176,51 @@ class ExportViewModel @Inject constructor(
         }
     }
 
+    fun exportReportCsv(uri: Uri?) {
+        val period = _uiState.value.selectedPeriod
+        val reportPeriod = period?.toReportPeriod()
+            ?: ReportPeriod(startMillis = timeProvider.nowMillis(), endMillis = timeProvider.nowMillis())
+
+        if (uri == null) {
+            val exception = IllegalStateException("No destination Uri selected for summary CSV export")
+            appLogger.logRepositoryError(REPORT_CSV_OPERATION, exception)
+            _uiState.value = _uiState.value.copy(reportCsvError = "Export canceled. No file selected.")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isReportCsvExporting = true,
+                reportCsvError = null,
+                lastReportCsvMessage = null,
+            )
+            try {
+                val report = reportExportService.buildReport(reportPeriod)
+                when (val result = reportExportService.writeSummaryCsv(uri, report)) {
+                    is ExportResult.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            isReportCsvExporting = false,
+                            lastReportCsvMessage = "Summary CSV saved (${result.bytesWritten} bytes).",
+                        )
+                    }
+                    is ExportResult.Failure -> {
+                        appLogger.logRepositoryError(REPORT_CSV_OPERATION, result.throwable ?: Exception(result.message))
+                        _uiState.value = _uiState.value.copy(
+                            isReportCsvExporting = false,
+                            reportCsvError = buildReportCsvError(result.throwable),
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                appLogger.logRepositoryError(REPORT_CSV_OPERATION, e)
+                _uiState.value = _uiState.value.copy(
+                    isReportCsvExporting = false,
+                    reportCsvError = buildReportCsvError(e),
+                )
+            }
+        }
+    }
+
     fun suggestedReportFileName(): String {
         val period = _uiState.value.selectedPeriod?.toReportPeriod()
             ?: ReportPeriod(startMillis = timeProvider.nowMillis(), endMillis = timeProvider.nowMillis())
@@ -180,6 +228,15 @@ class ExportViewModel @Inject constructor(
             .atZone(ZoneOffset.UTC)
             .toLocalDate()
         return "arweld-report-v1-${REPORT_DATE_FORMAT.format(date)}.json"
+    }
+
+    fun suggestedSummaryCsvFileName(): String {
+        val period = _uiState.value.selectedPeriod?.toReportPeriod()
+            ?: ReportPeriod(startMillis = timeProvider.nowMillis(), endMillis = timeProvider.nowMillis())
+        val date = Instant.ofEpochMilli(period.endMillis)
+            .atZone(ZoneOffset.UTC)
+            .toLocalDate()
+        return "arweld-summary-v1-${REPORT_DATE_FORMAT.format(date)}.csv"
     }
 
     private fun ExportPeriod.toReportPeriod(): ReportPeriod {
@@ -193,9 +250,17 @@ class ExportViewModel @Inject constructor(
         }
     }
 
+    private fun buildReportCsvError(throwable: Throwable?): String {
+        return when (throwable) {
+            is SecurityException -> "Permission denied. Choose a different location and try again."
+            else -> "Unable to export summary CSV. Please try again."
+        }
+    }
+
     companion object {
         private const val SHIFT_DURATION_MILLIS = 8 * 60 * 60 * 1000L
         private const val REPORT_JSON_OPERATION = "report_json_export"
+        private const val REPORT_CSV_OPERATION = "report_csv_export"
         private val REPORT_DATE_FORMAT = DateTimeFormatter.ISO_DATE.withZone(ZoneId.of("UTC"))
     }
 }
