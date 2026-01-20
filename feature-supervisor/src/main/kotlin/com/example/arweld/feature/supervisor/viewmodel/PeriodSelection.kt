@@ -28,11 +28,11 @@ object PeriodSelectionHelper {
         val now = Instant.ofEpochMilli(nowMillis).atZone(zoneId)
         val shift = resolveCurrentShift(now)
         val currentLabel = "Current ${shift.name} · ${SHIFT_TIME_FORMAT.format(shift.start)}–" +
-            SHIFT_TIME_FORMAT.format(shift.start.plusHours(SHIFT_DURATION_HOURS).minusMillis(1))
+            SHIFT_TIME_FORMAT.format(shift.start.plusHours(SHIFT_DURATION_HOURS).minusNanos(ONE_MILLI_NANOS))
         val previousStart = shift.start.minusHours(SHIFT_DURATION_HOURS)
         val previousName = if (shift.name == SHIFT_A_NAME) SHIFT_B_NAME else SHIFT_A_NAME
         val previousLabel = "Previous ${previousName} · ${SHIFT_TIME_FORMAT.format(previousStart)}–" +
-            SHIFT_TIME_FORMAT.format(previousStart.plusHours(SHIFT_DURATION_HOURS).minusMillis(1))
+            SHIFT_TIME_FORMAT.format(previousStart.plusHours(SHIFT_DURATION_HOURS).minusNanos(ONE_MILLI_NANOS))
         return ShiftLabels(current = currentLabel, previous = previousLabel)
     }
 
@@ -51,7 +51,7 @@ object PeriodSelectionHelper {
 
     private fun buildDayPeriod(date: LocalDate, zoneId: ZoneId): ExportPeriod {
         val start = date.atStartOfDay(zoneId).toInstant()
-        val end = date.plusDays(1).atStartOfDay(zoneId).toInstant().minusMillis(1)
+        val end = date.plusDays(1).atStartOfDay(zoneId).toInstant().minusNanos(ONE_MILLI_NANOS)
         val label = "Day · ${DAY_LABEL_FORMAT.format(date)}"
         return ExportPeriod(
             startMillis = start.toEpochMilli(),
@@ -71,7 +71,7 @@ object PeriodSelectionHelper {
             ShiftSelection.CURRENT -> shift.name
             ShiftSelection.PREVIOUS -> if (shift.name == SHIFT_A_NAME) SHIFT_B_NAME else SHIFT_A_NAME
         }
-        val shiftEnd = shiftStart.plusHours(SHIFT_DURATION_HOURS).minusMillis(1)
+        val shiftEnd = shiftStart.plusHours(SHIFT_DURATION_HOURS).minusNanos(ONE_MILLI_NANOS)
         val label = "${shiftName} · ${SHIFT_TIME_FORMAT.format(shiftStart)}–${SHIFT_TIME_FORMAT.format(shiftEnd)}"
         return ExportPeriod(
             startMillis = shiftStart.toInstant().toEpochMilli(),
@@ -100,6 +100,7 @@ object PeriodSelectionHelper {
     )
 
     private const val SHIFT_DURATION_HOURS = 12L
+    private const val ONE_MILLI_NANOS = 1_000_000L
     private val SHIFT_A_START: LocalTime = LocalTime.of(6, 0)
     private val SHIFT_A_END: LocalTime = LocalTime.of(18, 0)
     private val SHIFT_B_START: LocalTime = LocalTime.of(18, 0)
