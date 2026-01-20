@@ -1,9 +1,9 @@
 package com.example.arweld.core.data.repository
 
 import com.example.arweld.core.data.db.dao.WorkItemDao
-import com.example.arweld.core.data.db.entity.WorkItemEntity
 import com.example.arweld.core.domain.model.WorkItem
-import com.example.arweld.core.domain.model.WorkItemType
+import com.example.arweld.core.data.work.toDomain
+import com.example.arweld.core.data.work.toEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -34,25 +34,4 @@ class WorkItemRepositoryImpl @Inject constructor(
             entities.map { it.toDomain() }
         }
     }
-
-    private fun WorkItem.toEntity() = WorkItemEntity(
-        id = id,
-        projectId = "", // Project scoping will be added in a later sprint
-        zoneId = zone,
-        type = type.name,
-        code = code,
-        description = description,
-        nodeId = nodeId,
-        createdAt = createdAt,
-    )
-
-    private fun WorkItemEntity.toDomain() = WorkItem(
-        id = id,
-        code = code ?: "",
-        type = WorkItemType.valueOf(type),
-        description = description ?: "",
-        zone = zoneId,
-        nodeId = nodeId,
-        createdAt = createdAt ?: 0L
-    )
 }
