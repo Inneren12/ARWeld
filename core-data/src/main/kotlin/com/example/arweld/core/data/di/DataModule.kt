@@ -7,6 +7,7 @@ import com.example.arweld.core.data.db.MIGRATION_1_2
 import com.example.arweld.core.data.db.MIGRATION_2_3
 import com.example.arweld.core.data.db.MIGRATION_3_4
 import com.example.arweld.core.data.db.MIGRATION_4_5
+import com.example.arweld.core.data.db.MIGRATION_5_6
 import com.example.arweld.core.data.db.dao.EventDao
 import com.example.arweld.core.data.db.dao.EvidenceDao
 import com.example.arweld.core.data.db.dao.SyncQueueDao
@@ -65,7 +66,7 @@ object DataModule {
             AppDatabase::class.java,
             "arweld.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .build()
     }
 
