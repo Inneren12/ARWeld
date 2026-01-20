@@ -15,6 +15,9 @@ fun ReportsRoute(
 
     ReportsScreen(
         state = uiState,
-        onRefresh = { viewModel.loadReports() },
+        onSelectPeriodType = { viewModel.selectPeriodType(it) },
+        onSelectShift = { viewModel.selectShift(it) },
+        onSelectDate = { viewModel.selectDate(it) },
+        onSelectZone = { viewModel.selectZone(it) },
     )
 }
