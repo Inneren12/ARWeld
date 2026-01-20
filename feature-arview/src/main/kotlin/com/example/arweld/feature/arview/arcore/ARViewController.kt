@@ -19,6 +19,7 @@ import com.example.arweld.core.domain.diagnostics.ArTelemetrySnapshot
 import com.example.arweld.core.domain.diagnostics.DeviceHealthProvider
 import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.feature.arview.BuildConfig
+import com.example.arweld.feature.arview.R
 import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.core.domain.spatial.AlignmentPoint
 import com.example.arweld.core.domain.spatial.AlignmentSample
@@ -42,6 +43,7 @@ import com.example.arweld.feature.arview.pose.MultiMarkerPoseRefiner
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.render.ModelLoader
+import com.example.arweld.feature.arview.render.ModelTooComplexException
 import com.example.arweld.feature.arview.tracking.PointCloudStatus
 import com.example.arweld.feature.arview.tracking.PerformanceMode
 import com.example.arweld.feature.arview.tracking.TrackingQuality
@@ -302,6 +304,10 @@ class ARViewController(
             testNodeModel = loadedModel
             sceneRenderer.setTestModel(loadedModel)
             loadedModel
+        } catch (error: ModelTooComplexException) {
+            Log.w(TAG, "Model rejected for AR rendering: ${error.assetPath}", error)
+            _errorMessage.value = context.getString(R.string.model_too_complex)
+            null
         } catch (error: Exception) {
             Log.e(TAG, "Failed to load test node model", error)
             _errorMessage.value = "Failed to load test node model"

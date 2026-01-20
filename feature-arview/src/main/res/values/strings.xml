@@ -35,6 +35,7 @@
     <string name="diagnostic_point_cloud_unknown">unknown</string>
     <string name="device_hot_banner">Device hot — lowering AR quality</string>
     <string name="alignment_drift_banner">Alignment degraded — re-align markers</string>
+    <string name="model_too_complex">Model too complex for real-time AR</string>
     <string name="intrinsics_unavailable_message">Camera intrinsics unavailable</string>
     <string name="intrinsics_retry">Retry intrinsics</string>
     <string name="intrinsics_restart_session">Restart AR session</string>
