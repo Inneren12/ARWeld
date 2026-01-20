@@ -36,7 +36,7 @@ class MarkerPoseEstimator {
                 cameraPoseWorld = cameraPoseWorld,
             )
         ) {
-            is MarkerPoseEstimateResult.Success -> result.pose
+            is MarkerPoseEstimateResult.Success -> result.worldPose
             is MarkerPoseEstimateResult.Failure -> null
         }
     }
@@ -63,7 +63,11 @@ class MarkerPoseEstimator {
         val (rotation, translation) = decomposeHomography(intrinsics, homography)
             ?: return MarkerPoseEstimateResult.Failure("pnp_decompose_failed")
         val markerPoseCamera = Pose3D(translation, rotation)
-        return MarkerPoseEstimateResult.Success(cameraPoseWorld.compose(markerPoseCamera))
+        val markerPoseWorld = cameraPoseWorld.compose(markerPoseCamera)
+        return MarkerPoseEstimateResult.Success(
+            worldPose = markerPoseWorld,
+            cameraPose = markerPoseCamera,
+        )
     }
 
     private fun buildSquarePoints(sizeMeters: Double): List<Vector3> {
@@ -255,6 +259,9 @@ class MarkerPoseEstimator {
 }
 
 sealed class MarkerPoseEstimateResult {
-    data class Success(val pose: Pose3D) : MarkerPoseEstimateResult()
+    data class Success(
+        val worldPose: Pose3D,
+        val cameraPose: Pose3D,
+    ) : MarkerPoseEstimateResult()
     data class Failure(val reason: String) : MarkerPoseEstimateResult()
 }

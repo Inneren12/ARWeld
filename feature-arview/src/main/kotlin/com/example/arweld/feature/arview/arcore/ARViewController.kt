@@ -36,6 +36,7 @@ import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.feature.arview.arcore.ArScreenshotRegistry
 import com.example.arweld.feature.arview.pose.MarkerPoseEstimator
 import com.example.arweld.feature.arview.pose.MarkerPoseEstimateResult
+import com.example.arweld.feature.arview.pose.MultiMarkerPoseRefiner
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.render.ModelLoader
@@ -87,6 +88,7 @@ class ARViewController(
     private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
     private val markerDetector: MarkerDetector = markerDetector ?: RealMarkerDetector(::currentRotation)
     private val markerPoseEstimator = MarkerPoseEstimator()
+    private val multiMarkerPoseRefiner = MultiMarkerPoseRefiner()
     private val zoneRegistry = ZoneRegistry.fromAssets(context.assets)
     private val zoneAligner = ZoneAligner(zoneRegistry)
     private val rigidTransformSolver = RigidTransformSolver()
@@ -348,6 +350,7 @@ class ARViewController(
                     _errorMessage.value = null
                 }
 
+                val observations = mutableListOf<MultiMarkerPoseRefiner.MarkerObservation>()
                 val worldPoses = if (intrinsics != null) {
                     markers.mapNotNull { marker ->
                         val zoneTransform = zoneRegistry.get(marker.id)
@@ -363,7 +366,17 @@ class ARViewController(
                                 cameraPoseWorld = cameraPoseWorld,
                             )
                         ) {
-                            is MarkerPoseEstimateResult.Success -> marker.id to result.pose
+                            is MarkerPoseEstimateResult.Success -> {
+                                observations.add(
+                                    MultiMarkerPoseRefiner.MarkerObservation(
+                                        markerId = marker.id,
+                                        markerPoseCamera = result.cameraPose,
+                                        markerSizeMeters = zoneTransform.markerSizeMeters,
+                                        tMarkerZone = zoneTransform.tMarkerZone,
+                                    ),
+                                )
+                                marker.id to result.worldPose
+                            }
                             is MarkerPoseEstimateResult.Failure -> {
                                 if (BuildConfig.DEBUG) {
                                     Log.d(
@@ -382,7 +395,11 @@ class ARViewController(
                 _markerWorldPoses.value = worldPoses
                 if (worldPoses.isNotEmpty()) {
                     _errorMessage.value = null
-                    lastDriftEstimateMm = maybeAlignModel(worldPoses)
+                    lastDriftEstimateMm = maybeAlignModel(
+                        markerWorldPoses = worldPoses,
+                        observations = observations,
+                        cameraPoseWorld = cameraPoseWorld,
+                    )
                 } else {
                     if (markers.isNotEmpty()) {
                         _errorMessage.value = "Failed to estimate marker pose"
@@ -447,7 +464,11 @@ class ARViewController(
         )
     }
 
-    private fun maybeAlignModel(markerWorldPoses: Map<String, Pose3D>): Double {
+    private fun maybeAlignModel(
+        markerWorldPoses: Map<String, Pose3D>,
+        observations: List<MultiMarkerPoseRefiner.MarkerObservation>,
+        cameraPoseWorld: Pose3D,
+    ): Double {
         val alignmentCandidates = markerWorldPoses.mapNotNull { (markerId, pose) ->
             zoneAligner.computeWorldZoneTransform(
                 markerPoseWorld = pose,
@@ -460,11 +481,21 @@ class ARViewController(
             return 0.0
         }
 
-        val markerCount = alignmentCandidates.size
-        val worldZonePoses = alignmentCandidates.map { it.second }
-        val (fusedPose, driftMm) = fusePoses(worldZonePoses)
         val primaryMarkerId = alignmentCandidates.first().first
-        val smoothed = smoothPose(fusedPose, markerCount)
+        val markerCount = alignmentCandidates.size
+        val refined = if (observations.size >= MULTI_MARKER_THRESHOLD) {
+            multiMarkerPoseRefiner.refinePose(
+                cameraPoseWorld = cameraPoseWorld,
+                observations = observations,
+                initialPose = lastAppliedPose.get() ?: alignmentCandidates.first().second,
+            )
+        } else {
+            null
+        }
+
+        val resolvedPose = refined?.worldZonePose ?: alignmentCandidates.first().second
+        val driftMm = refined?.residualErrorMm ?: 0.0
+        val smoothed = smoothPose(resolvedPose, markerCount)
         val previousPose = lastAppliedPose.get()
         val poseChanged = isPoseSignificantlyDifferent(previousPose, smoothed)
 
@@ -484,6 +515,7 @@ class ARViewController(
             _alignmentScore.value = computeAlignmentScore(markerCount)
         }
 
+        logAlignmentDiagnostics(markerCount, driftMm)
         return driftMm
     }
 
@@ -769,13 +801,11 @@ class ARViewController(
         }
     }
 
-    private fun fusePoses(poses: List<Pose3D>): Pair<Pose3D, Double> {
-        val averagedPosition = poses.map { it.position }.reduce { acc, pos -> acc + pos } * (1.0 / poses.size)
-        val averagedRotation = averageQuaternion(poses.map { it.rotation })
-        val fusedPose = Pose3D(averagedPosition, averagedRotation)
-        val driftMeters = poses.maxOf { (it.position - averagedPosition).norm() }
-        val driftMm = driftMeters * 1000.0
-        return fusedPose to driftMm
+    private fun logAlignmentDiagnostics(markerCount: Int, residualMm: Double) {
+        Log.d(
+            TAG,
+            "Alignment updated with $markerCount marker(s), residual=${"%.2f".format(residualMm)}mm",
+        )
     }
 
     private fun smoothPose(target: Pose3D, markerCount: Int): Pose3D {
@@ -794,27 +824,6 @@ class ARViewController(
         val smoothed = Pose3D(blendedPosition, blendedRotation)
         smoothedPose = smoothed
         return smoothed
-    }
-
-    private fun averageQuaternion(rotations: List<Quaternion>): Quaternion {
-        if (rotations.isEmpty()) return Quaternion.Identity
-        val reference = rotations.first()
-        var x = 0.0
-        var y = 0.0
-        var z = 0.0
-        var w = 0.0
-        for (rotation in rotations) {
-            val aligned = if (dot(reference, rotation) < 0.0) {
-                Quaternion(-rotation.x, -rotation.y, -rotation.z, -rotation.w)
-            } else {
-                rotation
-            }
-            x += aligned.x
-            y += aligned.y
-            z += aligned.z
-            w += aligned.w
-        }
-        return Quaternion(x, y, z, w).normalized()
     }
 
     private fun nlerp(from: Quaternion, to: Quaternion, alpha: Double): Quaternion {
