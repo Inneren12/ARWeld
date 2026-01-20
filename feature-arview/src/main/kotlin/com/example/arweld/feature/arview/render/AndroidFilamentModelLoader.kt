@@ -19,6 +19,11 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+private const val GLTF_TRIANGLES_MODE = 4
+private const val GLTF_TRIANGLE_STRIP_MODE = 5
+private const val GLTF_TRIANGLE_FAN_MODE = 6
+private const val TRIANGLE_DIVISOR = 3
+
 /**
  * Loads GLB models from the app's assets using Filament's gltfio utilities.
  */
@@ -139,27 +144,47 @@ class AndroidFilamentModelLoader(
         val accessors = gltf.optJSONArray(JSON_ACCESSORS) ?: JSONArray()
         val meshes = gltf.optJSONArray(JSON_MESHES) ?: JSONArray()
         var triangleCount = 0
+        var loggedStripOrFan = false
+        var loggedUnknownMode = false
         for (i in 0 until meshes.length()) {
             val mesh = meshes.optJSONObject(i) ?: continue
             val primitives = mesh.optJSONArray(JSON_PRIMITIVES) ?: continue
             for (j in 0 until primitives.length()) {
                 val primitive = primitives.optJSONObject(j) ?: continue
                 val mode = primitive.optInt(JSON_MODE, GLTF_TRIANGLES_MODE)
-                if (mode != GLTF_TRIANGLES_MODE) continue
                 val indicesAccessor = primitive.optInt(JSON_INDICES, -1)
-                triangleCount += if (indicesAccessor >= 0) {
-                    val accessor = accessors.optJSONObject(indicesAccessor)
-                    (accessor?.optInt(JSON_COUNT, 0) ?: 0) / TRIANGLE_DIVISOR
+                val indexCount = if (indicesAccessor >= 0) {
+                    accessors.optJSONObject(indicesAccessor)?.optInt(JSON_COUNT, 0)
                 } else {
-                    val attributes = primitive.optJSONObject(JSON_ATTRIBUTES)
-                    val positionAccessor = attributes?.optInt(JSON_POSITION, -1) ?: -1
-                    if (positionAccessor >= 0) {
-                        val accessor = accessors.optJSONObject(positionAccessor)
-                        (accessor?.optInt(JSON_COUNT, 0) ?: 0) / TRIANGLE_DIVISOR
-                    } else {
-                        0
-                    }
+                    null
                 }
+                val attributes = primitive.optJSONObject(JSON_ATTRIBUTES)
+                val positionAccessor = attributes?.optInt(JSON_POSITION, -1) ?: -1
+                val vertexCount = if (positionAccessor >= 0) {
+                    accessors.optJSONObject(positionAccessor)?.optInt(JSON_COUNT, 0)
+                } else {
+                    null
+                }
+                val estimated = estimateTrianglesForMode(
+                    mode = mode,
+                    indexCount = indexCount,
+                    vertexCount = vertexCount,
+                    maxTriangles = MAX_TRIANGLES,
+                )
+                if (estimated > MAX_TRIANGLES) {
+                    if (!loggedUnknownMode) {
+                        Log.w(TAG, "Unsupported primitive mode=$mode in $assetPath; rejecting model.")
+                        loggedUnknownMode = true
+                    }
+                    return MAX_TRIANGLES + 1
+                }
+                if ((mode == GLTF_TRIANGLE_STRIP_MODE || mode == GLTF_TRIANGLE_FAN_MODE) && !loggedStripOrFan) {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Computed $estimated triangles for mode=$mode in $assetPath.")
+                    }
+                    loggedStripOrFan = true
+                }
+                triangleCount += estimated
             }
         }
         return triangleCount
@@ -198,8 +223,6 @@ class AndroidFilamentModelLoader(
         private const val GLB_HEADER_SIZE = 12
         private const val GLB_CHUNK_HEADER_SIZE = 8
         private const val GLB_JSON_CHUNK_TYPE = 0x4E4F534A
-        private const val GLTF_TRIANGLES_MODE = 4
-        private const val TRIANGLE_DIVISOR = 3
         private const val JSON_ACCESSORS = "accessors"
         private const val JSON_MESHES = "meshes"
         private const val JSON_PRIMITIVES = "primitives"
@@ -221,6 +244,20 @@ class ModelTooComplexException(
     val triangleCount: Int,
     val maxTriangles: Int,
 ) : IllegalStateException("Model $assetPath has $triangleCount triangles (max $maxTriangles)")
+
+internal fun estimateTrianglesForMode(
+    mode: Int,
+    indexCount: Int?,
+    vertexCount: Int?,
+    maxTriangles: Int,
+): Int {
+    val count = indexCount ?: vertexCount ?: 0
+    return when (mode) {
+        GLTF_TRIANGLES_MODE -> count / TRIANGLE_DIVISOR
+        GLTF_TRIANGLE_STRIP_MODE, GLTF_TRIANGLE_FAN_MODE -> (count - 2).coerceAtLeast(0)
+        else -> maxTriangles + 1
+    }
+}
 
 private fun AssetLoader.createAssetFromBinaryCompat(buffer: ByteBuffer): FilamentAsset? {
     val methods = javaClass.methods.filter { it.name == "createAssetFromBinary" }

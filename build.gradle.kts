@@ -1,5 +1,4 @@
-import kotlinx.kover.api.KoverAggregationType
-import kotlinx.kover.api.KoverMetricType
+import org.gradle.kotlin.dsl.withGroovyBuilder
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
@@ -9,69 +8,48 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.compose.compiler) apply false
-    alias(libs.plugins.kover.aggregation)
+    alias(libs.plugins.kover.aggregation) apply false
     kotlin("jvm") version "2.0.21" apply false
 }
 
-subprojects {
-    plugins.withId("org.jetbrains.kotlin.jvm") {
-        apply(plugin = "org.jetbrains.kotlinx.kover")
-    }
-    plugins.withId("org.jetbrains.kotlin.android") {
-        apply(plugin = "org.jetbrains.kotlinx.kover")
-    }
-}
+val coverageUnit = Class.forName("kotlinx.kover.gradle.plugin.dsl.CoverageUnit")
+    .enumConstants
+    .first { (it as Enum<*>).name == "INSTRUCTION" }
+val aggregationType = Class.forName("kotlinx.kover.gradle.plugin.dsl.AggregationType")
+    .enumConstants
+    .first { (it as Enum<*>).name == "COVERED_PERCENTAGE" }
 
-koverMerged {
-    enable()
-    htmlReport {
-        onCheck = false
+extensions.findByName("kover")?.withGroovyBuilder {
+    "merge" {
+        "allProjects"()
     }
-    xmlReport {
-        onCheck = false
-    }
-    verify {
-        rule {
-            name = "overall-baseline"
-            bound {
-                minValue = 25
-                metric = KoverMetricType.INSTRUCTION
-                aggregation = KoverAggregationType.COVERED_PERCENTAGE
+    "reports" {
+        "total" {
+            "html" {
+                "onCheck"(false)
             }
-        }
-        rule {
-            name = "core-domain-baseline"
-            filters {
-                projects {
-                    includes.add(":core-domain")
+            "xml" {
+                "onCheck"(false)
+            }
+            "verify" {
+                "rule"("overall-baseline") {
+                    "minBound"(25, coverageUnit, aggregationType)
+                }
+                "rule"("core-domain-baseline") {
+                    "filters" {
+                        "projects" {
+                            "includes" {
+                                "add"(":core-domain")
+                            }
+                        }
+                    }
+                    "minBound"(60, coverageUnit, aggregationType)
                 }
             }
-            bound {
-                minValue = 60
-                metric = KoverMetricType.INSTRUCTION
-                aggregation = KoverAggregationType.COVERED_PERCENTAGE
-            }
         }
     }
 }
 
-tasks.register("koverHtmlReport") {
-    group = "verification"
-    description = "Generates merged HTML coverage report."
-    dependsOn("koverMergedHtmlReport")
-}
-
-tasks.register("koverXmlReport") {
-    group = "verification"
-    description = "Generates merged XML coverage report."
-    dependsOn("koverMergedXmlReport")
-}
-
-tasks.register("koverVerify") {
-    group = "verification"
-    description = "Verifies merged coverage thresholds."
-    dependsOn("koverMergedVerify")
-}
 
 tasks.register("verifyArViewDebugLogging") {
     group = "verification"
