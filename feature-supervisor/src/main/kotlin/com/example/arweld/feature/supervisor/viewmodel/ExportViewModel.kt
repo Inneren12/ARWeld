@@ -14,16 +14,15 @@ import com.example.arweld.core.domain.reporting.ExportResult
 import com.example.arweld.core.domain.reporting.ReportPeriod
 import com.example.arweld.core.domain.system.TimeProvider
 import com.example.arweld.feature.supervisor.usecase.EvidenceZipExportUseCase
-import com.example.arweld.feature.supervisor.usecase.ExportOptions
+import com.example.arweld.core.data.db.dao.EvidenceDao
 import com.example.arweld.feature.supervisor.usecase.ExportPeriod
-import com.example.arweld.feature.supervisor.usecase.ExportReportUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.lang.IllegalStateException
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,19 +30,44 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+data class ExportPreviewCounts(
+    val workItems: Int,
+    val events: Int,
+    val evidence: Int,
+)
+
+enum class ExportPeriodType {
+    SHIFT,
+    DAY,
+}
+
+enum class ShiftSelection {
+    CURRENT,
+    PREVIOUS,
+}
+
+enum class BannerType {
+    SUCCESS,
+    ERROR,
+}
+
 data class ExportUiState(
-    val isExporting: Boolean = false,
+    val isPreviewLoading: Boolean = false,
     val isDiagnosticsExporting: Boolean = false,
     val isReportJsonExporting: Boolean = false,
     val isReportCsvExporting: Boolean = false,
     val isEvidenceZipExporting: Boolean = false,
     val isManifestExporting: Boolean = false,
+    val includeEvidenceZip: Boolean = true,
     val error: String? = null,
     val diagnosticsError: String? = null,
     val reportJsonError: String? = null,
     val reportCsvError: String? = null,
     val evidenceZipError: String? = null,
     val manifestError: String? = null,
+    val previewError: String? = null,
+    val bannerMessage: String? = null,
+    val bannerType: BannerType = BannerType.SUCCESS,
     val lastExportPath: String? = null,
     val lastDiagnosticsPath: String? = null,
     val lastReportJsonMessage: String? = null,
@@ -52,13 +76,17 @@ data class ExportUiState(
     val lastManifestMessage: String? = null,
     val evidenceZipMissingCount: Int? = null,
     val selectedPeriod: ExportPeriod? = null,
-    val options: ExportOptions = ExportOptions(),
+    val previewCounts: ExportPreviewCounts? = null,
+    val periodType: ExportPeriodType = ExportPeriodType.SHIFT,
+    val selectedDate: LocalDate = LocalDate.now(),
+    val selectedShift: ShiftSelection = ShiftSelection.CURRENT,
+    val currentShiftLabel: String = "",
+    val previousShiftLabel: String = "",
     val availablePeriods: List<ExportPeriod> = emptyList(),
 )
 
 @HiltViewModel
 class ExportViewModel @Inject constructor(
-    private val exportReportUseCase: ExportReportUseCase,
     private val evidenceZipExportUseCase: EvidenceZipExportUseCase,
     private val diagnosticsExportService: DiagnosticsExportService,
     private val reportExportService: ReportExportService,
@@ -66,6 +94,7 @@ class ExportViewModel @Inject constructor(
     private val manifestJsonWriter: ManifestJsonWriter,
     private val timeProvider: TimeProvider,
     private val appLogger: AppLogger,
+    private val evidenceDao: EvidenceDao,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExportUiState())
@@ -79,52 +108,40 @@ class ExportViewModel @Inject constructor(
     }
 
     fun refreshPeriods() {
+        val zoneId = ZoneId.systemDefault()
+        val today = LocalDate.now(zoneId)
         val now = timeProvider.nowMillis()
-        val todayStart = LocalDate.now(ZoneOffset.UTC).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
-        val shiftStart = now - SHIFT_DURATION_MILLIS
-        val periods = listOf(
-            ExportPeriod(startMillis = todayStart, endMillis = now, label = "Today"),
-            ExportPeriod(startMillis = shiftStart, endMillis = now, label = "Last 8 hours"),
+        val shiftLabels = buildShiftLabels(now, zoneId)
+        val selectedPeriod = buildPeriod(
+            periodType = _uiState.value.periodType,
+            selectedDate = today,
+            shiftSelection = _uiState.value.selectedShift,
+            nowMillis = now,
+            zoneId = zoneId,
         )
         _uiState.value = _uiState.value.copy(
-            availablePeriods = periods,
-            selectedPeriod = periods.firstOrNull(),
+            selectedDate = today,
+            currentShiftLabel = shiftLabels.current,
+            previousShiftLabel = shiftLabels.previous,
+            selectedPeriod = selectedPeriod,
         )
+        loadPreviewCounts(selectedPeriod)
     }
 
-    fun selectPeriod(period: ExportPeriod) {
-        _uiState.value = _uiState.value.copy(selectedPeriod = period)
+    fun selectPeriodType(type: ExportPeriodType) {
+        updatePeriodSelection(periodType = type)
     }
 
-    fun toggleCsv(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(options = _uiState.value.options.copy(includeCsv = enabled))
+    fun selectShift(selection: ShiftSelection) {
+        updatePeriodSelection(shiftSelection = selection)
     }
 
-    fun toggleZip(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(options = _uiState.value.options.copy(includeZip = enabled))
+    fun selectDate(date: LocalDate) {
+        updatePeriodSelection(selectedDate = date)
     }
 
-    fun toggleManifest(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(options = _uiState.value.options.copy(includeManifest = enabled))
-    }
-
-    fun export(outputRoot: File) {
-        val period = _uiState.value.selectedPeriod ?: return
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isExporting = true, error = null, lastExportPath = null)
-            try {
-                val result = exportReportUseCase(period, _uiState.value.options, outputRoot)
-                _uiState.value = _uiState.value.copy(
-                    isExporting = false,
-                    lastExportPath = result.exportDir.absolutePath,
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isExporting = false,
-                    error = e.message ?: "Export failed",
-                )
-            }
-        }
+    fun toggleEvidenceZip(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(includeEvidenceZip = enabled)
     }
 
     fun exportDiagnostics(outputRoot: File) {
@@ -133,17 +150,22 @@ class ExportViewModel @Inject constructor(
                 isDiagnosticsExporting = true,
                 diagnosticsError = null,
                 lastDiagnosticsPath = null,
+                bannerMessage = null,
             )
             try {
                 val result = diagnosticsExportService.exportDiagnostics(outputRoot)
                 _uiState.value = _uiState.value.copy(
                     isDiagnosticsExporting = false,
                     lastDiagnosticsPath = result.zipFile.absolutePath,
+                    bannerMessage = "Diagnostics export complete.",
+                    bannerType = BannerType.SUCCESS,
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isDiagnosticsExporting = false,
                     diagnosticsError = e.message ?: "Diagnostics export failed",
+                    bannerMessage = e.message ?: "Diagnostics export failed",
+                    bannerType = BannerType.ERROR,
                 )
             }
         }
@@ -162,6 +184,7 @@ class ExportViewModel @Inject constructor(
                 evidenceZipError = null,
                 lastEvidenceZipPath = null,
                 evidenceZipMissingCount = null,
+                bannerMessage = null,
             )
             try {
                 val result = evidenceZipExportUseCase(period, outputRoot)
@@ -169,12 +192,16 @@ class ExportViewModel @Inject constructor(
                     isEvidenceZipExporting = false,
                     lastEvidenceZipPath = result.zipFile.absolutePath,
                     evidenceZipMissingCount = result.missingFiles.size,
+                    bannerMessage = "Evidence ZIP export complete.",
+                    bannerType = BannerType.SUCCESS,
                 )
                 lastEvidenceZipReference = ExportedFileReference(file = result.zipFile)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isEvidenceZipExporting = false,
                     evidenceZipError = e.message ?: "Evidence zip export failed",
+                    bannerMessage = e.message ?: "Evidence zip export failed",
+                    bannerType = BannerType.ERROR,
                 )
             }
         }
@@ -197,6 +224,7 @@ class ExportViewModel @Inject constructor(
                 isReportJsonExporting = true,
                 reportJsonError = null,
                 lastReportJsonMessage = null,
+                bannerMessage = null,
             )
             try {
                 val report = reportExportService.buildReport(reportPeriod)
@@ -205,6 +233,8 @@ class ExportViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(
                             isReportJsonExporting = false,
                             lastReportJsonMessage = "Report JSON saved (${result.bytesWritten} bytes).",
+                            bannerMessage = "Report JSON exported.",
+                            bannerType = BannerType.SUCCESS,
                         )
                         lastReportJsonReference = ExportedFileReference(uri = uri)
                     }
@@ -213,6 +243,8 @@ class ExportViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(
                             isReportJsonExporting = false,
                             reportJsonError = buildReportJsonError(result.throwable),
+                            bannerMessage = buildReportJsonError(result.throwable),
+                            bannerType = BannerType.ERROR,
                         )
                     }
                 }
@@ -221,6 +253,8 @@ class ExportViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isReportJsonExporting = false,
                     reportJsonError = buildReportJsonError(e),
+                    bannerMessage = buildReportJsonError(e),
+                    bannerType = BannerType.ERROR,
                 )
             }
         }
@@ -243,6 +277,7 @@ class ExportViewModel @Inject constructor(
                 isReportCsvExporting = true,
                 reportCsvError = null,
                 lastReportCsvMessage = null,
+                bannerMessage = null,
             )
             try {
                 val report = reportExportService.buildReport(reportPeriod)
@@ -251,6 +286,8 @@ class ExportViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(
                             isReportCsvExporting = false,
                             lastReportCsvMessage = "Summary CSV saved (${result.bytesWritten} bytes).",
+                            bannerMessage = "Summary CSV exported.",
+                            bannerType = BannerType.SUCCESS,
                         )
                         lastReportCsvReference = ExportedFileReference(uri = uri)
                     }
@@ -259,6 +296,8 @@ class ExportViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(
                             isReportCsvExporting = false,
                             reportCsvError = buildReportCsvError(result.throwable),
+                            bannerMessage = buildReportCsvError(result.throwable),
+                            bannerType = BannerType.ERROR,
                         )
                     }
                 }
@@ -267,6 +306,8 @@ class ExportViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isReportCsvExporting = false,
                     reportCsvError = buildReportCsvError(e),
+                    bannerMessage = buildReportCsvError(e),
+                    bannerType = BannerType.ERROR,
                 )
             }
         }
@@ -302,6 +343,7 @@ class ExportViewModel @Inject constructor(
                 isManifestExporting = true,
                 manifestError = null,
                 lastManifestMessage = null,
+                bannerMessage = null,
             )
             try {
                 val warnings = buildManifestWarnings()
@@ -311,12 +353,16 @@ class ExportViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isManifestExporting = false,
                     lastManifestMessage = "Manifest saved (${bytes} bytes).",
+                    bannerMessage = "Manifest exported.",
+                    bannerType = BannerType.SUCCESS,
                 )
             } catch (e: Exception) {
                 appLogger.logRepositoryError(MANIFEST_OPERATION, e)
                 _uiState.value = _uiState.value.copy(
                     isManifestExporting = false,
                     manifestError = buildManifestError(e),
+                    bannerMessage = buildManifestError(e),
+                    bannerType = BannerType.ERROR,
                 )
             }
         }
@@ -326,7 +372,7 @@ class ExportViewModel @Inject constructor(
         val period = _uiState.value.selectedPeriod?.toReportPeriod()
             ?: ReportPeriod(startMillis = timeProvider.nowMillis(), endMillis = timeProvider.nowMillis())
         val date = Instant.ofEpochMilli(period.endMillis)
-            .atZone(ZoneOffset.UTC)
+            .atZone(ZoneId.systemDefault())
             .toLocalDate()
         return "arweld-report-v1-${REPORT_DATE_FORMAT.format(date)}.json"
     }
@@ -335,7 +381,7 @@ class ExportViewModel @Inject constructor(
         val period = _uiState.value.selectedPeriod?.toReportPeriod()
             ?: ReportPeriod(startMillis = timeProvider.nowMillis(), endMillis = timeProvider.nowMillis())
         val date = Instant.ofEpochMilli(period.endMillis)
-            .atZone(ZoneOffset.UTC)
+            .atZone(ZoneId.systemDefault())
             .toLocalDate()
         return "arweld-summary-v1-${REPORT_DATE_FORMAT.format(date)}.csv"
     }
@@ -344,7 +390,7 @@ class ExportViewModel @Inject constructor(
         val period = _uiState.value.selectedPeriod?.toReportPeriod()
             ?: ReportPeriod(startMillis = timeProvider.nowMillis(), endMillis = timeProvider.nowMillis())
         val date = Instant.ofEpochMilli(period.endMillis)
-            .atZone(ZoneOffset.UTC)
+            .atZone(ZoneId.systemDefault())
             .toLocalDate()
         return "arweld-manifest-v1-${REPORT_DATE_FORMAT.format(date)}.json"
     }
@@ -388,11 +434,153 @@ class ExportViewModel @Inject constructor(
         return warnings
     }
 
+    private fun updatePeriodSelection(
+        periodType: ExportPeriodType = _uiState.value.periodType,
+        selectedDate: LocalDate = _uiState.value.selectedDate,
+        shiftSelection: ShiftSelection = _uiState.value.selectedShift,
+    ) {
+        val zoneId = ZoneId.systemDefault()
+        val now = timeProvider.nowMillis()
+        val shiftLabels = buildShiftLabels(now, zoneId)
+        val period = buildPeriod(
+            periodType = periodType,
+            selectedDate = selectedDate,
+            shiftSelection = shiftSelection,
+            nowMillis = now,
+            zoneId = zoneId,
+        )
+        _uiState.value = _uiState.value.copy(
+            periodType = periodType,
+            selectedDate = selectedDate,
+            selectedShift = shiftSelection,
+            currentShiftLabel = shiftLabels.current,
+            previousShiftLabel = shiftLabels.previous,
+            selectedPeriod = period,
+        )
+        loadPreviewCounts(period)
+    }
+
+    private fun buildPeriod(
+        periodType: ExportPeriodType,
+        selectedDate: LocalDate,
+        shiftSelection: ShiftSelection,
+        nowMillis: Long,
+        zoneId: ZoneId,
+    ): ExportPeriod {
+        return when (periodType) {
+            ExportPeriodType.DAY -> buildDayPeriod(selectedDate, zoneId)
+            ExportPeriodType.SHIFT -> buildShiftPeriod(nowMillis, shiftSelection, zoneId)
+        }
+    }
+
+    private fun buildDayPeriod(date: LocalDate, zoneId: ZoneId): ExportPeriod {
+        val start = date.atStartOfDay(zoneId).toInstant()
+        val end = date.plusDays(1).atStartOfDay(zoneId).toInstant().minusMillis(1)
+        val label = "Day · ${DAY_LABEL_FORMAT.format(date)}"
+        return ExportPeriod(
+            startMillis = start.toEpochMilli(),
+            endMillis = end.toEpochMilli(),
+            label = label,
+        )
+    }
+
+    private fun buildShiftPeriod(nowMillis: Long, selection: ShiftSelection, zoneId: ZoneId): ExportPeriod {
+        val nowZoned = Instant.ofEpochMilli(nowMillis).atZone(zoneId)
+        val shift = resolveCurrentShift(nowZoned)
+        val shiftStart = when (selection) {
+            ShiftSelection.CURRENT -> shift.start
+            ShiftSelection.PREVIOUS -> shift.start.minusHours(SHIFT_DURATION_HOURS)
+        }
+        val shiftName = when (selection) {
+            ShiftSelection.CURRENT -> shift.name
+            ShiftSelection.PREVIOUS -> if (shift.name == SHIFT_A_NAME) SHIFT_B_NAME else SHIFT_A_NAME
+        }
+        val shiftEnd = shiftStart.plusHours(SHIFT_DURATION_HOURS).minusMillis(1)
+        val label = "${shiftName} · ${SHIFT_TIME_FORMAT.format(shiftStart)}–${SHIFT_TIME_FORMAT.format(shiftEnd)}"
+        return ExportPeriod(
+            startMillis = shiftStart.toInstant().toEpochMilli(),
+            endMillis = shiftEnd.toInstant().toEpochMilli(),
+            label = label,
+        )
+    }
+
+    private fun resolveCurrentShift(now: java.time.ZonedDateTime): ShiftWindow {
+        val localTime = now.toLocalTime()
+        return if (localTime >= SHIFT_A_START && localTime < SHIFT_A_END) {
+            val start = now.toLocalDate().atTime(SHIFT_A_START).atZone(now.zone)
+            ShiftWindow(name = SHIFT_A_NAME, start = start)
+        } else if (localTime >= SHIFT_B_START) {
+            val start = now.toLocalDate().atTime(SHIFT_B_START).atZone(now.zone)
+            ShiftWindow(name = SHIFT_B_NAME, start = start)
+        } else {
+            val start = now.toLocalDate().minusDays(1).atTime(SHIFT_B_START).atZone(now.zone)
+            ShiftWindow(name = SHIFT_B_NAME, start = start)
+        }
+    }
+
+    private fun buildShiftLabels(nowMillis: Long, zoneId: ZoneId): ShiftLabels {
+        val now = Instant.ofEpochMilli(nowMillis).atZone(zoneId)
+        val shift = resolveCurrentShift(now)
+        val currentLabel = "Current ${shift.name} · ${SHIFT_TIME_FORMAT.format(shift.start)}–" +
+            SHIFT_TIME_FORMAT.format(shift.start.plusHours(SHIFT_DURATION_HOURS).minusMillis(1))
+        val previousStart = shift.start.minusHours(SHIFT_DURATION_HOURS)
+        val previousName = if (shift.name == SHIFT_A_NAME) SHIFT_B_NAME else SHIFT_A_NAME
+        val previousLabel = "Previous ${previousName} · ${SHIFT_TIME_FORMAT.format(previousStart)}–" +
+            SHIFT_TIME_FORMAT.format(previousStart.plusHours(SHIFT_DURATION_HOURS).minusMillis(1))
+        return ShiftLabels(current = currentLabel, previous = previousLabel)
+    }
+
+    private fun loadPreviewCounts(period: ExportPeriod) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isPreviewLoading = true, previewError = null)
+            try {
+                val report = reportExportService.buildReport(period.toReportPeriod())
+                val eventIds = report.events.map { it.id }
+                val evidenceCount = if (eventIds.isEmpty()) {
+                    0
+                } else {
+                    eventIds.chunked(EVIDENCE_CHUNK_SIZE).sumOf { chunk -> evidenceDao.listByEvents(chunk).size }
+                }
+                _uiState.value = _uiState.value.copy(
+                    isPreviewLoading = false,
+                    previewCounts = ExportPreviewCounts(
+                        workItems = report.workItems.size,
+                        events = report.events.size,
+                        evidence = evidenceCount,
+                    ),
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isPreviewLoading = false,
+                    previewError = "Unable to load preview counts.",
+                )
+            }
+        }
+    }
+
     companion object {
-        private const val SHIFT_DURATION_MILLIS = 8 * 60 * 60 * 1000L
+        private const val SHIFT_DURATION_HOURS = 12L
+        private val SHIFT_A_START: LocalTime = LocalTime.of(6, 0)
+        private val SHIFT_A_END: LocalTime = LocalTime.of(18, 0)
+        private val SHIFT_B_START: LocalTime = LocalTime.of(18, 0)
+        private const val SHIFT_A_NAME = "Shift A"
+        private const val SHIFT_B_NAME = "Shift B"
+        private const val EVIDENCE_CHUNK_SIZE = 900
         private const val REPORT_JSON_OPERATION = "report_json_export"
         private const val REPORT_CSV_OPERATION = "report_csv_export"
         private const val MANIFEST_OPERATION = "manifest_export"
-        private val REPORT_DATE_FORMAT = DateTimeFormatter.ISO_DATE.withZone(ZoneId.of("UTC"))
+        private val REPORT_DATE_FORMAT = DateTimeFormatter.ISO_DATE
+        private val DAY_LABEL_FORMAT = DateTimeFormatter.ofPattern("MMM d, yyyy")
+        private val SHIFT_TIME_FORMAT = DateTimeFormatter.ofPattern("MMM d HH:mm")
     }
 }
+
+private data class ShiftWindow(
+    val name: String,
+    val start: java.time.ZonedDateTime,
+)
+
+private data class ShiftLabels(
+    val current: String,
+    val previous: String,
+)
