@@ -15,6 +15,8 @@ data class ArTelemetrySnapshot(
     val fps: Double,
     val frameTimeP95Ms: Double,
     val cvLatencyP95Ms: Double,
+    val cvFps: Double,
+    val cvSkippedFrames: Int,
     val performanceMode: String? = null,
 )
 

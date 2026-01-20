@@ -150,6 +150,6 @@ class RealMarkerDetector(
     companion object {
         private const val TAG = "RealMarkerDetector"
         private const val DETECTION_TIMEOUT_MS = 200L
-        private const val DEFAULT_MIN_INTERVAL_MS = 150L
+        private const val DEFAULT_MIN_INTERVAL_MS = 80L
     }
 }

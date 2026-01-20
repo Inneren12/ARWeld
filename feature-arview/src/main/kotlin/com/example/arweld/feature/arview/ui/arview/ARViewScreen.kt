@@ -181,6 +181,8 @@ fun ARViewScreen(
                     renderFps = renderFps,
                     frameTimeP95Ms = arTelemetry.frameTimeP95Ms,
                     cvLatencyP95Ms = arTelemetry.cvLatencyP95Ms,
+                    cvFps = arTelemetry.cvFps,
+                    cvSkippedFrames = arTelemetry.cvSkippedFrames,
                     pointCloudStatus = pointCloudStatus,
                     performanceMode = performanceMode,
                     modifier = Modifier
@@ -314,6 +316,8 @@ private fun DiagnosticOverlay(
     renderFps: Double,
     frameTimeP95Ms: Double,
     cvLatencyP95Ms: Double,
+    cvFps: Double,
+    cvSkippedFrames: Int,
     pointCloudStatus: PointCloudStatusReport,
     performanceMode: PerformanceMode,
     modifier: Modifier = Modifier,
@@ -384,6 +388,16 @@ private fun DiagnosticOverlay(
             )
             Text(
                 text = stringResource(id = R.string.diagnostic_cv_latency_p95, cvLatencyP95Ms),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(id = R.string.diagnostic_cv_fps, cvFps),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(id = R.string.diagnostic_cv_skipped_frames, cvSkippedFrames),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
