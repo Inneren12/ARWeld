@@ -36,11 +36,10 @@ fun ExportCenterRoute(
 
     ExportScreen(
         state = uiState,
-        onSelectPeriod = { viewModel.selectPeriod(it) },
-        onToggleCsv = { viewModel.toggleCsv(it) },
-        onToggleZip = { viewModel.toggleZip(it) },
-        onToggleManifest = { viewModel.toggleManifest(it) },
-        onExport = { viewModel.export(outputRoot) },
+        onSelectPeriodType = { viewModel.selectPeriodType(it) },
+        onSelectShift = { viewModel.selectShift(it) },
+        onSelectDate = { viewModel.selectDate(it) },
+        onToggleEvidenceZip = { viewModel.toggleEvidenceZip(it) },
         onExportDiagnostics = { viewModel.exportDiagnostics(outputRoot) },
         onExportEvidenceZip = { viewModel.exportEvidenceZip(outputRoot) },
         onExportReportJson = { reportJsonLauncher.launch(viewModel.suggestedReportFileName()) },
