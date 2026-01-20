@@ -23,6 +23,11 @@ fun ExportCenterRoute(
     ) { uri ->
         viewModel.exportReportJson(uri)
     }
+    val reportCsvLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv"),
+    ) { uri ->
+        viewModel.exportReportCsv(uri)
+    }
 
     ExportScreen(
         state = uiState,
@@ -33,5 +38,6 @@ fun ExportCenterRoute(
         onExport = { viewModel.export(outputRoot) },
         onExportDiagnostics = { viewModel.exportDiagnostics(outputRoot) },
         onExportReportJson = { reportJsonLauncher.launch(viewModel.suggestedReportFileName()) },
+        onExportReportCsv = { reportCsvLauncher.launch(viewModel.suggestedSummaryCsvFileName()) },
     )
 }

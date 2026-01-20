@@ -12,6 +12,9 @@ import kotlinx.coroutines.withContext
 class ReportExportService @Inject constructor(
     private val reportV1Builder: ReportV1Builder,
     private val reportJsonWriter: ReportJsonWriter,
+    private val csvSummaryBuilder: CsvSummaryBuilder,
+    private val csvWriter: CsvWriter,
+    private val reportCsvWriter: ReportCsvWriter,
 ) {
     suspend fun buildReport(period: ReportPeriod): ReportV1 = withContext(Dispatchers.IO) {
         val report = reportV1Builder.build()
@@ -32,6 +35,20 @@ class ReportExportService @Inject constructor(
         } catch (exception: Exception) {
             ExportResult.Failure(
                 message = exception.message ?: "Unable to write report JSON",
+                throwable = exception,
+            )
+        }
+    }
+
+    suspend fun writeSummaryCsv(uri: Uri, report: ReportV1): ExportResult = withContext(Dispatchers.IO) {
+        try {
+            val summary = csvSummaryBuilder.build(report)
+            val csv = csvWriter.write(summary.header, summary.rows)
+            val bytes = reportCsvWriter.writeCsv(uri, csv)
+            ExportResult.Success(bytesWritten = bytes)
+        } catch (exception: Exception) {
+            ExportResult.Failure(
+                message = exception.message ?: "Unable to write summary CSV",
                 throwable = exception,
             )
         }
