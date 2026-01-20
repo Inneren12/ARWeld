@@ -104,6 +104,7 @@ fun ARViewScreen(
     val trackingStatus by controller.trackingStatus.collectAsState()
     val alignmentScore by controller.alignmentScore.collectAsState()
     val alignmentDriftMm by controller.alignmentDriftMm.collectAsState()
+    val alignmentDegraded by controller.alignmentDegraded.collectAsState()
     val detectedMarkers by controller.detectedMarkers.collectAsState()
     val intrinsicsReady by controller.intrinsicsAvailable.collectAsState()
     val renderFps by controller.renderFps.collectAsState()
@@ -158,6 +159,10 @@ fun ARViewScreen(
                 }
                 if (deviceHealth.isDeviceHot) {
                     ThermalWarningBanner()
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                if (alignmentDegraded) {
+                    AlignmentDriftBanner()
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 if (!intrinsicsReady) {
@@ -411,6 +416,23 @@ private fun ThermalWarningBanner(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onErrorContainer,
+        )
+    }
+}
+
+@Composable
+private fun AlignmentDriftBanner(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.95f),
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 2.dp,
+    ) {
+        Text(
+            text = stringResource(id = R.string.alignment_drift_banner),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
         )
     }
 }

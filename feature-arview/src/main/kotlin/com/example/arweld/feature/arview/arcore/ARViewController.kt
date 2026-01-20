@@ -33,6 +33,7 @@ import com.example.arweld.feature.arview.marker.SimulatedMarkerDetector
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
 import com.example.arweld.feature.arview.alignment.RigidTransformSolver
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
+import com.example.arweld.feature.arview.alignment.DriftMonitor
 import com.example.arweld.feature.arview.arcore.ArScreenshotRegistry
 import com.example.arweld.feature.arview.pose.MarkerPoseEstimator
 import com.example.arweld.feature.arview.pose.MarkerPoseEstimateResult
@@ -109,6 +110,8 @@ class ARViewController(
     private val lastCvRunNs = AtomicLong(0L)
     private val cvThrottleNs = AtomicLong(DEFAULT_CV_THROTTLE_NS)
     private var lastDriftEstimateMm: Double = 0.0
+    private var lastResidualMm: Double = 0.0
+    private val driftMonitor = DriftMonitor()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
@@ -122,6 +125,8 @@ class ARViewController(
     val alignmentScore: StateFlow<Float> = _alignmentScore
     private val _alignmentDriftMm = MutableStateFlow(0.0)
     val alignmentDriftMm: StateFlow<Double> = _alignmentDriftMm
+    private val _alignmentDegraded = MutableStateFlow(false)
+    val alignmentDegraded: StateFlow<Boolean> = _alignmentDegraded
     private val _manualAlignmentState = MutableStateFlow(ManualAlignmentState())
     val manualAlignmentState: StateFlow<ManualAlignmentState> = _manualAlignmentState
     private val _pointCloudStatus = MutableStateFlow(PointCloudStatusReport())
@@ -429,7 +434,7 @@ class ARViewController(
     fun startManualAlignment() {
         manualAlignmentPoints.clear()
         modelAligned.set(false)
-        _alignmentScore.value = 0f
+        updateAlignmentScore(0f)
         smoothedPose = null
         lastAppliedPose.set(null)
         lastManualResetNs = System.nanoTime()
@@ -443,7 +448,7 @@ class ARViewController(
     fun resetManualAlignment() {
         manualAlignmentPoints.clear()
         modelAligned.set(false)
-        _alignmentScore.value = 0f
+        updateAlignmentScore(0f)
         smoothedPose = null
         lastAppliedPose.set(null)
         lastManualResetNs = System.nanoTime()
@@ -456,6 +461,7 @@ class ARViewController(
 
     fun cancelManualAlignment() {
         manualAlignmentPoints.clear()
+        resetDriftMonitor()
         lastManualResetNs = 0L
         _manualAlignmentState.value = ManualAlignmentState(
             isActive = false,
@@ -495,6 +501,7 @@ class ARViewController(
 
         val resolvedPose = refined?.worldZonePose ?: alignmentCandidates.first().second
         val driftMm = refined?.residualErrorMm ?: 0.0
+        lastResidualMm = driftMm
         val smoothed = smoothPose(resolvedPose, markerCount)
         val previousPose = lastAppliedPose.get()
         val poseChanged = isPoseSignificantlyDifferent(previousPose, smoothed)
@@ -504,7 +511,7 @@ class ARViewController(
             modelAligned.set(true)
             lastAlignmentSetNs.set(System.nanoTime())
             lastAppliedPose.set(smoothed)
-            _alignmentScore.value = computeAlignmentScore(markerCount)
+            updateAlignmentScore(computeAlignmentScore(markerCount))
             logMarkerAlignmentIfNeeded(
                 markerId = primaryMarkerId,
                 transform = smoothed,
@@ -512,7 +519,7 @@ class ARViewController(
             )
         } else if (modelAligned.get()) {
             lastAlignmentSetNs.set(System.nanoTime())
-            _alignmentScore.value = computeAlignmentScore(markerCount)
+            updateAlignmentScore(computeAlignmentScore(markerCount))
         }
 
         logAlignmentDiagnostics(markerCount, driftMm)
@@ -552,7 +559,8 @@ class ARViewController(
             lastAlignmentSetNs.set(System.nanoTime())
             lastAppliedPose.set(solvedPose)
             smoothedPose = solvedPose
-            _alignmentScore.value = 1f
+            lastResidualMm = 0.0
+            updateAlignmentScore(1f)
             manualAlignmentPoints.clear()
             _manualAlignmentState.value = ManualAlignmentState(
                 isActive = false,
@@ -578,7 +586,12 @@ class ARViewController(
         if (!modelAligned.get()) return 0f
         val recencyScore = computeRecencyScore()
         val markerScore = (markerCount.toFloat() / MAX_MARKER_COUNT_FOR_SCORE).coerceIn(0f, 1f)
-        return (markerScore * MARKER_SCORE_WEIGHT + recencyScore * RECENCY_SCORE_WEIGHT).coerceIn(0f, 1f)
+        val residualScore = computeResidualScore(lastResidualMm)
+        return (
+            markerScore * MARKER_SCORE_WEIGHT +
+                recencyScore * RECENCY_SCORE_WEIGHT +
+                residualScore * RESIDUAL_SCORE_WEIGHT
+            ).coerceIn(0f, 1f)
     }
 
     private fun computeRecencyScore(): Float {
@@ -586,6 +599,12 @@ class ARViewController(
         if (lastAlignmentNs == 0L) return 0f
         val elapsed = System.nanoTime() - lastAlignmentNs
         val normalized = 1f - (elapsed.toDouble() / RECENT_ALIGNMENT_HORIZON_NS.toDouble()).toFloat()
+        return normalized.coerceIn(0f, 1f)
+    }
+
+    private fun computeResidualScore(residualMm: Double): Float {
+        if (residualMm <= RESIDUAL_SCORE_MIN_MM) return 1f
+        val normalized = 1f - (residualMm / RESIDUAL_SCORE_MAX_MM).toFloat()
         return normalized.coerceIn(0f, 1f)
     }
 
@@ -632,7 +651,32 @@ class ARViewController(
     }
 
     private fun updateAlignmentScoreForStaleFrame() {
-        _alignmentScore.value = computeAlignmentScore(0)
+        updateAlignmentScore(computeAlignmentScore(0))
+    }
+
+    private fun updateAlignmentScore(score: Float) {
+        _alignmentScore.value = score
+        if (!modelAligned.get()) {
+            resetDriftMonitor()
+            return
+        }
+        val state = driftMonitor.update(score)
+        _alignmentDegraded.value = state.isDegraded
+        if (state.changed) {
+            diagnosticsRecorder?.recordEvent(
+                name = "alignment_drift",
+                attributes = mapOf(
+                    "state" to if (state.isDegraded) "degraded" else "recovered",
+                    "score" to "%.3f".format(state.averageScore),
+                    "timestamp" to System.currentTimeMillis().toString(),
+                ),
+            )
+        }
+    }
+
+    private fun resetDriftMonitor() {
+        driftMonitor.reset()
+        _alignmentDegraded.value = false
     }
 
     private fun isPoseSignificantlyDifferent(previousPose: Pose3D?, newPose: Pose3D): Boolean {
@@ -714,8 +758,11 @@ class ARViewController(
         private val RECENT_ALIGNMENT_HORIZON_NS = TimeUnit.SECONDS.toNanos(3)
         private val ALIGNMENT_EVENT_MIN_INTERVAL_NS = TimeUnit.SECONDS.toNanos(1)
         private const val MAX_MARKER_COUNT_FOR_SCORE = 3f
-        private const val MARKER_SCORE_WEIGHT = 0.4f
-        private const val RECENCY_SCORE_WEIGHT = 0.6f
+        private const val MARKER_SCORE_WEIGHT = 0.2f
+        private const val RECENCY_SCORE_WEIGHT = 0.3f
+        private const val RESIDUAL_SCORE_WEIGHT = 0.5f
+        private const val RESIDUAL_SCORE_MIN_MM = 1.0
+        private const val RESIDUAL_SCORE_MAX_MM = 15.0
         private const val POSITION_EPS_METERS = 0.01
         private const val ANGLE_EPS_RADIANS = 0.05
         private const val POINT_CLOUD_LOG_INTERVAL_MS = 3000L
