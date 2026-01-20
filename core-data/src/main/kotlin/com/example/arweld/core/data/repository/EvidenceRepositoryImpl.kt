@@ -2,6 +2,7 @@ package com.example.arweld.core.data.repository
 
 import android.net.Uri
 import androidx.core.net.toFile
+import android.webkit.MimeTypeMap
 import com.example.arweld.core.data.db.dao.EvidenceDao
 import com.example.arweld.core.data.evidence.toDomain
 import com.example.arweld.core.data.evidence.toEntity
@@ -14,12 +15,16 @@ import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.core.domain.evidence.Evidence
 import com.example.arweld.core.domain.evidence.EvidenceKind
 import com.example.arweld.core.domain.evidence.EvidenceRepository
+import com.example.arweld.core.domain.sync.SyncQueueRepository
+import com.example.arweld.core.domain.sync.SyncQueueStatus
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -32,6 +37,7 @@ class EvidenceRepositoryImpl @Inject constructor(
     private val evidenceDao: EvidenceDao,
     private val eventRepository: EventRepository,
     private val authRepository: AuthRepository,
+    private val syncQueueRepository: SyncQueueRepository,
     private val deviceInfoProvider: DeviceInfoProvider,
     private val timeProvider: TimeProvider,
 ) : EvidenceRepository {
@@ -128,6 +134,7 @@ class EvidenceRepositoryImpl @Inject constructor(
     ) {
         saveEvidence(evidence)
         appendEvidenceCapturedEvent(evidence, meta)
+        enqueueEvidenceForSync(evidence)
     }
 
     private suspend fun appendEvidenceCapturedEvent(
@@ -162,6 +169,34 @@ class EvidenceRepositoryImpl @Inject constructor(
         )
 
         eventRepository.appendEvent(event)
+    }
+
+    private suspend fun enqueueEvidenceForSync(evidence: Evidence) {
+        val fileExists = withContext(Dispatchers.IO) {
+            runCatching { Uri.parse(evidence.uri).toFile().exists() }
+                .getOrDefault(false)
+        }
+        val status = if (fileExists) SyncQueueStatus.PENDING else SyncQueueStatus.ERROR
+        syncQueueRepository.enqueueEvidence(
+            evidence = evidence,
+            mimeType = resolveMimeType(evidence),
+            status = status,
+        )
+    }
+
+    private fun resolveMimeType(evidence: Evidence): String {
+        val extension = MimeTypeMap.getFileExtensionFromUrl(evidence.uri)
+            ?.lowercase()
+            .orEmpty()
+        val mimeType = MimeTypeMap.getSingleton()
+            .getMimeTypeFromExtension(extension)
+        if (!mimeType.isNullOrBlank()) return mimeType
+        return when (evidence.kind) {
+            EvidenceKind.PHOTO -> "image/jpeg"
+            EvidenceKind.AR_SCREENSHOT -> "image/png"
+            EvidenceKind.VIDEO -> "video/*"
+            EvidenceKind.MEASUREMENT -> "text/plain"
+        }
     }
 }
 

@@ -55,6 +55,9 @@ class EventRepositoryImpl @Inject constructor(
         eventType = type.name,
         workItemId = workItemId,
         payloadJson = EventJson.encode(this),
+        fileUri = "",
+        mimeType = "",
+        sizeBytes = 0L,
         status = SyncQueueStatus.PENDING.name,
         createdAt = timestamp,
     )

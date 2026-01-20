@@ -42,6 +42,9 @@ class SyncQueueDaoTest {
             eventType = "WORK_STARTED",
             workItemId = "w1",
             payloadJson = "{}",
+            fileUri = "",
+            mimeType = "",
+            sizeBytes = 0L,
             status = "PENDING",
             createdAt = 10L,
         )
@@ -51,6 +54,9 @@ class SyncQueueDaoTest {
             eventType = "QC_FAILED_REWORK",
             workItemId = "w1",
             payloadJson = "{}",
+            fileUri = "",
+            mimeType = "",
+            sizeBytes = 0L,
             status = "ERROR",
             createdAt = 20L,
         )

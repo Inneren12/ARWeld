@@ -4,6 +4,7 @@ import com.example.arweld.core.data.db.dao.SyncQueueDao
 import com.example.arweld.core.data.db.entity.SyncQueueEntity
 import com.example.arweld.core.domain.event.Event
 import com.example.arweld.core.domain.event.EventJson
+import com.example.arweld.core.domain.evidence.Evidence
 import com.example.arweld.core.domain.sync.SyncQueueItem
 import com.example.arweld.core.domain.sync.SyncQueueRepository
 import com.example.arweld.core.domain.sync.SyncQueueStatus
@@ -24,8 +25,32 @@ class SyncQueueRepositoryImpl @Inject constructor(
             eventType = event.type.name,
             workItemId = event.workItemId,
             payloadJson = EventJson.encode(event),
+            fileUri = "",
+            mimeType = "",
+            sizeBytes = 0L,
             status = SyncQueueStatus.PENDING.name,
             createdAt = event.timestamp,
+        )
+        syncQueueDao.enqueueEvent(item)
+        return item.toDomain()
+    }
+
+    override suspend fun enqueueEvidence(
+        evidence: Evidence,
+        mimeType: String,
+        status: SyncQueueStatus,
+    ): SyncQueueItem {
+        val item = SyncQueueEntity(
+            id = UUID.randomUUID().toString(),
+            type = SyncQueueType.EVIDENCE.name,
+            eventType = evidence.kind.name,
+            workItemId = evidence.workItemId,
+            payloadJson = "",
+            fileUri = evidence.uri,
+            mimeType = mimeType,
+            sizeBytes = evidence.sizeBytes,
+            status = status.name,
+            createdAt = evidence.createdAt,
         )
         syncQueueDao.enqueueEvent(item)
         return item.toDomain()
@@ -54,6 +79,9 @@ private fun SyncQueueEntity.toDomain(): SyncQueueItem = SyncQueueItem(
     eventType = eventType,
     workItemId = workItemId,
     payloadJson = payloadJson,
+    fileUri = fileUri,
+    mimeType = mimeType,
+    sizeBytes = sizeBytes,
     status = SyncQueueStatus.valueOf(status),
     createdAt = createdAt,
 )

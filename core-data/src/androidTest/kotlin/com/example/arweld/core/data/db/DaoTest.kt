@@ -115,6 +115,9 @@ class DaoTest {
             eventType = "WORK_STARTED",
             workItemId = "w1",
             payloadJson = "{}",
+            fileUri = "",
+            mimeType = "",
+            sizeBytes = 0L,
             status = "PENDING",
             createdAt = 50L,
         )
@@ -124,6 +127,9 @@ class DaoTest {
             eventType = "QC_STARTED",
             workItemId = "w1",
             payloadJson = "{}",
+            fileUri = "",
+            mimeType = "",
+            sizeBytes = 0L,
             status = "PENDING",
             createdAt = 75L,
         )
@@ -133,6 +139,9 @@ class DaoTest {
             eventType = "WORK_READY_FOR_QC",
             workItemId = "w2",
             payloadJson = "{}",
+            fileUri = "",
+            mimeType = "",
+            sizeBytes = 0L,
             status = "ERROR",
             createdAt = 10L,
         )
