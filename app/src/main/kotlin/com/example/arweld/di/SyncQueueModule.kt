@@ -3,8 +3,10 @@ package com.example.arweld.di
 import com.example.arweld.core.domain.sync.SyncQueueProcessor
 import com.example.arweld.core.domain.sync.SyncQueueRepository
 import com.example.arweld.core.domain.sync.SyncQueueWorkHandler
+import com.example.arweld.core.domain.sync.SyncRetryHandler
 import com.example.arweld.core.domain.sync.SyncQueueWriter
 import com.example.arweld.sync.NoOpSyncQueueWorkHandler
+import com.example.arweld.sync.NoOpSyncRetryHandler
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -21,6 +23,12 @@ abstract class SyncQueueModule {
     abstract fun bindSyncQueueWorkHandler(
         impl: NoOpSyncQueueWorkHandler,
     ): SyncQueueWorkHandler
+
+    @Binds
+    @Singleton
+    abstract fun bindSyncRetryHandler(
+        impl: NoOpSyncRetryHandler,
+    ): SyncRetryHandler
 
     companion object {
         @Provides

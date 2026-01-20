@@ -22,4 +22,5 @@ data class SyncQueueEntity(
     val sizeBytes: Long = 0,
     val status: String,
     val createdAt: Long,
+    val lastAttemptAt: Long? = null,
 )

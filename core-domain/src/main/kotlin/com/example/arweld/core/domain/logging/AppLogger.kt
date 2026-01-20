@@ -32,4 +32,14 @@ interface AppLogger {
      * Records unexpected errors that bubble up to the UI.
      */
     fun logUnhandledError(throwable: Throwable)
+
+    /**
+     * Records a retry attempt for the offline sync queue.
+     */
+    fun logSyncRetryAllAttempt(itemCount: Int)
+
+    /**
+     * Records a retry attempt for a single sync queue item.
+     */
+    fun logSyncRetrySingleAttempt(itemId: String)
 }

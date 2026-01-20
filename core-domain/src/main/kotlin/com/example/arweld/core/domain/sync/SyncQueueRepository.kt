@@ -61,6 +61,11 @@ interface SyncQueueRepository {
      * Update the status for a queue item.
      */
     suspend fun updateStatus(id: String, status: SyncQueueStatus)
+
+    /**
+     * Update the last retry attempt timestamp without changing queue state.
+     */
+    suspend fun updateLastAttempt(id: String, timestamp: Long)
 }
 
 data class SyncQueueItem(
@@ -74,6 +79,7 @@ data class SyncQueueItem(
     val sizeBytes: Long,
     val status: SyncQueueStatus,
     val createdAt: Long,
+    val lastAttemptAt: Long?,
 )
 
 enum class SyncQueueStatus {

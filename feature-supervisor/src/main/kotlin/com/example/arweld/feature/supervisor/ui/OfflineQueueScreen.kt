@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +22,8 @@ import java.util.Locale
 @Composable
 fun OfflineQueueScreen(
     state: OfflineQueueUiState,
+    onRetryAll: () -> Unit,
+    retryAllEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -67,6 +70,22 @@ fun OfflineQueueScreen(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(text = "Last enqueue")
                     Text(text = formatEnqueueTimestamp(state.lastEnqueuedAt))
+                }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = "Retry Queue (stub)", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "Retries are disabled until server sync is available.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Button(
+                    onClick = onRetryAll,
+                    enabled = retryAllEnabled,
+                ) {
+                    Text(text = "Retry all pending")
                 }
             }
         }

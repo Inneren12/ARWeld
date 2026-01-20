@@ -59,6 +59,8 @@ class ScanCodeSmokeTest {
         override fun logLoginSuccess(user: com.example.arweld.core.domain.model.User) = Unit
         override fun logRepositoryError(operation: String, throwable: Throwable) = Unit
         override fun logUnhandledError(throwable: Throwable) = Unit
+        override fun logSyncRetryAllAttempt(itemCount: Int) = Unit
+        override fun logSyncRetrySingleAttempt(itemId: String) = Unit
     }
 
     @Before

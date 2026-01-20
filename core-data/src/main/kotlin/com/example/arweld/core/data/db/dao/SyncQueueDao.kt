@@ -56,4 +56,12 @@ interface SyncQueueDao {
         id: String,
         status: String,
     )
+
+    @Query(
+        "UPDATE sync_queue SET lastAttemptAt = :timestamp WHERE id = :id"
+    )
+    suspend fun updateLastAttempt(
+        id: String,
+        timestamp: Long,
+    )
 }

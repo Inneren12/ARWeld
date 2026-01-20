@@ -55,6 +55,22 @@ class TimberAppLogger @Inject constructor(
         )
     }
 
+    override fun logSyncRetryAllAttempt(itemCount: Int) {
+        Timber.tag(TAG).i("Sync retry requested for %d items", itemCount)
+        diagnosticsRecorder.recordEvent(
+            name = "sync_retry_all_attempt",
+            attributes = mapOf("itemCount" to itemCount.toString()),
+        )
+    }
+
+    override fun logSyncRetrySingleAttempt(itemId: String) {
+        Timber.tag(TAG).i("Sync retry requested for itemId=%s", itemId)
+        diagnosticsRecorder.recordEvent(
+            name = "sync_retry_single_attempt",
+            attributes = mapOf("itemId" to itemId),
+        )
+    }
+
     private companion object {
         const val TAG = "AppLogger"
     }

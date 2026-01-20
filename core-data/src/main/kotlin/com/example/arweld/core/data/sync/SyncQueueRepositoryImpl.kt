@@ -78,6 +78,10 @@ class SyncQueueRepositoryImpl @Inject constructor(
     override suspend fun updateStatus(id: String, status: SyncQueueStatus) {
         syncQueueDao.updateStatus(id = id, status = status.name)
     }
+
+    override suspend fun updateLastAttempt(id: String, timestamp: Long) {
+        syncQueueDao.updateLastAttempt(id = id, timestamp = timestamp)
+    }
 }
 
 private fun SyncQueueEntity.toDomain(): SyncQueueItem = SyncQueueItem(
@@ -91,4 +95,5 @@ private fun SyncQueueEntity.toDomain(): SyncQueueItem = SyncQueueItem(
     sizeBytes = sizeBytes,
     status = SyncQueueStatus.valueOf(status),
     createdAt = createdAt,
+    lastAttemptAt = lastAttemptAt,
 )
