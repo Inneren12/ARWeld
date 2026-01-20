@@ -106,6 +106,7 @@ class ARViewController(
     private val lastAlignmentEventPose = AtomicReference<Pose3D?>()
     private val lastAppliedPose = AtomicReference<Pose3D?>()
     private var smoothedPose: Pose3D? = null
+    private var hadMarkerPoseLastFrame = false
     private var lastQualityChangeNs: Long = 0L
     private var lastManualResetNs: Long = 0L
     private val lastCvRunNs = AtomicLong(0L)
@@ -407,12 +408,16 @@ class ARViewController(
 
                 _markerWorldPoses.value = worldPoses
                 updateMarkerRois(markers, intrinsics, cameraPoseWorld, frameTimestampNs)
-                if (worldPoses.isNotEmpty()) {
+                val hasMarkerPose = worldPoses.isNotEmpty()
+                val markerPoseReacquired = hasMarkerPose && !hadMarkerPoseLastFrame
+                hadMarkerPoseLastFrame = hasMarkerPose
+                if (hasMarkerPose) {
                     _errorMessage.value = null
                     lastDriftEstimateMm = maybeAlignModel(
                         markerWorldPoses = worldPoses,
                         observations = observations,
                         cameraPoseWorld = cameraPoseWorld,
+                        markerPoseReacquired = markerPoseReacquired,
                     )
                 } else {
                     if (markers.isNotEmpty()) {
@@ -483,6 +488,7 @@ class ARViewController(
         markerWorldPoses: Map<String, Pose3D>,
         observations: List<MultiMarkerPoseRefiner.MarkerObservation>,
         cameraPoseWorld: Pose3D,
+        markerPoseReacquired: Boolean,
     ): Double {
         val alignmentCandidates = markerWorldPoses.mapNotNull { (markerId, pose) ->
             zoneAligner.computeWorldZoneTransform(
@@ -511,7 +517,8 @@ class ARViewController(
         val resolvedPose = refined?.worldZonePose ?: alignmentCandidates.first().second
         val driftMm = refined?.residualErrorMm ?: 0.0
         lastResidualMm = driftMm
-        val smoothed = smoothPose(resolvedPose, markerCount)
+        val resetSmoothing = markerPoseReacquired || !modelAligned.get()
+        val smoothed = smoothPose(resolvedPose, markerCount, resetSmoothing)
         val previousPose = lastAppliedPose.get()
         val poseChanged = isPoseSignificantlyDifferent(previousPose, smoothed)
 
@@ -778,8 +785,10 @@ class ARViewController(
         private const val DRIFT_WARNING_MM = 8.0
         private const val DRIFT_CRITICAL_MM = 15.0
         private const val MULTI_MARKER_THRESHOLD = 2
-        private const val SINGLE_MARKER_SMOOTHING_ALPHA = 0.35
-        private const val MULTI_MARKER_SMOOTHING_ALPHA = 0.55
+        private const val SINGLE_MARKER_POSITION_SMOOTHING_ALPHA = 0.35
+        private const val MULTI_MARKER_POSITION_SMOOTHING_ALPHA = 0.55
+        private const val SINGLE_MARKER_ROTATION_SMOOTHING_ALPHA = 0.25
+        private const val MULTI_MARKER_ROTATION_SMOOTHING_ALPHA = 0.45
         private val DEFAULT_CV_THROTTLE_NS = TimeUnit.MILLISECONDS.toNanos(80)
         private val LOW_FPS_CV_THROTTLE_NS = TimeUnit.MILLISECONDS.toNanos(100)
         private const val LOW_FPS_THRESHOLD = 20.0
@@ -914,22 +923,58 @@ class ARViewController(
         )
     }
 
-    private fun smoothPose(target: Pose3D, markerCount: Int): Pose3D {
+    private fun smoothPose(target: Pose3D, markerCount: Int, reset: Boolean): Pose3D {
         val previous = smoothedPose
-        val alpha = if (markerCount >= MULTI_MARKER_THRESHOLD) {
-            MULTI_MARKER_SMOOTHING_ALPHA
+        val positionAlpha = if (markerCount >= MULTI_MARKER_THRESHOLD) {
+            MULTI_MARKER_POSITION_SMOOTHING_ALPHA
         } else {
-            SINGLE_MARKER_SMOOTHING_ALPHA
+            SINGLE_MARKER_POSITION_SMOOTHING_ALPHA
         }
-        if (previous == null) {
+        val rotationAlpha = if (markerCount >= MULTI_MARKER_THRESHOLD) {
+            MULTI_MARKER_ROTATION_SMOOTHING_ALPHA
+        } else {
+            SINGLE_MARKER_ROTATION_SMOOTHING_ALPHA
+        }
+        if (reset || previous == null) {
             smoothedPose = target
             return target
         }
-        val blendedPosition = previous.position * (1.0 - alpha) + target.position * alpha
-        val blendedRotation = nlerp(previous.rotation, target.rotation, alpha)
+        val blendedPosition = previous.position * (1.0 - positionAlpha) + target.position * positionAlpha
+        val blendedRotation = nlerp(previous.rotation, target.rotation, rotationAlpha)
         val smoothed = Pose3D(blendedPosition, blendedRotation)
+        logPoseSmoothingIfNeeded(
+            previous = previous,
+            raw = target,
+            smoothed = smoothed,
+            markerCount = markerCount,
+            positionAlpha = positionAlpha,
+            rotationAlpha = rotationAlpha,
+        )
         smoothedPose = smoothed
         return smoothed
+    }
+
+    private fun logPoseSmoothingIfNeeded(
+        previous: Pose3D,
+        raw: Pose3D,
+        smoothed: Pose3D,
+        markerCount: Int,
+        positionAlpha: Double,
+        rotationAlpha: Double,
+    ) {
+        if (!BuildConfig.DEBUG) return
+        val rawPositionDeltaMm = (raw.position - previous.position).norm() * 1000.0
+        val smoothedPositionDeltaMm = (smoothed.position - previous.position).norm() * 1000.0
+        val rawAngleDeltaDeg = Math.toDegrees(previous.rotation.angularDistance(raw.rotation))
+        val smoothedAngleDeltaDeg = Math.toDegrees(previous.rotation.angularDistance(smoothed.rotation))
+        Log.d(
+            TAG,
+            "Pose smoothing (markers=$markerCount) posΔ raw=${"%.2f".format(rawPositionDeltaMm)}mm " +
+                "smooth=${"%.2f".format(smoothedPositionDeltaMm)}mm " +
+                "rotΔ raw=${"%.2f".format(rawAngleDeltaDeg)}° " +
+                "smooth=${"%.2f".format(smoothedAngleDeltaDeg)}° " +
+                "alpha(pos=${"%.2f".format(positionAlpha)}, rot=${"%.2f".format(rotationAlpha)})",
+        )
     }
 
     private fun nlerp(from: Quaternion, to: Quaternion, alpha: Double): Quaternion {
