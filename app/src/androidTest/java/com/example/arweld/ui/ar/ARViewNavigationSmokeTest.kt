@@ -94,6 +94,8 @@ class ARViewNavigationSmokeTest {
             }
         }
 
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("AR View").assertIsDisplayed()
+        composeRule.onNodeWithText("ARCore disabled for instrumentation tests").assertIsDisplayed()
     }
 }

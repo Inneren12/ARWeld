@@ -85,7 +85,9 @@ class ARViewSmokeTest {
             }
         }
 
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("AR View").assertIsDisplayed()
+        composeRule.onNodeWithText("ARCore disabled for instrumentation tests").assertIsDisplayed()
         composeRule.onNodeWithText("Tracking poor").assertIsDisplayed()
         composeRule.onNodeWithText("Markers: 0").assertIsDisplayed()
     }

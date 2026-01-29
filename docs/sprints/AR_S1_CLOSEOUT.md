@@ -108,3 +108,27 @@ This document accumulates sprint-closeout notes for AR Sprint 1 tasks.
 ### Commands Run
 
 - Not run (not executed in this change)
+
+---
+
+## P1-AR-S1-11 — Add AR screen launch smoke instrumentation test (no AR detection required)
+
+**Status:** Complete
+**Date:** 2026-03-02
+
+### Summary
+
+- Added a test-only Hilt module that swaps in a fake AR session manager and simulated marker detector.
+- Expanded the AR view instrumentation smoke tests to navigate through AppNavigation and assert the AR screen renders without relying on ARCore.
+
+### Moved/Owned Paths
+
+- `app/src/androidTest/java/com/example/arweld/ui/ar/ArCoreTestModule.kt`
+- `app/src/androidTest/java/com/example/arweld/ui/ar/ARViewSmokeTest.kt`
+- `app/src/androidTest/java/com/example/arweld/ui/ar/ARViewNavigationSmokeTest.kt`
+
+### Commands Run
+
+- `./gradlew :app:connectedDebugAndroidTest`
+
+---
