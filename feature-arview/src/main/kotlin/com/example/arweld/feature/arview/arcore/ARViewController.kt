@@ -12,8 +12,10 @@ import androidx.core.content.getSystemService
 import com.example.arweld.core.ar.api.ArCaptureMeta
 import com.example.arweld.core.ar.api.ArCaptureRequest
 import com.example.arweld.core.ar.api.ArCaptureResult
+import com.example.arweld.core.ar.api.ArCaptureServiceFactory
 import com.example.arweld.core.ar.api.ArCaptureServiceRegistry
-import com.example.arweld.core.ar.api.createSurfaceViewCaptureService
+import com.example.arweld.core.ar.api.ArSessionManager
+import com.example.arweld.core.ar.api.MarkerDetectorFactory
 import com.example.arweld.core.domain.diagnostics.ArTelemetrySnapshot
 import com.example.arweld.core.domain.diagnostics.DeviceHealthProvider
 import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
@@ -26,17 +28,15 @@ import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Quaternion
 import com.example.arweld.core.domain.spatial.Vector3
 import com.example.arweld.core.domain.spatial.angularDistance
-import com.example.arweld.core.ar.arcore.ARCoreSessionManager
 import com.example.arweld.core.ar.marker.DetectedMarker
 import com.example.arweld.core.ar.marker.MarkerDetector
-import com.example.arweld.core.ar.marker.RealMarkerDetector
 import com.example.arweld.feature.arview.marker.SimulatedMarkerDetector
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
 import com.example.arweld.feature.arview.alignment.RigidTransformSolver
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.core.ar.alignment.DriftMonitor
-import com.example.arweld.core.ar.pose.MarkerPoseEstimator
 import com.example.arweld.core.ar.pose.MarkerPoseEstimateResult
+import com.example.arweld.core.ar.pose.MarkerPoseEstimator
 import com.example.arweld.core.ar.pose.MultiMarkerPoseRefiner
 import com.example.arweld.feature.arview.render.AndroidFilamentModelLoader
 import com.example.arweld.feature.arview.render.LoadedModel
@@ -71,7 +71,16 @@ class ARViewController(
     context: Context,
     private val alignmentEventLogger: AlignmentEventLogger,
     private val workItemId: String?,
-    markerDetector: MarkerDetector? = null,
+    private val sessionManager: ArSessionManager,
+    private val modelLoader: ModelLoader,
+    private val markerDetectorFactory: MarkerDetectorFactory,
+    private val markerPoseEstimator: MarkerPoseEstimator,
+    private val multiMarkerPoseRefiner: MultiMarkerPoseRefiner,
+    private val zoneRegistry: ZoneRegistry,
+    private val zoneAligner: ZoneAligner,
+    private val rigidTransformSolver: RigidTransformSolver,
+    private val driftMonitor: DriftMonitor,
+    private val captureServiceFactory: ArCaptureServiceFactory,
     private val diagnosticsRecorder: DiagnosticsRecorder? = null,
     private val deviceHealthProvider: DeviceHealthProvider? = null,
 ) {
@@ -80,16 +89,9 @@ class ARViewController(
     private val surfaceView: SurfaceView = SurfaceView(context).apply {
         setBackgroundColor(Color.BLACK)
     }
-    private val sessionManager = ARCoreSessionManager(appContext)
-    private val modelLoader: ModelLoader = AndroidFilamentModelLoader(appContext)
     private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
-    private val captureService = createSurfaceViewCaptureService(surfaceView)
-    private val markerDetector: MarkerDetector = markerDetector ?: RealMarkerDetector(::currentRotation)
-    private val markerPoseEstimator = MarkerPoseEstimator()
-    private val multiMarkerPoseRefiner = MultiMarkerPoseRefiner()
-    private val zoneRegistry = ZoneRegistry.fromAssets(appContext.assets)
-    private val zoneAligner = ZoneAligner(zoneRegistry)
-    private val rigidTransformSolver = RigidTransformSolver()
+    private val captureService = captureServiceFactory.create(surfaceView)
+    private val markerDetector: MarkerDetector = markerDetectorFactory.create(::currentRotation)
     private val detectorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isDetectingMarkers = AtomicBoolean(false)
     private val modelAligned = AtomicBoolean(false)
@@ -112,7 +114,6 @@ class ARViewController(
     private val lastMarkerRoiTimestampNs = AtomicLong(0L)
     private var lastDriftEstimateMm: Double = 0.0
     private var lastResidualMm: Double = 0.0
-    private val driftMonitor = DriftMonitor()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
