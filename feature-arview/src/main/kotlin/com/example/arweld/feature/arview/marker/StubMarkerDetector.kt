@@ -1,5 +1,7 @@
 package com.example.arweld.feature.arview.marker
 
+import com.example.arweld.core.ar.marker.DetectedMarker
+import com.example.arweld.core.ar.marker.MarkerDetector
 import com.google.ar.core.Frame
 
 /**

@@ -8,7 +8,7 @@ import com.example.arweld.core.domain.spatial.Vector3
 import com.example.arweld.core.ar.spatial.orderCornersClockwiseFromTopLeft
 import com.example.arweld.core.ar.spatial.toPoint2f
 import com.example.arweld.core.ar.spatial.toPointF
-import com.example.arweld.feature.arview.marker.DetectedMarker
+import com.example.arweld.core.ar.marker.DetectedMarker
 import kotlin.math.abs
 import kotlin.math.sqrt
 

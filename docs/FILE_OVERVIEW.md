@@ -18,7 +18,7 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - Filament renderer bridge: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARSceneRenderer.kt` renders the GLB using either a fallback anchor or the computed `T_world_zone` once marker alignment is available (S2-18).
 - GLB loader: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/render/AndroidFilamentModelLoader.kt` (implements `ModelLoader.loadGlbFromAssets`).
 - Fixed AR test model render entry: `ARViewController.loadTestNodeModel()` attaches the test node to the scene via `ARSceneRenderer`.
-- Marker detection pipeline: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/marker/MarkerDetector.kt` defines the API + `DetectedMarker` result (string id + four ordered corners + timestamp). `RealMarkerDetector` wraps ML Kit Barcode (QR/DataMatrix/Aztec) over `Frame.acquireCameraImage()` buffers and maps `cornerPoints` back to camera image coordinates; `SimulatedMarkerDetector` remains for debug triggers.
+- Marker detection pipeline: `core-ar/src/main/kotlin/com/example/arweld/core/ar/marker/MarkerDetector.kt` defines the API + `DetectedMarker` result (string id + four ordered corners + timestamp). `RealMarkerDetector` wraps ML Kit Barcode (QR/DataMatrix/Aztec) over `Frame.acquireCameraImage()` buffers and maps `cornerPoints` back to camera image coordinates; `feature-arview/.../marker/SimulatedMarkerDetector.kt` remains for debug triggers.
 - Frame wiring: `ARSceneRenderer` forwards each ARCore `Frame` to `ARViewController`, which invokes `MarkerDetector.detectMarkers(frame)` off the UI thread and exposes the latest results via `ARViewController.detectedMarkers` for downstream pose estimation/alignment consumers.
 - Marker→zone transforms: `core-domain/src/main/kotlin/com/example/arweld/core/domain/spatial/ZoneTransform.kt` defines `markerId` + `T_marker_zone` (`Pose3D`), with a hardcoded registry at `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/zone/ZoneRegistry.kt` (S2-18).
 - Zone/world computation: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/zone/ZoneAligner.kt` multiplies `T_world_marker * T_marker_zone` to produce `T_world_zone`, which `ARViewController` applies to `ARSceneRenderer` so the model root aligns to the marker once detected.
@@ -120,11 +120,16 @@ ARWeld/
 │       ├── src/main/kotlin/com/example/arweld/core/ar/
 │       │   ├── api/                       # Public AR interfaces
 │       │   │   └── ArEngine.kt            # Core AR engine interface
+│       │   ├── marker/                    # Marker detection pipeline
+│       │   │   ├── MarkerDetector.kt      # Marker detector interface + DetectedMarker
+│       │   │   └── RealMarkerDetector.kt  # ML Kit barcode-based detector
 │       │   └── spatial/                   # Spatial/math helpers for AR engine
 │       │       ├── Point2f.kt             # Pure Kotlin 2D point + Android PointF converters
 │       │       └── CornerOrdering.kt      # Clockwise corner ordering for markers
 │       ├── src/test/kotlin/com/example/arweld/core/ar/spatial/
 │       │   └── CornerOrderingTest.kt      # Unit tests for corner ordering
+│       ├── src/test/kotlin/com/example/arweld/core/ar/marker/
+│       │   └── RealMarkerDetectorTest.kt  # Unit tests for marker rotation/corner mapping
 │       ├── src/main/AndroidManifest.xml
 │       └── build.gradle.kts
 │
@@ -1114,6 +1119,7 @@ androidTestImplementation(libs.androidx.junit)
 |------|----------|
 | Core AR engine interface | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArEngine.kt` |
 | AR spatial helpers (Point2f, corner ordering) | `core-ar/src/main/kotlin/com/example/arweld/core/ar/spatial/` |
+| Marker detection interface + default impl | `core-ar/src/main/kotlin/com/example/arweld/core/ar/marker/` |
 | ARCore session lifecycle manager | `core-ar/src/main/kotlin/com/example/arweld/core/ar/arcore/ARCoreSessionManager.kt` |
 | Domain models (WorkItem, Event, etc.) | `core-domain/src/main/kotlin/com/example/arweld/core/domain/` |
 | Role enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/model/Role.kt` ✅ S1-04 |

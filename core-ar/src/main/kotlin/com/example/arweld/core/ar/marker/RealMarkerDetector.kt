@@ -1,4 +1,4 @@
-package com.example.arweld.feature.arview.marker
+package com.example.arweld.core.ar.marker
 
 import android.graphics.Point
 import android.graphics.PointF
@@ -7,7 +7,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
 import androidx.annotation.VisibleForTesting
-import com.example.arweld.feature.arview.BuildConfig
+import com.example.arweld.core.ar.BuildConfig
 import com.example.arweld.core.ar.spatial.Point2f
 import com.example.arweld.core.ar.spatial.orderCornersClockwiseFromTopLeft
 import com.example.arweld.core.ar.spatial.toPoint2f

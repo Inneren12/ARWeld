@@ -235,6 +235,8 @@ Android library module providing the core AR engine interface and rendering prim
 **Key Files/Packages:**
 - `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArEngine.kt` — Core AR engine interface
 - `core-ar/src/main/kotlin/com/example/arweld/core/ar/arcore/ARCoreSessionManager.kt` — ARCore Session lifecycle manager (resume/pause/destroy)
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/marker/MarkerDetector.kt` — Marker detector interface + `DetectedMarker` result
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/marker/RealMarkerDetector.kt` — ML Kit barcode (QR/DataMatrix/Aztec) detector on ARCore frames
 
 **Notes:**
 - Separates AR rendering concerns from domain/data logic
@@ -595,7 +597,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - Host AR rendering surface and lifecycle hooks via `ARViewScreen` + `ARViewController`
 - Manage ARCore Session creation/resume/pause through `core-ar`’s `ARCoreSessionManager` (Pixel 9 target)
 - Surface ARCore availability errors to the UI overlay for quick troubleshooting
-- Run marker detection pipeline (pluggable) to return markerId + four ordered corners per frame (S2-16 stub in place)
+- Run marker detection pipeline (pluggable) to return markerId + four ordered corners per frame (S2-16; interface + default impl now in core-ar)
 - Retrieve camera intrinsics from `Camera.imageIntrinsics` and adapt them into domain `CameraIntrinsics`
 - Load GLB assets from `src/main/assets/models` via `render/AndroidFilamentModelLoader.kt` using Filament gltfio
 - Estimate marker pose in world coordinates using PnP/homography (`pose/MarkerPoseEstimator.kt`), composing with the tracked camera pose from ARCore (S2-17)
@@ -625,8 +627,6 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `RigidTransformSolver.kt` — Quaternion-based solver (Horn method) to recover `T_world_model` from 3D-3D correspondences
   - `ManualAlignmentState.kt` — UI-facing state for tap collection progress and status messages
 - `marker/`
-  - `MarkerDetector.kt` — Interface + `DetectedMarker` result with ordered corners/timestamp; operates on ARCore frames
-  - `RealMarkerDetector.kt` — ML Kit barcode (QR/DataMatrix/Aztec) detector on `Frame.acquireCameraImage()` with camera-space corners
   - `SimulatedMarkerDetector.kt` — Debug-only trigger for manual test detections
 - `pose/`
   - `MarkerPoseEstimator.kt` — Computes T_world_marker via planar PnP (homography) using camera intrinsics and AR camera pose
