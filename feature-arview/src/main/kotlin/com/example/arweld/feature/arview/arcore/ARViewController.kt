@@ -28,6 +28,7 @@ import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Quaternion
 import com.example.arweld.core.domain.spatial.Vector3
 import com.example.arweld.core.domain.spatial.angularDistance
+import com.example.arweld.core.ar.arcore.ARCoreSessionManager
 import com.example.arweld.feature.arview.marker.DetectedMarker
 import com.example.arweld.feature.arview.marker.MarkerDetector
 import com.example.arweld.feature.arview.marker.RealMarkerDetector

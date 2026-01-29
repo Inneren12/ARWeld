@@ -218,7 +218,7 @@ ARWeld/
 │       │   ├── arcore/
 │       │   │   ├── ARViewController.kt    # Hosts AR surface, forwards lifecycle callbacks, computes TrackingStatus from camera state/markers/feature points
 │       │   │   ├── ARSceneRenderer.kt     # ARCore → Filament bridge for fixed test model pose (S2-15)
-│       │   │   ├── ARCoreSessionManager.kt # Creates/configures ARCore Session; handles resume/pause/destroy
+│       │   │   ├── (moved) ARCoreSessionManager.kt # Now in core-ar/.../arcore for session lifecycle
 │       │   │   ├── ArCoreMappers.kt       # Maps ARCore Pose/intrinsics → domain Pose3D/CameraIntrinsics for pose estimation
 │       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
 │       │   ├── alignment/
@@ -237,8 +237,8 @@ ARWeld/
 │
 │       ARCore session lifecycle wiring:
 │       - `ARViewLifecycleHost` observes lifecycle events and calls `ARViewController.onResume/onPause/onDestroy`.
-│       - `ARViewController` lazily initializes `ARCoreSessionManager` and forwards display rotation + surface size.
-│       - `ARCoreSessionManager` creates/configures `Session` on first resume (world tracking, horizontal plane finding) and handles pause/destroy with error logging surfaced to the Compose overlay.
+│       - `ARViewController` lazily initializes `core-ar`’s `ARCoreSessionManager` and forwards display rotation + surface size.
+│       - `core-ar`’s `ARCoreSessionManager` creates/configures `Session` on first resume (world tracking, horizontal plane finding) and handles pause/destroy with error logging surfaced to the Compose overlay.
 │       - `ArCoreMappers` adapts `camera.imageIntrinsics` into domain `CameraIntrinsics` and ARCore `Pose` into `Pose3D` for pose estimation.
 │       - Marker pose estimation lives in `pose/MarkerPoseEstimator.kt`, composing `T_world_camera` from ARCore with PnP-derived `T_camera_marker`.
 │       - Tracking quality indicator: `ARViewController` evaluates camera tracking state, recent marker detections, and feature point counts to emit `TrackingStatus` consumed by `ARViewScreen` overlay.
@@ -1114,6 +1114,7 @@ androidTestImplementation(libs.androidx.junit)
 |------|----------|
 | Core AR engine interface | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArEngine.kt` |
 | AR spatial helpers (Point2f, corner ordering) | `core-ar/src/main/kotlin/com/example/arweld/core/ar/spatial/` |
+| ARCore session lifecycle manager | `core-ar/src/main/kotlin/com/example/arweld/core/ar/arcore/ARCoreSessionManager.kt` |
 | Domain models (WorkItem, Event, etc.) | `core-domain/src/main/kotlin/com/example/arweld/core/domain/` |
 | Role enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/model/Role.kt` ✅ S1-04 |
 | Permission enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/Permission.kt` ✅ S1-04 |
