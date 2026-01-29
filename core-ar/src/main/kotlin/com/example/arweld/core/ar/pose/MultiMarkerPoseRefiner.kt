@@ -1,4 +1,4 @@
-package com.example.arweld.feature.arview.pose
+package com.example.arweld.core.ar.pose
 
 import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Quaternion

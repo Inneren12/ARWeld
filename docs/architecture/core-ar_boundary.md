@@ -11,7 +11,6 @@ The `core-ar` module provides the core AR engine interface and rendering primiti
 | Dependency | Allowed | Notes |
 |------------|---------|-------|
 | `core-structural` | **YES** | For StructuralModel, MemberMeshes, Node reference frames |
-| `core-domain` | **YES** | Spatial math types for pose estimation (Pose3D, CameraIntrinsics, Quaternion, Vector3) |
 | ARCore (`com.google.ar:core`) | **YES** | AR session and frame data |
 | Filament (`filament-android`, `gltfio-android`, `filament-utils-android`) | **YES** | 3D rendering |
 | AndroidX Core (`androidx.core:core-ktx`) | **YES** | Minimal Android utilities |
@@ -24,6 +23,7 @@ The `core-ar` module provides the core AR engine interface and rendering primiti
 | Dependency | Forbidden | Reason |
 |------------|-----------|--------|
 | `core-data` | **NO** | Data/persistence belongs in core-data; core-ar is stateless |
+| `core-domain` | **NO** | Domain models and reducers belong in core-domain; core-ar consumes only core-structural spatial types |
 | `core-auth` | **NO** | Auth concerns belong in feature layer |
 | Any `feature-*` module | **NO** | Features depend on core, not vice versa |
 | Jetpack Compose | **NO** | UI composition belongs in feature-arview |
@@ -49,7 +49,6 @@ To verify the module follows these rules, check `core-ar/build.gradle.kts`:
 dependencies {
     // ALLOWED
     implementation(project(":core-structural"))
-    implementation(project(":core-domain")) // spatial math types only
     implementation(libs.google.ar.core)
     implementation(libs.filament.android)
     implementation(libs.filament.gltfio.android)
@@ -78,6 +77,7 @@ The `feature-arview` module should depend on `core-ar` and provide:
 feature-arview
     ├─> core-ar (AR engine interface + rendering)
     ├─> core-domain (for AR alignment events, Evidence models)
+    ├─> core-structural (for shared spatial math types)
     └─> core-data (for EventRepository to log alignment)
 ```
 
@@ -159,18 +159,19 @@ As the AR system evolves, additional APIs may be added to `core-ar`:
 
 All additions must follow the same boundary rules: no domain/data/UI dependencies.
 
-## Pose estimation moved (AR Sprint 1 / Task 05)
+## Pose Estimation + PnP moved in PR P1-AR-S1-06
 
-The planar PnP pose estimator now lives in `core-ar` so the AR engine owns marker pose computation.
+The pose estimation and PnP pipeline now live fully in `core-ar`, and spatial math types were relocated to `core-structural` so `core-ar` no longer depends on `core-domain`.
 
-### Relocated Class
+### Relocated Classes
 
 | Class | Original Location | New Location |
 |-------|-------------------|--------------|
-| `MarkerPoseEstimator` | `feature-arview/.../pose/MarkerPoseEstimator.kt` | `core-ar/.../pose/MarkerPoseEstimator.kt` |
+| `MultiMarkerPoseRefiner` | `feature-arview/.../pose/MultiMarkerPoseRefiner.kt` | `core-ar/.../pose/MultiMarkerPoseRefiner.kt` |
+| `PoseTypes` (Pose3D/Vector3/Quaternion/CameraIntrinsics) | `core-domain/.../spatial/PoseTypes.kt` | `core-structural/.../spatial/PoseTypes.kt` |
 
-### Notes
+### Rationale
 
-- Behavior is unchanged: same homography decomposition, thresholds, and ordering.
-- `feature-arview` now imports the estimator from `core-ar` while retaining all pipeline wiring.
-- `core-ar` depends on `core-domain` **only** for shared spatial math types; no domain logic is used.
+- Keeps pose estimation logic in the core AR engine for reuse and testing.
+- Removes `core-ar`'s dependency on `core-domain` while preserving shared spatial types via `core-structural`.
+- Maintains runtime behavior: only module/package wiring moved.

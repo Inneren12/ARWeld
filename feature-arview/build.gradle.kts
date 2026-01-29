@@ -45,6 +45,7 @@ dependencies {
     implementation(project(":core-domain"))
     implementation(project(":core-data"))
     implementation(project(":core-ar"))
+    implementation(project(":core-structural"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)
