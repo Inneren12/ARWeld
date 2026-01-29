@@ -87,5 +87,6 @@ class ARViewSmokeTest {
 
         composeRule.onNodeWithText("AR View").assertIsDisplayed()
         composeRule.onNodeWithText("Tracking poor").assertIsDisplayed()
+        composeRule.onNodeWithText("Markers: 0").assertIsDisplayed()
     }
 }

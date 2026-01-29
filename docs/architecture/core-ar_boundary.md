@@ -16,6 +16,7 @@ The `core-ar` module provides the core AR engine interface and rendering primiti
 | AndroidX Core (`androidx.core:core-ktx`) | **YES** | Minimal Android utilities |
 | Kotlinx Coroutines | **YES** | Async operations |
 | Kotlinx Serialization | **YES** | JSON serialization for model data |
+| ML Kit Barcode (`com.google.mlkit:barcode-scanning`) | **YES** | Marker detection backend |
 
 ## Forbidden Dependencies
 
@@ -129,6 +130,23 @@ The ARCore session lifecycle manager now lives in `core-ar` so AR session setup 
 - `feature-arview/build.gradle.kts` now includes `implementation(project(":core-ar"))`
 - Unit tests added in `core-ar/src/test/.../spatial/CornerOrderingTest.kt`
 - No behavior changes; move-only refactoring
+
+## Marker Pipeline Moved (AR Sprint 1 / Task 04)
+
+The marker detection interface and default ML Kit-backed implementation now live in `core-ar` so AR engine code owns the detection pipeline.
+
+### Relocated Classes
+
+| Class | Original Location | New Location |
+|-------|-------------------|--------------|
+| `MarkerDetector` | `feature-arview/.../marker/MarkerDetector.kt` | `core-ar/.../marker/MarkerDetector.kt` |
+| `DetectedMarker` | `feature-arview/.../marker/MarkerDetector.kt` | `core-ar/.../marker/MarkerDetector.kt` |
+| `RealMarkerDetector` | `feature-arview/.../marker/RealMarkerDetector.kt` | `core-ar/.../marker/RealMarkerDetector.kt` |
+
+### Notes
+
+- `feature-arview` keeps `SimulatedMarkerDetector` for debug-only triggers and simply depends on the core interface.
+- No behavior changes: detection cadence, thresholds, and rotation handling remain identical.
 
 ## Future Considerations
 

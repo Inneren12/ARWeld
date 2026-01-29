@@ -31,6 +31,9 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -49,10 +52,12 @@ dependencies {
     implementation(libs.filament.android)
     implementation(libs.filament.gltfio.android)
     implementation(libs.filament.utils.android)
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+    testImplementation("org.robolectric:robolectric:4.11.1")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }

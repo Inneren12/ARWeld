@@ -1,6 +1,8 @@
 package com.example.arweld.feature.arview.marker
 
 import android.graphics.PointF
+import com.example.arweld.core.ar.marker.DetectedMarker
+import com.example.arweld.core.ar.marker.MarkerDetector
 import com.google.ar.core.Frame
 import java.util.concurrent.atomic.AtomicReference
 
