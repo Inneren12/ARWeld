@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.withGroovyBuilder
+
 pluginManagement {
     repositories {
         google {
@@ -11,11 +13,19 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+plugins {
+    id("org.jetbrains.kotlinx.kover.aggregation") version "0.8.3"
+}
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
+    }
+}
+extensions.configure<Any>("kover") {
+    withGroovyBuilder {
+        "enableCoverage"()
     }
 }
 

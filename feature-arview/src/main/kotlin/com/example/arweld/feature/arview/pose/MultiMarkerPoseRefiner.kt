@@ -37,10 +37,8 @@ class MultiMarkerPoseRefiner {
         if (observations.isEmpty()) return null
 
         val referencePose = initialPose ?: seedPose(cameraPoseWorld, observations.first())
-        val correspondences = buildCorrespondences(cameraPoseWorld, observations)
-        if (correspondences.isEmpty()) return null
-
-        val (modelPoints, worldPoints) = correspondences
+        val (modelPoints, worldPoints) = buildCorrespondences(cameraPoseWorld, observations)
+        if (modelPoints.isEmpty()) return null
         val delta = solveLinearizedUpdate(referencePose, modelPoints, worldPoints) ?: return null
         val refinedPose = applyDelta(referencePose, delta)
         val residualMm = computeResidualMm(refinedPose, modelPoints, worldPoints)

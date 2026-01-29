@@ -4,7 +4,7 @@ import com.example.arweld.core.data.db.entity.EvidenceEntity
 import com.example.arweld.core.domain.evidence.Evidence
 import com.example.arweld.core.domain.evidence.EvidenceKind
 
-internal fun EvidenceEntity.toDomain(): Evidence = Evidence(
+fun EvidenceEntity.toDomain(): Evidence = Evidence(
     id = id,
     workItemId = workItemId,
     eventId = eventId,
