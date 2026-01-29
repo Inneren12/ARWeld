@@ -148,6 +148,31 @@ The marker detection interface and default ML Kit-backed implementation now live
 - `feature-arview` keeps `SimulatedMarkerDetector` for debug-only triggers and simply depends on the core interface.
 - No behavior changes: detection cadence, thresholds, and rotation handling remain identical.
 
+## Capture Service Added (AR Sprint 1 / Task 09)
+
+The AR screenshot capture flow now lives in `core-ar` as a thin service API. The service performs
+PixelCopy from the AR `SurfaceView`, writes a PNG file under the app-scoped evidence directory, and
+returns the file `Uri` plus size metadata. Tracking/alignment metadata is supplied by the feature
+layer and attached to the result to keep `core-ar` free of domain dependencies.
+
+### API Summary (v0)
+
+- `ArCaptureService.captureScreenshot(request)` returns `ArCaptureResult` with file `Uri`, width,
+  height, timestamp, and optional `ArCaptureMeta`.
+- `createSurfaceViewCaptureService(surfaceView)` constructs the default implementation.
+- `ArCaptureServiceRegistry` exposes the active capture service instance when needed.
+
+### Owned Paths
+
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArCaptureService.kt`
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArCaptureServiceRegistry.kt`
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/capture/SurfaceViewArCaptureService.kt`
+
+### Integration Notes
+
+- `feature-arview` calls the capture service and maps `ArCaptureMeta` to domain `ArScreenshotMeta`
+  when saving evidence via `core-data`.
+
 ## Future Considerations
 
 As the AR system evolves, additional APIs may be added to `core-ar`:

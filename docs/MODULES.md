@@ -604,7 +604,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - Marker-based zone alignment: compute `T_world_zone = T_world_marker * T_marker_zone` via `ZoneAligner` and apply it to the model root when a known marker is seen (S2-18)
 - Manual fallback alignment: collect 3 hitTest world points from user taps, pair them with hardcoded model landmarks (test_node.glb origin plus +0.2m on X and +0.2m on Y on the base), and solve `T_world_model` via `RigidTransformSolver` before applying to the renderer (S2-19)
 - Track AR tracking quality (camera state + marker recency + feature points) and expose `TrackingStatus` to UI overlays; `ARViewScreen` renders a green/yellow/red badge with the current reason (S2-20)
-- Capture AR screenshots via `ArScreenshotService.captureArScreenshot()` using PixelCopy into evidence storage
+- Capture AR screenshots via `ArCaptureService.captureScreenshot()` (core-ar) using PixelCopy into evidence storage
 - Emit AR alignment audit events (`AR_ALIGNMENT_SET`) after marker or manual alignment succeeds (S2-21)
 
 **Dependencies:**
@@ -619,7 +619,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
   - `ARSceneRenderer.kt` — ARCore → Filament bridge; renders the test model using either a fixed pose (pre-alignment) or the computed zone/world pose once marker alignment succeeds
   - `ARCoreSessionManager.kt` — Moved to `core-ar/src/main/kotlin/com/example/arweld/core/ar/arcore/` (session lifecycle)
   - `ARViewLifecycleHost.kt` — Bridges Android lifecycle events to the AR controller
-  - `ArScreenshotService.kt` — Interface for AR screenshot capture (SurfaceView PixelCopy → evidence folder)
+  - `ArCaptureService.kt` — Interface for AR screenshot capture (SurfaceView PixelCopy → evidence folder; owned by core-ar)
   - `ArCoreMappers.kt` — Converts ARCore `Pose`/`CameraIntrinsics` into domain spatial types for pose estimation
 - `alignment/`
   - `ArAlignmentPayload.kt` — JSON payload schema for AR alignment events (method, marker, point count, pose summary)

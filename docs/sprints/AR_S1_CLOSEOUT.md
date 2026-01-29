@@ -52,3 +52,28 @@ This document accumulates sprint-closeout notes for AR Sprint 1 tasks.
 - `./gradlew :feature-arview:compileDebugKotlin`
 - `./gradlew :app:assembleDebug`
 - `./gradlew testDebugUnitTest`
+
+---
+
+## P1-AR-S1-09 — Move AR screenshot capture utility into :core-ar (no logic changes)
+
+**Status:** Complete
+**Date:** 2026-03-02
+
+### Summary
+
+- Introduced `ArCaptureService` (API v0) in `core-ar` and moved SurfaceView PixelCopy capture there.
+- Updated `feature-arview` to call the capture service and map capture metadata back to
+  `ArScreenshotMeta` for QC evidence storage.
+- Added a smoke instrumentation test for the capture service wiring using a test SurfaceView host.
+
+### Moved/Owned Paths
+
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArCaptureService.kt`
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArCaptureServiceRegistry.kt`
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/capture/SurfaceViewArCaptureService.kt`
+- `core-ar/src/androidTest/kotlin/com/example/arweld/core/ar/capture/SurfaceViewArCaptureServiceTest.kt`
+
+### Commands Run
+
+- Not run (not executed in this change)
