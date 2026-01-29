@@ -1,4 +1,4 @@
-package com.example.arweld.feature.arview.tracking
+package com.example.arweld.core.ar.tracking
 
 /**
  * Indicates performance guardrail modes when rendering load changes.

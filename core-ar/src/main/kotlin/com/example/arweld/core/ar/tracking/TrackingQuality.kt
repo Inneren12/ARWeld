@@ -1,4 +1,4 @@
-package com.example.arweld.feature.arview.tracking
+package com.example.arweld.core.ar.tracking
 
 /**
  * Represents the overall reliability of AR tracking for alignment visuals.

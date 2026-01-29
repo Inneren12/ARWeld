@@ -190,3 +190,21 @@ The multi-marker refinement logic is now owned by `core-ar`, with behavior uncha
 
 - Behavior unchanged; move-only refactor.
 - `feature-arview` consumes the refiner via `core-ar` imports.
+
+## Drift + tracking state moved in P1-AR-S1-08
+
+The drift monitoring and tracking-quality state models now live in `core-ar` so the AR engine owns tracking health without UI coupling.
+
+### Moved Files
+
+| Class | Original Location | New Location |
+|-------|-------------------|--------------|
+| `DriftMonitor` | `feature-arview/.../alignment/DriftMonitor.kt` | `core-ar/.../alignment/DriftMonitor.kt` |
+| `TrackingQuality` | `feature-arview/.../tracking/TrackingQuality.kt` | `core-ar/.../tracking/TrackingQuality.kt` |
+| `TrackingStatus` | `feature-arview/.../tracking/TrackingQuality.kt` | `core-ar/.../tracking/TrackingQuality.kt` |
+| `PerformanceMode` | `feature-arview/.../tracking/PerformanceMode.kt` | `core-ar/.../tracking/PerformanceMode.kt` |
+
+### Notes
+
+- No logic changes; thresholds, smoothing, and state transitions remain identical.
+- `feature-arview` continues to own UI mapping (colors, strings, badges) using the core state models.
