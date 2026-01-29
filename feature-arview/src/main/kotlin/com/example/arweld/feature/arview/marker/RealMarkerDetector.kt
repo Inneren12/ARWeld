@@ -8,10 +8,10 @@ import android.util.Log
 import android.view.Surface
 import androidx.annotation.VisibleForTesting
 import com.example.arweld.feature.arview.BuildConfig
-import com.example.arweld.feature.arview.geometry.Point2f
-import com.example.arweld.feature.arview.geometry.orderCornersClockwiseFromTopLeft
-import com.example.arweld.feature.arview.geometry.toPoint2f
-import com.example.arweld.feature.arview.geometry.toPointF
+import com.example.arweld.core.ar.spatial.Point2f
+import com.example.arweld.core.ar.spatial.orderCornersClockwiseFromTopLeft
+import com.example.arweld.core.ar.spatial.toPoint2f
+import com.example.arweld.core.ar.spatial.toPointF
 import com.google.android.gms.tasks.Tasks
 import com.google.ar.core.Frame
 import com.google.ar.core.exceptions.NotYetAvailableException
