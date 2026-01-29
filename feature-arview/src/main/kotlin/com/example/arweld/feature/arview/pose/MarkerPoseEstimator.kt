@@ -5,9 +5,9 @@ import com.example.arweld.core.domain.spatial.CameraIntrinsics
 import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.core.domain.spatial.Quaternion
 import com.example.arweld.core.domain.spatial.Vector3
-import com.example.arweld.feature.arview.geometry.orderCornersClockwiseFromTopLeft
-import com.example.arweld.feature.arview.geometry.toPoint2f
-import com.example.arweld.feature.arview.geometry.toPointF
+import com.example.arweld.core.ar.spatial.orderCornersClockwiseFromTopLeft
+import com.example.arweld.core.ar.spatial.toPoint2f
+import com.example.arweld.core.ar.spatial.toPointF
 import com.example.arweld.feature.arview.marker.DetectedMarker
 import kotlin.math.abs
 import kotlin.math.sqrt

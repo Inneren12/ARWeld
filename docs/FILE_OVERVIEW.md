@@ -118,8 +118,13 @@ ARWeld/
 │   │
 │   └── ar/                                # Core AR engine (NO domain/data deps)
 │       ├── src/main/kotlin/com/example/arweld/core/ar/
-│       │   └── api/                       # Public AR interfaces
-│       │       └── ArEngine.kt            # Core AR engine interface
+│       │   ├── api/                       # Public AR interfaces
+│       │   │   └── ArEngine.kt            # Core AR engine interface
+│       │   └── spatial/                   # Spatial/math helpers for AR engine
+│       │       ├── Point2f.kt             # Pure Kotlin 2D point + Android PointF converters
+│       │       └── CornerOrdering.kt      # Clockwise corner ordering for markers
+│       ├── src/test/kotlin/com/example/arweld/core/ar/spatial/
+│       │   └── CornerOrderingTest.kt      # Unit tests for corner ordering
 │       ├── src/main/AndroidManifest.xml
 │       └── build.gradle.kts
 │
@@ -1108,6 +1113,7 @@ androidTestImplementation(libs.androidx.junit)
 | What | Location |
 |------|----------|
 | Core AR engine interface | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArEngine.kt` |
+| AR spatial helpers (Point2f, corner ordering) | `core-ar/src/main/kotlin/com/example/arweld/core/ar/spatial/` |
 | Domain models (WorkItem, Event, etc.) | `core-domain/src/main/kotlin/com/example/arweld/core/domain/` |
 | Role enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/model/Role.kt` ✅ S1-04 |
 | Permission enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/Permission.kt` ✅ S1-04 |

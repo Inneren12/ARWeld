@@ -80,6 +80,41 @@ feature-arview
     └─> core-data (for EventRepository to log alignment)
 ```
 
+## Moved Spatial Helpers (AR Sprint 1 / Task 02)
+
+The following spatial/math helper classes were moved from `feature-arview` into `core-ar` to enable AR engine code to live in the core module:
+
+### Relocated Classes
+
+| Class | Original Location | New Location |
+|-------|-------------------|--------------|
+| `Point2f` | `feature-arview/.../geometry/Point2f.kt` | `core-ar/.../spatial/Point2f.kt` |
+| `orderCornersClockwiseFromTopLeft()` | `feature-arview/.../geometry/CornerOrdering.kt` | `core-ar/.../spatial/CornerOrdering.kt` |
+
+### Package Change
+
+- **Old package:** `com.example.arweld.feature.arview.geometry`
+- **New package:** `com.example.arweld.core.ar.spatial`
+
+### What Was Moved
+
+1. **Point2f.kt** — Pure Kotlin 2D point class for JVM-compatible geometry operations, plus conversion functions to/from Android `PointF`.
+
+2. **CornerOrdering.kt** — Algorithm to order marker corners clockwise from top-left. Used by marker detection and pose estimation.
+
+### What Was NOT Moved
+
+- **ArCoreMappers.kt** — Stays in `feature-arview` as it bridges ARCore-specific types to domain types
+- **Session/detector/estimator** — Will be moved in subsequent tasks
+- **Smoothing/refine/drift logic** — Out of scope for this task
+
+### Migration Notes
+
+- Consuming code in `feature-arview` updated imports from `feature.arview.geometry` → `core.ar.spatial`
+- `feature-arview/build.gradle.kts` now includes `implementation(project(":core-ar"))`
+- Unit tests added in `core-ar/src/test/.../spatial/CornerOrderingTest.kt`
+- No behavior changes; move-only refactoring
+
 ## Future Considerations
 
 As the AR system evolves, additional APIs may be added to `core-ar`:

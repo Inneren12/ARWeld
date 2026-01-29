@@ -4,8 +4,8 @@ import android.graphics.Point
 import android.graphics.PointF
 import android.graphics.Rect
 import android.view.Surface
-import com.example.arweld.feature.arview.geometry.Point2f
-import com.example.arweld.feature.arview.geometry.orderCornersClockwiseFromTopLeft
+import com.example.arweld.core.ar.spatial.Point2f
+import com.example.arweld.core.ar.spatial.orderCornersClockwiseFromTopLeft
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
