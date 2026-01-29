@@ -39,6 +39,7 @@ android {
 dependencies {
     // Core structural model (pure Kotlin, no Android deps) - for MemberMeshes/referenceFrames
     implementation(project(":core-structural"))
+    implementation(project(":core-domain"))
 
     // AndroidX core (minimal)
     implementation(libs.androidx.core.ktx)

@@ -1,4 +1,4 @@
-package com.example.arweld.feature.arview.pose
+package com.example.arweld.core.ar.pose
 
 import android.graphics.PointF
 import com.example.arweld.core.domain.spatial.CameraIntrinsics
