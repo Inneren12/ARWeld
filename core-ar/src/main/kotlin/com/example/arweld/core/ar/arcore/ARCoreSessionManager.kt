@@ -2,6 +2,7 @@ package com.example.arweld.core.ar.arcore
 
 import android.content.Context
 import android.util.Log
+import com.example.arweld.core.ar.api.ArSessionManager
 import com.google.ar.core.Config
 import com.google.ar.core.Session
 import com.google.ar.core.exceptions.CameraNotAvailableException
@@ -18,9 +19,9 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException
  */
 class ARCoreSessionManager(
     private val context: Context,
-) {
+) : ArSessionManager {
 
-    var session: Session? = null
+    override var session: Session? = null
         private set
 
     /**
@@ -29,7 +30,7 @@ class ARCoreSessionManager(
      * @param displayRotation The current display rotation for camera configuration.
      * @return A nullable error message to be surfaced to UI overlays.
      */
-    fun onResume(displayRotation: Int, viewportWidth: Int, viewportHeight: Int): String? {
+    override fun onResume(displayRotation: Int, viewportWidth: Int, viewportHeight: Int): String? {
         return try {
             val activeSession = session ?: createSession()
             configureSession(activeSession, displayRotation, viewportWidth, viewportHeight)
@@ -56,7 +57,7 @@ class ARCoreSessionManager(
         }
     }
 
-    fun onPause() {
+    override fun onPause() {
         try {
             session?.pause()
         } catch (error: Exception) {
@@ -64,7 +65,7 @@ class ARCoreSessionManager(
         }
     }
 
-    fun onDestroy() {
+    override fun onDestroy() {
         session?.close()
         session = null
     }

@@ -43,7 +43,7 @@ import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.feature.arview.R
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
-import com.example.arweld.feature.arview.arcore.ARViewController
+import com.example.arweld.feature.arview.arcore.ArViewControllerFactory
 import com.example.arweld.feature.arview.arcore.ARViewLifecycleHost
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
 import com.example.arweld.feature.arview.arcore.PointCloudStatusReport
@@ -74,6 +74,12 @@ fun ARViewScreen(
             AlignmentEventLoggerEntryPoint::class.java,
         ).alignmentEventLogger()
     }
+    val controllerFactory = remember(context) {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            ArViewControllerFactoryEntryPoint::class.java,
+        ).arViewControllerFactory()
+    }
     val diagnosticsEntryPoint = remember(context) {
         EntryPointAccessors.fromApplication(
             context.applicationContext,
@@ -90,8 +96,15 @@ fun ARViewScreen(
         (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
     val scope = rememberCoroutineScope()
-    val controller = remember(alignmentEventLogger, workItemId, context, diagnosticsRecorder, deviceHealthProvider) {
-        ARViewController(
+    val controller = remember(
+        alignmentEventLogger,
+        controllerFactory,
+        workItemId,
+        context,
+        diagnosticsRecorder,
+        deviceHealthProvider,
+    ) {
+        controllerFactory.create(
             context = context,
             alignmentEventLogger = alignmentEventLogger,
             workItemId = workItemId,
@@ -264,6 +277,12 @@ fun ARViewScreen(
 @InstallIn(SingletonComponent::class)
 internal interface AlignmentEventLoggerEntryPoint {
     fun alignmentEventLogger(): AlignmentEventLogger
+}
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+internal interface ArViewControllerFactoryEntryPoint {
+    fun arViewControllerFactory(): ArViewControllerFactory
 }
 
 @EntryPoint

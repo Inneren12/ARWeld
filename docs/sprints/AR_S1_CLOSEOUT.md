@@ -77,3 +77,34 @@ This document accumulates sprint-closeout notes for AR Sprint 1 tasks.
 ### Commands Run
 
 - Not run (not executed in this change)
+
+---
+
+## P1-AR-S1-10 — Rewire DI: bind :core-ar interfaces via app/di (no logic changes)
+
+**Status:** Complete
+**Date:** 2026-03-02
+
+### Summary
+
+- Introduced core-ar API factories (session manager, marker detector, pose/refiner, drift, capture)
+  and bound them in the app DI module without adding Hilt to core-ar.
+- Updated feature-arview to obtain an `ArViewControllerFactory` via Hilt entry points so it no
+  longer constructs core-ar implementations directly.
+- Added a navigation smoke instrumentation test to ensure the AR screen initializes through DI.
+
+### Moved/Owned Paths
+
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArSessionManager.kt`
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/MarkerDetectorFactory.kt`
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArCaptureServiceFactory.kt`
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/MarkerPoseEstimatorFactory.kt`
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/MultiMarkerPoseRefinerFactory.kt`
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/DriftMonitorFactory.kt`
+- `app/src/main/kotlin/com/example/arweld/di/ArCoreModule.kt`
+- `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ArViewControllerFactory.kt`
+- `app/src/androidTest/java/com/example/arweld/ui/ar/ARViewNavigationSmokeTest.kt`
+
+### Commands Run
+
+- Not run (not executed in this change)

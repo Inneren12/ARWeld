@@ -81,6 +81,25 @@ feature-arview
     └─> core-data (for EventRepository to log alignment)
 ```
 
+## DI wiring
+
+Core AR types expose constructor-friendly interfaces or factories in `core-ar/api`, and the app
+module owns the concrete bindings. `feature-arview` requests these abstractions via Hilt
+entry points so it remains UI-layer only while the app provides implementation wiring.
+
+**Flow:**
+
+1. `core-ar` defines factories such as `ArSessionManagerFactory`, `MarkerDetectorFactory`,
+   `MarkerPoseEstimatorFactory`, `MultiMarkerPoseRefinerFactory`, `DriftMonitorFactory`, and
+   `ArCaptureServiceFactory` in `core-ar/api`.
+2. `core-ar` provides default implementations (e.g., `ARCoreSessionManager`, `RealMarkerDetector`,
+   `SurfaceViewArCaptureService`) in non-API packages.
+3. `app` binds the factories to implementations in `app/di/ArCoreModule.kt` and exposes an
+   `ArViewControllerFactory` for `feature-arview` to consume via an `EntryPoint`.
+
+This keeps `core-ar` free of Hilt while centralizing wiring in the app module, with no behavior
+changes to the AR pipeline.
+
 ## Moved Spatial Helpers (AR Sprint 1 / Task 02)
 
 The following spatial/math helper classes were moved from `feature-arview` into `core-ar` to enable AR engine code to live in the core module:

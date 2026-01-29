@@ -10,7 +10,7 @@ import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.arcore.toArCorePose
 import com.example.arweld.core.ar.tracking.PerformanceMode
-import com.example.arweld.core.ar.arcore.ARCoreSessionManager
+import com.example.arweld.core.ar.api.ArSessionManager
 import com.google.android.filament.Engine
 import com.google.android.filament.EntityManager
 import com.google.android.filament.Camera
@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
  */
 class ARSceneRenderer(
     private val surfaceView: SurfaceView,
-    private val sessionManager: ARCoreSessionManager,
+    private val sessionManager: ArSessionManager,
     private val engine: Engine,
 ) : SurfaceHolder.Callback {
 
