@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- core-ar is a library module; ARCore meta-data and permissions are declared in the app module -->
+</manifest>
