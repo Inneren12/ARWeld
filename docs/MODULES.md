@@ -15,12 +15,17 @@ app
  ├─> core:auth
  ├─> core:data
  ├─> core:domain
- └─> core:structural
+ ├─> core:structural
+ └─> core:ar
 
 feature:* modules
  ├─> core:data
  ├─> core:domain
- └─> core:structural (for AR/geometry features)
+ ├─> core:structural (for AR/geometry features)
+ └─> core:ar (for AR rendering, feature-arview only)
+
+core:ar
+ └─> core:structural (for MemberMeshes/referenceFrames)
 
 core:data
  └─> core:domain
@@ -35,6 +40,7 @@ core:structural
 **Dependency Rules:**
 - `app` depends on all feature modules and core modules
 - Feature modules depend only on core modules (never on other features)
+- `core:ar` depends only on `core:structural` — does NOT depend on core-domain, core-data, Compose UI, navigation, or feature modules
 - `core:data` depends on `core:domain`
 - `core:domain` depends on `core:structural`
 - `core:structural` has no dependencies (pure Kotlin/JVM, no Android framework)
@@ -197,6 +203,42 @@ Pure Kotlin/JVM module that defines the structural steel model used by AR/QC pip
 **Notes:**
 - Units fixed to mm for v0.1; validation enforces `units == "mm"`
 - No Android dependencies; reusable in backend/offline tools
+
+---
+
+### core:ar
+
+**Status:** 🚧 In progress (AR Sprint 1)
+
+**Description:**
+Android library module providing the core AR engine interface and rendering primitives for ARWeld. This module bridges ARCore/Filament to structural model data from `core-structural`, enabling AR visualization without coupling to domain/data layers or UI frameworks.
+
+**Key Responsibilities:**
+- Define `ArEngine` interface for AR initialization, rendering, and resource management
+- Provide AR rendering primitives that consume `StructuralModel` geometry (members, nodes)
+- Bridge ARCore session and Filament renderer to structural model meshes
+- Expose reference frames and world-to-model transforms for alignment
+
+**Boundary Rules (STRICT):**
+- **MUST NOT** depend on `core-domain`, `core-data`, or any feature modules
+- **MUST NOT** depend on Compose UI, navigation, or Hilt/DI frameworks
+- **MAY** depend on `core-structural` for structural model geometry
+- **MAY** use ARCore, Filament, and math libraries (already in feature-arview)
+- UI integration and lifecycle management live in `feature-arview`, which depends on `core-ar`
+
+**Dependencies:**
+- `core:structural` (for MemberMeshes, Node reference frames, StructuralModel)
+
+**DI Configuration:**
+- None — pure interfaces/implementations; consumers wire via their own DI
+
+**Key Files/Packages:**
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArEngine.kt` — Core AR engine interface
+
+**Notes:**
+- Separates AR rendering concerns from domain/data logic
+- Enables testing AR rendering independently of app architecture
+- Future additions: mesh loading, pose estimation, frame capture APIs
 
 ---
 
@@ -616,6 +658,8 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 | `core:domain` | 📋 Planned | Sprint 1 |
 | `core:data` | 📋 Planned | Sprint 1 |
 | `core:auth` | 📋 Planned | Sprint 1 |
+| `core:structural` | ✅ Implemented | S-CORE |
+| `core:ar` | 🚧 In progress | AR Sprint 1 |
 | `feature:home` | 📋 Planned | Sprint 1 |
 | `feature:work` | 📋 Planned | Sprint 2 |
 | `feature:scanner` | ✅ Implemented | Sprint 2 |

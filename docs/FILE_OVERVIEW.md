@@ -109,11 +109,18 @@ ARWeld/
 │   │   │   │   └── SyncManager.kt
 │   │   └── build.gradle.kts               # Android library + Room
 │   │
-│   └── auth/                              # Authentication
-│       ├── src/main/kotlin/com/example/arweld/core/auth/
-│       │   ├── repository/                # Auth implementations
-│       │   │   └── InMemoryAuthRepository.kt
-│       │   └── di/AuthModule.kt           # Hilt binding for AuthRepository
+│   ├── auth/                              # Authentication
+│   │   ├── src/main/kotlin/com/example/arweld/core/auth/
+│   │   │   ├── repository/                # Auth implementations
+│   │   │   │   └── InMemoryAuthRepository.kt
+│   │   │   └── di/AuthModule.kt           # Hilt binding for AuthRepository
+│   │   └── build.gradle.kts
+│   │
+│   └── ar/                                # Core AR engine (NO domain/data deps)
+│       ├── src/main/kotlin/com/example/arweld/core/ar/
+│       │   └── api/                       # Public AR interfaces
+│       │       └── ArEngine.kt            # Core AR engine interface
+│       ├── src/main/AndroidManifest.xml
 │       └── build.gradle.kts
 │
 ├── feature/
@@ -1100,6 +1107,7 @@ androidTestImplementation(libs.androidx.junit)
 
 | What | Location |
 |------|----------|
+| Core AR engine interface | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArEngine.kt` |
 | Domain models (WorkItem, Event, etc.) | `core-domain/src/main/kotlin/com/example/arweld/core/domain/` |
 | Role enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/model/Role.kt` ✅ S1-04 |
 | Permission enum | `core-domain/src/main/kotlin/com/example/arweld/core/domain/auth/Permission.kt` ✅ S1-04 |
