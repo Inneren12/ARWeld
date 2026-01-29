@@ -175,3 +175,18 @@ The pose estimation and PnP pipeline now live fully in `core-ar`, and spatial ma
 - Keeps pose estimation logic in the core AR engine for reuse and testing.
 - Removes `core-ar`'s dependency on `core-domain` while preserving shared spatial types via `core-structural`.
 - Maintains runtime behavior: only module/package wiring moved.
+
+## Multi-marker refine moved in P1-AR-S1-07
+
+The multi-marker refinement logic is now owned by `core-ar`, with behavior unchanged.
+
+### Moved Files
+
+| Class | Original Location | New Location |
+|-------|-------------------|--------------|
+| `MultiMarkerPoseRefiner` | `feature-arview/.../pose/MultiMarkerPoseRefiner.kt` | `core-ar/.../pose/MultiMarkerPoseRefiner.kt` |
+
+### Notes
+
+- Behavior unchanged; move-only refactor.
+- `feature-arview` consumes the refiner via `core-ar` imports.
