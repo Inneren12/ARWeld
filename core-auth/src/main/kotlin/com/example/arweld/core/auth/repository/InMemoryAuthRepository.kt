@@ -8,9 +8,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,14 +20,12 @@ class InMemoryAuthRepository @Inject constructor() : AuthRepository {
     private val _currentUserFlow = MutableStateFlow<User?>(null)
     override val currentUserFlow: StateFlow<User?> = _currentUserFlow.asStateFlow()
 
-    private val _currentUserFlow = MutableStateFlow<User?>(null)
-    override val currentUserFlow: StateFlow<User?> = _currentUserFlow.asStateFlow()
-
-    private val _currentUserFlow = MutableStateFlow<User?>(null)
-    override val currentUserFlow: StateFlow<User?> = _currentUserFlow.asStateFlow()
-
-    private val _currentUserFlow = MutableStateFlow<User?>(null)
-    overrid
+    // Avoid nested mutex lock (Mutex is not re-entrant)
+    private fun seedUsers(): List<User> = listOf(
+        User(id = "mem-assembler", username = "assembler", displayName = "Assembler", role = Role.ASSEMBLER),
+        User(id = "mem-qc", username = "qc", displayName = "QC", role = Role.QC),
+        User(id = "mem-supervisor", username = "supervisor", displayName = "Supervisor", role = Role.SUPERVISOR),
+        )
 
     override suspend fun loginMock(role: Role): User = mutex.withLock {
         val user = User(
@@ -54,15 +49,11 @@ class InMemoryAuthRepository @Inject constructor() : AuthRepository {
     override suspend fun currentUser(): User? = mutex.withLock { cachedUser }
 
     override suspend fun availableUsers(): List<User> = mutex.withLock {
-        listOf(
-            User(id = "mem-assembler", username = "assembler", displayName = "Assembler", role = Role.ASSEMBLER),
-            User(id = "mem-qc", username = "qc", displayName = "QC", role = Role.QC),
-            User(id = "mem-supervisor", username = "supervisor", displayName = "Supervisor", role = Role.SUPERVISOR),
-        )
+        seedUsers()
     }
 
     override suspend fun loginWithUserId(userId: String): User = mutex.withLock {
-        val user = availableUsers().firstOrNull { it.id == userId }
+        val user = seedUsers().firstOrNull { it.id == userId }
             ?: error("User $userId not found in in-memory list")
         cachedUser = user
         _currentUserFlow.value = user
