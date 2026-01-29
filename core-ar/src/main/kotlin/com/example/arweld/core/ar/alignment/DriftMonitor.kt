@@ -1,4 +1,4 @@
-package com.example.arweld.feature.arview.alignment
+package com.example.arweld.core.ar.alignment
 
 class DriftMonitor(
     private val windowSize: Int = DEFAULT_WINDOW_SIZE,

@@ -1,7 +1,7 @@
 package com.example.arweld.feature.arview.arcore
 
 import com.example.arweld.core.domain.diagnostics.ArTelemetrySnapshot
-import com.example.arweld.feature.arview.tracking.PerformanceMode
+import com.example.arweld.core.ar.tracking.PerformanceMode
 import java.util.ArrayDeque
 import kotlin.math.ceil
 

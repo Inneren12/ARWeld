@@ -9,7 +9,7 @@ import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.core.domain.spatial.Pose3D
 import com.example.arweld.feature.arview.render.LoadedModel
 import com.example.arweld.feature.arview.arcore.toArCorePose
-import com.example.arweld.feature.arview.tracking.PerformanceMode
+import com.example.arweld.core.ar.tracking.PerformanceMode
 import com.example.arweld.core.ar.arcore.ARCoreSessionManager
 import com.google.android.filament.Engine
 import com.google.android.filament.EntityManager

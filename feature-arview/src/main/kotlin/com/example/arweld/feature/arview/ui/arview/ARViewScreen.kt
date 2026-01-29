@@ -47,10 +47,10 @@ import com.example.arweld.feature.arview.arcore.ARViewController
 import com.example.arweld.feature.arview.arcore.ARViewLifecycleHost
 import com.example.arweld.feature.arview.alignment.ManualAlignmentState
 import com.example.arweld.feature.arview.arcore.PointCloudStatusReport
-import com.example.arweld.feature.arview.tracking.PerformanceMode
-import com.example.arweld.feature.arview.tracking.PointCloudStatus
-import com.example.arweld.feature.arview.tracking.TrackingQuality
-import com.example.arweld.feature.arview.tracking.TrackingStatus
+import com.example.arweld.core.ar.tracking.PerformanceMode
+import com.example.arweld.core.ar.tracking.PointCloudStatus
+import com.example.arweld.core.ar.tracking.TrackingQuality
+import com.example.arweld.core.ar.tracking.TrackingStatus
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
