@@ -226,14 +226,21 @@ fun ARViewScreen(
                             }
 
                             val message = runCatching {
-                                val uri = controller.captureArScreenshotToFile(workItemId)
-                                val meta = controller.currentScreenshotMeta()
+                                val result = controller.captureArScreenshot(workItemId)
+                                val captureMeta = result.meta
+                                val meta = ArScreenshotMeta(
+                                    markerIds = captureMeta?.markerIds.orEmpty(),
+                                    trackingState = captureMeta?.trackingState ?: "UNKNOWN",
+                                    alignmentQualityScore = captureMeta?.alignmentQualityScore ?: 0f,
+                                    distanceToMarker = captureMeta?.distanceToMarker,
+                                    timestamp = captureMeta?.timestamp ?: System.currentTimeMillis(),
+                                )
 
-                                onScreenshotCaptured.invoke(uri, meta)
+                                onScreenshotCaptured.invoke(result.fileUri, meta)
 
                                 context.getString(
                                     R.string.capture_ar_screenshot_success,
-                                    uri.lastPathSegment,
+                                    result.fileUri.lastPathSegment,
                                 )
                             }.getOrElse {
                                 context.getString(R.string.capture_ar_screenshot_error)

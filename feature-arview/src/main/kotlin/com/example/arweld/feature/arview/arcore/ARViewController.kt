@@ -1,26 +1,24 @@
 package com.example.arweld.feature.arview.arcore
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.RectF
-import android.net.Uri
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.MotionEvent
-import android.view.PixelCopy
 import android.view.Surface
 import android.view.SurfaceView
 import android.view.View
 import androidx.core.content.getSystemService
-import androidx.core.net.toUri
+import com.example.arweld.core.ar.api.ArCaptureMeta
+import com.example.arweld.core.ar.api.ArCaptureRequest
+import com.example.arweld.core.ar.api.ArCaptureResult
+import com.example.arweld.core.ar.api.ArCaptureServiceRegistry
+import com.example.arweld.core.ar.api.createSurfaceViewCaptureService
 import com.example.arweld.core.domain.diagnostics.ArTelemetrySnapshot
 import com.example.arweld.core.domain.diagnostics.DeviceHealthProvider
 import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.feature.arview.BuildConfig
 import com.example.arweld.feature.arview.R
-import com.example.arweld.core.domain.evidence.ArScreenshotMeta
 import com.example.arweld.core.domain.spatial.AlignmentPoint
 import com.example.arweld.core.domain.spatial.AlignmentSample
 import com.example.arweld.core.domain.spatial.CameraIntrinsics
@@ -37,7 +35,6 @@ import com.example.arweld.feature.arview.alignment.ManualAlignmentState
 import com.example.arweld.feature.arview.alignment.RigidTransformSolver
 import com.example.arweld.feature.arview.alignment.AlignmentEventLogger
 import com.example.arweld.core.ar.alignment.DriftMonitor
-import com.example.arweld.feature.arview.arcore.ArScreenshotRegistry
 import com.example.arweld.core.ar.pose.MarkerPoseEstimator
 import com.example.arweld.core.ar.pose.MarkerPoseEstimateResult
 import com.example.arweld.core.ar.pose.MultiMarkerPoseRefiner
@@ -60,16 +57,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 import kotlin.math.roundToInt
 
 /**
@@ -83,7 +74,7 @@ class ARViewController(
     markerDetector: MarkerDetector? = null,
     private val diagnosticsRecorder: DiagnosticsRecorder? = null,
     private val deviceHealthProvider: DeviceHealthProvider? = null,
-) : ArScreenshotService {
+) {
 
     private val appContext: Context = context.applicationContext
     private val surfaceView: SurfaceView = SurfaceView(context).apply {
@@ -92,6 +83,7 @@ class ARViewController(
     private val sessionManager = ARCoreSessionManager(appContext)
     private val modelLoader: ModelLoader = AndroidFilamentModelLoader(appContext)
     private val sceneRenderer = ARSceneRenderer(surfaceView, sessionManager, modelLoader.engine)
+    private val captureService = createSurfaceViewCaptureService(surfaceView)
     private val markerDetector: MarkerDetector = markerDetector ?: RealMarkerDetector(::currentRotation)
     private val markerPoseEstimator = MarkerPoseEstimator()
     private val multiMarkerPoseRefiner = MultiMarkerPoseRefiner()
@@ -163,7 +155,6 @@ class ARViewController(
         ),
     )
     val arTelemetry: StateFlow<ArTelemetrySnapshot> = _arTelemetry
-    private val mainHandler = Handler(Looper.getMainLooper())
     private val lastPointCloudLogMs = AtomicLong(0L)
     private val telemetryTracker = ArTelemetryTracker()
     private val forceLowPowerMode = AtomicBoolean(false)
@@ -174,7 +165,7 @@ class ARViewController(
             Log.d(TAG, "ARViewController onCreate")
         }
         diagnosticsRecorder?.recordEvent("ar_view_created")
-        ArScreenshotRegistry.register(this)
+        ArCaptureServiceRegistry.register(captureService)
         sceneRenderer.setFrameListener(::onFrame)
         sceneRenderer.setHitTestResultListener(::onHitTestResult)
         sceneRenderer.setRenderRateListener { fps ->
@@ -249,7 +240,7 @@ class ARViewController(
             Log.d(TAG, "ARViewController onDestroy")
         }
         diagnosticsRecorder?.recordEvent("ar_view_destroy")
-        ArScreenshotRegistry.unregister(this)
+        ArCaptureServiceRegistry.unregister(captureService)
         testNodeModel?.let {
             modelLoader.destroyModel(it)
             testNodeModel = null
@@ -712,58 +703,23 @@ class ARViewController(
         return positionDistance > POSITION_EPS_METERS || angularDistance > ANGLE_EPS_RADIANS
     }
 
-    override suspend fun captureArScreenshotToFile(workItemId: String): Uri {
-        val bitmap = copySurfaceBitmap()
-        val outputFile = saveBitmap(bitmap, workItemId)
-        return outputFile.toUri()
+    suspend fun captureArScreenshot(workItemId: String): ArCaptureResult {
+        val captureResult = captureService.captureScreenshot(ArCaptureRequest(workItemId = workItemId))
+        return captureResult.copy(meta = currentCaptureMeta())
     }
 
-    override fun currentScreenshotMeta(): ArScreenshotMeta {
+    fun currentCaptureMeta(): ArCaptureMeta {
         val markerIds = _markerWorldPoses.value.keys.toList()
         val trackingQuality = _trackingStatus.value.quality.name
         val alignmentScore = _alignmentScore.value
 
-        return ArScreenshotMeta(
+        return ArCaptureMeta(
             markerIds = markerIds,
             trackingState = trackingQuality,
             alignmentQualityScore = alignmentScore,
             distanceToMarker = null,
             timestamp = System.currentTimeMillis(),
         )
-    }
-
-    private suspend fun copySurfaceBitmap(): Bitmap {
-        val width = surfaceView.width
-        val height = surfaceView.height
-        check(width > 0 && height > 0) { "SurfaceView not ready for screenshot" }
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-
-        return withContext(Dispatchers.Main) {
-            suspendCancellableCoroutine { continuation ->
-                PixelCopy.request(surfaceView, bitmap, { result ->
-                    if (!continuation.isActive) return@request
-                    if (result == PixelCopy.SUCCESS) {
-                        continuation.resume(bitmap)
-                    } else {
-                        continuation.resumeWithException(
-                            IllegalStateException("PixelCopy failed with code $result"),
-                        )
-                    }
-                }, mainHandler)
-            }
-        }
-    }
-
-    private suspend fun saveBitmap(bitmap: Bitmap, workItemId: String): File = withContext(Dispatchers.IO) {
-        val directory = File(surfaceView.context.filesDir, "evidence")
-        if (!directory.exists()) {
-            directory.mkdirs()
-        }
-        val file = File(directory, "${workItemId}_${System.currentTimeMillis()}.png")
-        FileOutputStream(file).use { outputStream ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-        }
-        file
     }
 
     companion object {
