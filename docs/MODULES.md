@@ -25,8 +25,7 @@ feature:* modules
  └─> core:ar (for AR rendering, feature-arview only)
 
 core:ar
- ├─> core:structural (for MemberMeshes/referenceFrames)
- └─> core:domain (spatial math types for pose estimation)
+ └─> core:structural (for MemberMeshes/referenceFrames + spatial math types)
 
 core:data
  └─> core:domain
@@ -41,7 +40,7 @@ core:structural
 **Dependency Rules:**
 - `app` depends on all feature modules and core modules
 - Feature modules depend only on core modules (never on other features)
-- `core:ar` depends on `core:structural` and `core:domain` (for spatial math types only); it does NOT depend on core-data, Compose UI, navigation, or feature modules
+- `core:ar` depends on `core:structural` (including spatial math types); it does NOT depend on core-domain, core-data, Compose UI, navigation, or feature modules
 - `core:data` depends on `core:domain`
 - `core:domain` depends on `core:structural`
 - `core:structural` has no dependencies (pure Kotlin/JVM, no Android framework)
@@ -228,8 +227,7 @@ Android library module providing the core AR engine interface and rendering prim
 - UI integration and lifecycle management live in `feature-arview`, which depends on `core-ar`
 
 **Dependencies:**
-- `core:structural` (for MemberMeshes, Node reference frames, StructuralModel)
-- `core:domain` (for shared spatial math types used by pose estimation)
+- `core:structural` (for MemberMeshes, Node reference frames, StructuralModel, and spatial math types)
 
 **DI Configuration:**
 - None — pure interfaces/implementations; consumers wire via their own DI

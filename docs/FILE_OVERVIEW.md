@@ -224,7 +224,7 @@ ARWeld/
 │       │   │   ├── ARViewController.kt    # Hosts AR surface, forwards lifecycle callbacks, computes TrackingStatus from camera state/markers/feature points
 │       │   │   ├── ARSceneRenderer.kt     # ARCore → Filament bridge for fixed test model pose (S2-15)
 │       │   │   ├── (moved) ARCoreSessionManager.kt # Now in core-ar/.../arcore for session lifecycle
-│       │   │   ├── ArCoreMappers.kt       # Maps ARCore Pose/intrinsics → domain Pose3D/CameraIntrinsics for pose estimation
+│       │   │   ├── ArCoreMappers.kt       # Maps ARCore Pose/intrinsics → shared Pose3D/CameraIntrinsics for pose estimation
 │       │   │   └── ARViewLifecycleHost.kt # Forwards lifecycle events to controller
 │       │   ├── alignment/
 │       │   │   ├── ArAlignmentPayload.kt  # Serialized payload for AR_ALIGNMENT_SET event (method, marker/manual metadata, pose summary)
@@ -244,7 +244,7 @@ ARWeld/
 │       - `ARViewLifecycleHost` observes lifecycle events and calls `ARViewController.onResume/onPause/onDestroy`.
 │       - `ARViewController` lazily initializes `core-ar`’s `ARCoreSessionManager` and forwards display rotation + surface size.
 │       - `core-ar`’s `ARCoreSessionManager` creates/configures `Session` on first resume (world tracking, horizontal plane finding) and handles pause/destroy with error logging surfaced to the Compose overlay.
-│       - `ArCoreMappers` adapts `camera.imageIntrinsics` into domain `CameraIntrinsics` and ARCore `Pose` into `Pose3D` for pose estimation.
+│       - `ArCoreMappers` adapts `camera.imageIntrinsics` into shared `CameraIntrinsics` and ARCore `Pose` into `Pose3D` for pose estimation.
 │       - Marker pose estimation lives in `core-ar/.../pose/MarkerPoseEstimator.kt`, composing `T_world_camera` from ARCore with PnP-derived `T_camera_marker`.
 │       - Tracking quality indicator: `ARViewController` evaluates camera tracking state, recent marker detections, and feature point counts to emit `TrackingStatus` consumed by `ARViewScreen` overlay.
 │       - AR alignment events: `ARViewController` logs `AR_ALIGNMENT_SET` via `AlignmentEventLogger` after marker or manual transforms succeed (payload defined in `alignment/ArAlignmentPayload.kt`).
@@ -1139,7 +1139,7 @@ androidTestImplementation(libs.androidx.junit)
 | Reducer logic | `core/domain/reducer/` |
 | QC evidence policies | `core/domain/policy/` |
 | AR rendering | `feature/arview/ar/` and `rendering/` |
-| Pose + CameraIntrinsics domain types | `core-domain/src/main/kotlin/com/example/arweld/core/domain/spatial/PoseTypes.kt` |
+| Pose + CameraIntrinsics shared types | `core-structural/src/main/kotlin/com/example/arweld/core/domain/spatial/PoseTypes.kt` |
 | Export logic | `feature/supervisor/export/` |
 
 ### "How do I...?"

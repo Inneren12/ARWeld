@@ -47,5 +47,18 @@ Moved `MarkerPoseEstimator` and its unit test into `:core-ar` so the AR engine o
 ## Constraints Observed
 
 - PnP math and thresholds unchanged
-- Multi-marker refiner left in `feature-arview`
+- Multi-marker refiner left in `feature-arview` at the time of Task 05 (later moved in P1-AR-S1-06)
 - Alignment behavior unchanged
+
+---
+
+## Addendum — P1-AR-S1-06 (Pose Estimator + PnP pipeline into core-ar)
+
+- **Move:** Relocated `MultiMarkerPoseRefiner` into `core-ar` and rewired `feature-arview` imports.
+- **Dependency cleanup:** Moved shared spatial types (`PoseTypes.kt`) into `core-structural` so `core-ar` no longer depends on `core-domain`.
+- **Behavior:** No logic changes; only module/package wiring.
+
+**Verification**
+
+- `./gradlew :core-ar:compileDebugKotlin`
+- `./gradlew :feature-arview:compileDebugKotlin`
