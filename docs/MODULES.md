@@ -25,7 +25,8 @@ feature:* modules
  └─> core:ar (for AR rendering, feature-arview only)
 
 core:ar
- └─> core:structural (for MemberMeshes/referenceFrames)
+ ├─> core:structural (for MemberMeshes/referenceFrames)
+ └─> core:domain (spatial math types for pose estimation)
 
 core:data
  └─> core:domain
@@ -40,7 +41,7 @@ core:structural
 **Dependency Rules:**
 - `app` depends on all feature modules and core modules
 - Feature modules depend only on core modules (never on other features)
-- `core:ar` depends only on `core:structural` — does NOT depend on core-domain, core-data, Compose UI, navigation, or feature modules
+- `core:ar` depends on `core:structural` and `core:domain` (for spatial math types only); it does NOT depend on core-data, Compose UI, navigation, or feature modules
 - `core:data` depends on `core:domain`
 - `core:domain` depends on `core:structural`
 - `core:structural` has no dependencies (pure Kotlin/JVM, no Android framework)
@@ -228,6 +229,7 @@ Android library module providing the core AR engine interface and rendering prim
 
 **Dependencies:**
 - `core:structural` (for MemberMeshes, Node reference frames, StructuralModel)
+- `core:domain` (for shared spatial math types used by pose estimation)
 
 **DI Configuration:**
 - None — pure interfaces/implementations; consumers wire via their own DI
@@ -600,7 +602,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - Run marker detection pipeline (pluggable) to return markerId + four ordered corners per frame (S2-16; interface + default impl now in core-ar)
 - Retrieve camera intrinsics from `Camera.imageIntrinsics` and adapt them into domain `CameraIntrinsics`
 - Load GLB assets from `src/main/assets/models` via `render/AndroidFilamentModelLoader.kt` using Filament gltfio
-- Estimate marker pose in world coordinates using PnP/homography (`pose/MarkerPoseEstimator.kt`), composing with the tracked camera pose from ARCore (S2-17)
+- Estimate marker pose in world coordinates using PnP/homography (`core-ar/.../pose/MarkerPoseEstimator.kt`), composing with the tracked camera pose from ARCore (S2-17)
 - Marker-based zone alignment: compute `T_world_zone = T_world_marker * T_marker_zone` via `ZoneAligner` and apply it to the model root when a known marker is seen (S2-18)
 - Manual fallback alignment: collect 3 hitTest world points from user taps, pair them with hardcoded model landmarks (test_node.glb origin plus +0.2m on X and +0.2m on Y on the base), and solve `T_world_model` via `RigidTransformSolver` before applying to the renderer (S2-19)
 - Track AR tracking quality (camera state + marker recency + feature points) and expose `TrackingStatus` to UI overlays; `ARViewScreen` renders a green/yellow/red badge with the current reason (S2-20)
@@ -629,7 +631,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - `marker/`
   - `SimulatedMarkerDetector.kt` — Debug-only trigger for manual test detections
 - `pose/`
-  - `MarkerPoseEstimator.kt` — Computes T_world_marker via planar PnP (homography) using camera intrinsics and AR camera pose
+- `MarkerPoseEstimator.kt` — Computes T_world_marker via planar PnP (homography) using camera intrinsics and AR camera pose (now in core-ar)
 - `tracking/`
   - `TrackingQuality.kt` — Defines `TrackingQuality` + `TrackingStatus` surfaced from AR controller heuristics
 - `zone/`
