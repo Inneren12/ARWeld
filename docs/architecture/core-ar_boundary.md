@@ -108,6 +108,21 @@ The following spatial/math helper classes were moved from `feature-arview` into 
 - **Session/detector/estimator** — Will be moved in subsequent tasks
 - **Smoothing/refine/drift logic** — Out of scope for this task
 
+## Session Manager Moved (AR Sprint 1 / Task 03)
+
+The ARCore session lifecycle manager now lives in `core-ar` so AR session setup can be shared without coupling to feature UI code.
+
+### Relocated Class
+
+| Class | Original Location | New Location |
+|-------|-------------------|--------------|
+| `ARCoreSessionManager` | `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARCoreSessionManager.kt` | `core-ar/src/main/kotlin/com/example/arweld/core/ar/arcore/ARCoreSessionManager.kt` |
+
+### Notes
+
+- Behavior is unchanged: lazy session creation on resume, safe pause/destroy, and display-geometry updates remain identical.
+- `feature-arview` now depends on `core-ar` for session lifecycle while keeping UI/lifecycle wiring in the feature module.
+
 ### Migration Notes
 
 - Consuming code in `feature-arview` updated imports from `feature.arview.geometry` → `core.ar.spatial`

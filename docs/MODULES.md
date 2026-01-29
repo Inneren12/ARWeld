@@ -234,6 +234,7 @@ Android library module providing the core AR engine interface and rendering prim
 
 **Key Files/Packages:**
 - `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArEngine.kt` — Core AR engine interface
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/arcore/ARCoreSessionManager.kt` — ARCore Session lifecycle manager (resume/pause/destroy)
 
 **Notes:**
 - Separates AR rendering concerns from domain/data logic
@@ -592,7 +593,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 
 **Key Responsibilities:**
 - Host AR rendering surface and lifecycle hooks via `ARViewScreen` + `ARViewController`
-- Manage ARCore Session creation/resume/pause through `ARCoreSessionManager` (Pixel 9 target)
+- Manage ARCore Session creation/resume/pause through `core-ar`’s `ARCoreSessionManager` (Pixel 9 target)
 - Surface ARCore availability errors to the UI overlay for quick troubleshooting
 - Run marker detection pipeline (pluggable) to return markerId + four ordered corners per frame (S2-16 stub in place)
 - Retrieve camera intrinsics from `Camera.imageIntrinsics` and adapt them into domain `CameraIntrinsics`
@@ -614,7 +615,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 - `arcore/`
   - `ARViewController.kt` — Provides AR rendering surface and forwards lifecycle callbacks
   - `ARSceneRenderer.kt` — ARCore → Filament bridge; renders the test model using either a fixed pose (pre-alignment) or the computed zone/world pose once marker alignment succeeds
-  - `ARCoreSessionManager.kt` — Lazily creates/configures ARCore Session and handles resume/pause/destroy
+  - `ARCoreSessionManager.kt` — Moved to `core-ar/src/main/kotlin/com/example/arweld/core/ar/arcore/` (session lifecycle)
   - `ARViewLifecycleHost.kt` — Bridges Android lifecycle events to the AR controller
   - `ArScreenshotService.kt` — Interface for AR screenshot capture (SurfaceView PixelCopy → evidence folder)
   - `ArCoreMappers.kt` — Converts ARCore `Pose`/`CameraIntrinsics` into domain spatial types for pose estimation
