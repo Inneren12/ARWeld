@@ -24,6 +24,7 @@ class DrawingValidatorV1 {
         validateLayers(drawing.layers, violations)
         validateEntities(drawing, violations)
         validateReferences(drawing, violations)
+        GeometryRulesV1.validate(drawing, violations)
         validateAttachments(drawing.attachments, violations)
         validatePatches(drawing, patches, violations)
 
@@ -272,42 +273,4 @@ class DrawingValidatorV1 {
     private fun isValidSha256(value: String): Boolean {
         return value.matches(Regex("^[0-9a-fA-F]{64}$"))
     }
-}
-
-private fun MutableList<ViolationV1>.addError(
-    code: String,
-    path: String,
-    message: String,
-    hint: String? = null,
-    refs: List<String> = emptyList()
-) {
-    add(
-        ViolationV1(
-            code = code,
-            severity = SeverityV1.ERROR,
-            path = path,
-            message = message,
-            hint = hint,
-            refs = refs
-        )
-    )
-}
-
-private fun MutableList<ViolationV1>.addWarn(
-    code: String,
-    path: String,
-    message: String,
-    hint: String? = null,
-    refs: List<String> = emptyList()
-) {
-    add(
-        ViolationV1(
-            code = code,
-            severity = SeverityV1.WARN,
-            path = path,
-            message = message,
-            hint = hint,
-            refs = refs
-        )
-    )
 }
