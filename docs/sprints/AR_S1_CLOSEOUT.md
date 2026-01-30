@@ -276,7 +276,11 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 - `app/src/androidTest/java/com/example/arweld/ui/ar/ARViewNavigationSmokeTest.kt`
 
 ### Commands Run
-- `./gradlew :app:connectedDebugAndroidTest`
+- `./gradlew :core-ar:compileDebugKotlin`
+- `./gradlew :feature-arview:compileDebugKotlin`
+- `./gradlew :app:assembleDebug`
+- `./gradlew :app:connectedDebugAndroidTest --tests "com.example.arweld.ui.ar.ARViewSmokeTest"`
+- `./gradlew :app:connectedDebugAndroidTest --tests "com.example.arweld.ui.ar.ARViewNavigationSmokeTest"`
 
 ---
 

@@ -5,7 +5,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.navigation.compose.rememberNavController
 import androidx.test.rule.GrantPermissionRule
 import com.example.arweld.core.domain.auth.AuthRepository
@@ -96,7 +95,7 @@ class ARViewNavigationSmokeTest {
         }
 
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("ar_view_screen_root").assertIsDisplayed()
-        composeRule.onNodeWithText("ARCore disabled for instrumentation tests").assertIsDisplayed()
+        composeRule.onNodeWithTag("ar_view_root").assertIsDisplayed()
+        composeRule.onNodeWithTag("arcore_disabled_banner").assertIsDisplayed()
     }
 }

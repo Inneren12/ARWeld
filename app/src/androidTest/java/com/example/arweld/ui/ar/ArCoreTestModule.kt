@@ -33,13 +33,13 @@ object ArCoreTestModule {
 
     @Provides
     @Singleton
-    fun provideSessionManagerFactory(): ArSessionManagerFactory = ArSessionManagerFactory {
+    fun provideSessionManagerFactory(): ArSessionManagerFactory = ArSessionManagerFactory { _ ->
         FakeArSessionManager()
     }
 
     @Provides
     @Singleton
-    fun provideMarkerDetectorFactory(): MarkerDetectorFactory = MarkerDetectorFactory {
+    fun provideMarkerDetectorFactory(): MarkerDetectorFactory = MarkerDetectorFactory { _ ->
         SimulatedMarkerDetector()
     }
 
