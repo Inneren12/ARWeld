@@ -199,18 +199,23 @@ commands. For the consolidated closeout rollup, see
 **Verification commands (documented):**
 - `./gradlew :core-ar:compileDebugKotlin`
 
-### P1-AR-S1-06 — Align pose types + PnP pipeline with core-structural
+### P1-AR-S1-06 — Align pose estimator + PnP pipeline with core-structural
 
-**PR:** P1-AR-S1-06 — Move PoseTypes to core-structural (remove core-domain dependency)
+**PR:** P1-AR-S1-06 — Move pose estimator + pose types to core-structural
 
-**Moved Files**
+**Moved/Owned Files**
 
 | Class | Original Location | New Location |
 |-------|-------------------|--------------|
+| `MarkerPoseEstimator` + `MarkerPoseEstimateResult` (PnP pipeline) | `feature-arview/.../pose/MarkerPoseEstimator.kt` | `core-ar/.../pose/MarkerPoseEstimator.kt` |
 | `PoseTypes` (Pose3D/Vector3/Quaternion/CameraIntrinsics) | `core-domain/.../spatial/PoseTypes.kt` | `core-structural/.../spatial/PoseTypes.kt` |
+
+**Rationale**
+- Consolidate pose estimation (PnP) under `core-ar` while keeping shared spatial math in `core-structural` to avoid any `core-domain` dependency.
 
 **Verification commands (documented):**
 - `./gradlew :core-ar:compileDebugKotlin`
+- `./gradlew :feature-arview:compileDebugKotlin`
 
 ### P1-AR-S1-07 — Move MultiMarkerPoseRefiner into :core-ar
 
@@ -224,6 +229,7 @@ commands. For the consolidated closeout rollup, see
 
 **Verification commands (documented):**
 - `./gradlew :core-ar:compileDebugKotlin`
+- `./gradlew :core-ar:testDebugUnitTest`
 - `./gradlew :feature-arview:compileDebugKotlin`
 
 ### P1-AR-S1-08 — Move drift + tracking state into :core-ar

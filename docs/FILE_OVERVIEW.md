@@ -244,7 +244,7 @@ ARWeld/
 │       - `ARViewLifecycleHost` observes lifecycle events and calls `ARViewController.onResume/onPause/onDestroy`.
 │       - `ARViewController` lazily initializes `core-ar`’s `ARCoreSessionManager` and forwards display rotation + surface size.
 │       - `core-ar`’s `ARCoreSessionManager` creates/configures `Session` on first resume (world tracking, horizontal plane finding) and handles pause/destroy with error logging surfaced to the Compose overlay.
-│       - `ArCoreMappers` adapts `camera.imageIntrinsics` into shared `CameraIntrinsics` and ARCore `Pose` into `Pose3D` for pose estimation.
+│       - `ArCoreMappers` adapts `camera.imageIntrinsics` into shared `CameraIntrinsics` and ARCore `Pose` into `Pose3D` for pose estimation; these shared types live in `core-structural` (`PoseTypes.kt`).
 │       - Marker pose estimation lives in `core-ar/.../pose/MarkerPoseEstimator.kt`, composing `T_world_camera` from ARCore with PnP-derived `T_camera_marker`.
 │       - Tracking quality indicator: `ARViewController` evaluates camera tracking state, recent marker detections, and feature point counts to emit `TrackingStatus` consumed by `ARViewScreen` overlay.
 │       - AR alignment events: `ARViewController` logs `AR_ALIGNMENT_SET` via `AlignmentEventLogger` after marker or manual transforms succeed (payload defined in `alignment/ArAlignmentPayload.kt`).
