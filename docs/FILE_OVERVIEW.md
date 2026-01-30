@@ -122,6 +122,8 @@ ARWeld/
 │       │   │   ├── ArEngine.kt            # Core AR engine interface
 │       │   │   ├── AlignmentQuality.kt    # Reprojection error metrics (S2-22)
 │       │   │   └── AlignmentSnapshot.kt   # Audit-grade alignment payload v1 (S2-22)
+│       │   ├── alignment/                 # Alignment utilities
+│       │   │   └── IntrinsicsHash.kt      # Deterministic hash for camera intrinsics (intrinsicsHashV1)
 │       │   ├── marker/                    # Marker detection pipeline
 │       │   │   ├── MarkerDetector.kt      # Marker detector interface + DetectedMarker
 │       │   │   └── RealMarkerDetector.kt  # ML Kit barcode-based detector
@@ -131,6 +133,8 @@ ARWeld/
 │       ├── src/test/kotlin/com/example/arweld/core/ar/api/
 │       │   ├── AlignmentQualityTest.kt    # Unit tests for AlignmentQuality validation (S2-22)
 │       │   └── AlignmentSnapshotTest.kt   # Unit tests for AlignmentSnapshot validation (S2-22)
+│       ├── src/test/kotlin/com/example/arweld/core/ar/alignment/
+│       │   └── IntrinsicsHashTest.kt      # Unit tests: golden hash, sensitivity, stability (AR-S2-PR2)
 │       ├── src/test/kotlin/com/example/arweld/core/ar/spatial/
 │       │   └── CornerOrderingTest.kt      # Unit tests for corner ordering
 │       ├── src/test/kotlin/com/example/arweld/core/ar/marker/
@@ -1125,6 +1129,7 @@ androidTestImplementation(libs.androidx.junit)
 | Core AR engine interface | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArEngine.kt` |
 | AlignmentSnapshot schema (v1) | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/AlignmentSnapshot.kt` |
 | AlignmentQuality metrics | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/AlignmentQuality.kt` |
+| intrinsicsHashV1 helper | `core-ar/src/main/kotlin/com/example/arweld/core/ar/alignment/IntrinsicsHash.kt` |
 | AR spatial helpers (Point2f, corner ordering) | `core-ar/src/main/kotlin/com/example/arweld/core/ar/spatial/` |
 | Marker detection interface + default impl | `core-ar/src/main/kotlin/com/example/arweld/core/ar/marker/` |
 | ARCore session lifecycle manager | `core-ar/src/main/kotlin/com/example/arweld/core/ar/arcore/ARCoreSessionManager.kt` |

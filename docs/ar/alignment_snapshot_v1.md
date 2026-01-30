@@ -44,17 +44,119 @@ The `schemaVersion` field is embedded in every `AlignmentSnapshot` instance to e
 
 A hash string that uniquely identifies the camera intrinsics used during alignment. This enables correlation between alignment snapshots and specific device/calibration states.
 
-**Derivation (high-level):**
-The hash is computed from the camera's intrinsic parameters:
-- Focal length (fx, fy)
-- Principal point (cx, cy)
-- Image dimensions (width, height)
+**Location:**
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/alignment/IntrinsicsHash.kt`
 
-The exact hashing algorithm (e.g., SHA-256 of a canonical JSON representation) will be defined in a subsequent PR. For now, any non-blank string is accepted.
+**API:**
+```kotlin
+// Top-level function
+fun intrinsicsHashV1(
+    width: Int,
+    height: Int,
+    fx: Double,
+    fy: Double,
+    cx: Double,
+    cy: Double,
+): String
 
-**Example values:**
-- `"sha256:a1b2c3d4e5f6..."`
-- `"cam_1920x1080_fx1500_fy1500_cx960_cy540"`
+// Overload accepting CameraIntrinsics
+fun intrinsicsHashV1(intrinsics: CameraIntrinsics): String
+```
+
+#### Algorithm (v1)
+
+The `intrinsicsHashV1` function produces a deterministic, stable hash for camera intrinsics:
+
+**1. Fixed-point Conversion (Canonicalization)**
+
+Doubles are converted to fixed-point integers using **millipixel precision** (1e-3 px):
+- Each double value is multiplied by 1000 and rounded to the nearest long integer
+- This avoids float jitter from slight floating-point precision differences across devices/runs
+- Precision: 0.001 pixels (sufficient for sub-pixel alignment quality metrics)
+- Range: Values up to ±9.2×10¹⁵ millipixels (covers any practical resolution)
+
+**2. Byte Encoding**
+
+Values are encoded as big-endian bytes with a version prefix:
+
+| Offset | Size | Field | Type | Notes |
+|--------|------|-------|------|-------|
+| 0-1 | 2 | Version tag | ASCII | `"v1"` |
+| 2-5 | 4 | width | Int | Big-endian |
+| 6-9 | 4 | height | Int | Big-endian |
+| 10-17 | 8 | fx | Long | Millipixels, big-endian |
+| 18-25 | 8 | fy | Long | Millipixels, big-endian |
+| 26-33 | 8 | cx | Long | Millipixels, big-endian |
+| 34-41 | 8 | cy | Long | Millipixels, big-endian |
+
+**Total: 42 bytes**
+
+**3. Hashing**
+
+SHA-256 digest of the canonical byte representation.
+
+**4. Output Encoding**
+
+Base64url without padding (RFC 4648 §5):
+- Uses `-` and `_` instead of `+` and `/`
+- No trailing `=` padding characters
+- Output length: 43 characters (256 bits / 6 bits per char, rounded up)
+
+#### Example
+
+For camera intrinsics:
+- `width = 1920`, `height = 1080`
+- `fx = 1500.0`, `fy = 1500.0`
+- `cx = 960.0`, `cy = 540.0`
+
+Canonical bytes (hex):
+```
+76 31                                     # "v1"
+00 00 07 80                               # width: 1920
+00 00 04 38                               # height: 1080
+00 00 00 00 00 16 e3 60                   # fx: 1500000 millipixels
+00 00 00 00 00 16 e3 60                   # fy: 1500000 millipixels
+00 00 00 00 00 0e a6 00                   # cx: 960000 millipixels
+00 00 00 00 00 08 3d 60                   # cy: 540000 millipixels
+```
+
+Resulting hash: `h8fmegG20PIefeyS5O1-YzsyFdziNU_9y2avmcrVRhk`
+
+#### Precision Behavior
+
+- Changes ≥ 0.001 px (1 millipixel) produce a different hash
+- Changes < 0.0005 px round to the same value (no hash change)
+- Rounding uses standard half-to-even (banker's rounding) via `roundToLong()`
+
+#### Usage Example
+
+```kotlin
+import com.example.arweld.core.ar.alignment.intrinsicsHashV1
+import com.example.arweld.core.domain.spatial.CameraIntrinsics
+
+// From individual parameters
+val hash1 = intrinsicsHashV1(
+    width = 1920,
+    height = 1080,
+    fx = 1500.0,
+    fy = 1500.0,
+    cx = 960.0,
+    cy = 540.0,
+)
+
+// From CameraIntrinsics object
+val intrinsics = CameraIntrinsics(
+    fx = 1500.0,
+    fy = 1500.0,
+    cx = 960.0,
+    cy = 540.0,
+    width = 1920,
+    height = 1080,
+)
+val hash2 = intrinsicsHashV1(intrinsics)
+
+// Both produce: "h8fmegG20PIefeyS5O1-YzsyFdziNU_9y2avmcrVRhk"
+```
 
 ### reprojection
 
