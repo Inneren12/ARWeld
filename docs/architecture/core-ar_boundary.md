@@ -65,6 +65,19 @@ dependencies {
 }
 ```
 
+## Boundary Verification: automated guard
+
+An automated Gradle guard enforces the forbidden dependency rules for `:core-ar` by checking the
+`implementation` and `api` configurations for direct project dependencies on `:core-domain` or
+`:core-data`. The guard runs via:
+
+```
+./gradlew verifyCoreArBoundaries
+```
+
+This task is wired into the sprint quality gate tasks so CI will fail if someone adds a forbidden
+dependency to `:core-ar`.
+
 ## Integration Pattern
 
 The `feature-arview` module should depend on `core-ar` and provide:
