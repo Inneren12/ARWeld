@@ -247,7 +247,7 @@ Source: `ChecksumsWriterV1`.【F:core-drawing2d/src/main/kotlin/com/example/arwe
 ## Versioning notes (brief)
 - `schemaVersion` is a breaking-change indicator for Drawing2D and patch events.
 - v1 is fixed to pixel-based coordinates and rectified space.
-- Detailed compatibility policy is tracked in PR17.
+- See the schema evolution policy for compatibility rules and v1→v2 guidance: [SCHEMA_EVOLUTION.md](./SCHEMA_EVOLUTION.md).
 
 ## Related code references
 - Drawing2D schema: `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/`.
