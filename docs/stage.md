@@ -1421,6 +1421,11 @@ Test state transitions:
 - Big-endian byte order ensures platform-independent determinism
 - Version prefix enables future algorithm evolution without hash collisions
 
+**Update (2026-03-01):**
+- Clarified intrinsics millipixel rounding as round-half-up for non-negative values.
+- Added boundary tests to lock 0.0005 px tie behavior and document boundary crossing.
+- Updated `docs/ar/alignment_snapshot_v1.md` to remove half-even claims and add concrete examples.
+
 **Acceptance Criteria:**
 - ✅ Deterministic hash with golden test passing
 - ✅ No new dependencies (uses standard JVM crypto: MessageDigest, Base64)

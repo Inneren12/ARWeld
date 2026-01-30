@@ -4,7 +4,7 @@ import android.util.Base64
 import com.example.arweld.core.domain.spatial.CameraIntrinsics
 import java.nio.ByteBuffer
 import java.security.MessageDigest
-import kotlin.math.roundToLong
+import kotlin.math.floor
 
 /**
  * Generates a deterministic hash identifier for camera intrinsics parameters.
@@ -126,10 +126,13 @@ object IntrinsicsHash {
     /**
      * Converts a pixel value to millipixels (fixed-point with 3 decimal places).
      *
-     * Uses rounding to nearest long to ensure deterministic behavior across
-     * floating-point representations.
+     * Uses `floor(x + 0.5)` to match JVM Math.round semantics and ensure
+     * deterministic behavior across floating-point representations.
      */
-    private fun toMillipixels(pixels: Double): Long = (pixels * MILLIPIXEL_SCALE).roundToLong()
+    private fun toMillipixels(pixels: Double): Long {
+        val scaled = pixels * MILLIPIXEL_SCALE
+        return floor(scaled + 0.5).toLong()
+    }
 }
 
 /**
