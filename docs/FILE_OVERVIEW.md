@@ -149,7 +149,9 @@ ARWeld/
 │       │   ├── v1/MetaEntryV1.kt             # Metadata key/value entries for schema events
 │       │   └── v1/patch/                     # Patch event schema (v1)
 │       │   └── artifacts/v1/                 # Artifact manifest schema models (v1)
-│       │   └── validation/                   # Validation reporting primitives (SeverityV1, ViolationV1, PathV1)
+│       │   └── validation/                   # Validation primitives + structural validator
+│       │       ├── CodesV1.kt                # Stable violation codes for Drawing2D v1
+│       │       └── DrawingValidatorV1.kt     # Structural validation entrypoint (v1)
 │       ├── src/test/kotlin/com/example/arweld/core/drawing2d/
 │       │   ├── CoreDrawing2DModuleTest.kt    # Unit tests for module scaffold
 │       │   └── Drawing2DDeterminismTest.kt   # Canonical ordering + JSON determinism tests
@@ -1167,6 +1169,8 @@ androidTestImplementation(libs.androidx.junit)
 | Pose + CameraIntrinsics shared types | `core-structural/src/main/kotlin/com/example/arweld/core/domain/spatial/PoseTypes.kt` |
 | Drawing2D schema + contracts | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DContract.kt` |
 | Drawing2D canonicalization helpers | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DCanonicalizer.kt` |
+| Drawing2D validation entrypoint | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/validation/DrawingValidatorV1.kt` |
+| Drawing2D validation codes | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/validation/CodesV1.kt` |
 | Drawing2D v1 root schema | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/Drawing2D.kt` |
 | Drawing2D patch event schema | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/patch/DrawingPatchEvent.kt` |
 | Drawing2D artifact manifest schema | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/v1/` |
