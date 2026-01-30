@@ -62,7 +62,7 @@ internal class SurfaceViewArCaptureService(
         workItemId: String,
         timestamp: Long,
     ): File = withContext(Dispatchers.IO) {
-        val directory = File(surfaceView.context.filesDir, "evidence")
+        val directory = File(surfaceView.context.filesDir, "evidence/ar_screenshots")
         if (!directory.exists()) {
             directory.mkdirs()
         }

@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.navigation.compose.rememberNavController
 import androidx.test.rule.GrantPermissionRule
@@ -95,7 +96,7 @@ class ARViewNavigationSmokeTest {
         }
 
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("AR View").assertIsDisplayed()
+        composeRule.onNodeWithTag("ar_view_screen_root").assertIsDisplayed()
         composeRule.onNodeWithText("ARCore disabled for instrumentation tests").assertIsDisplayed()
     }
 }

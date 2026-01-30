@@ -26,7 +26,7 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - Tracking quality indicator: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/ui/arview/ARViewScreen.kt` renders a badge sourced from `TrackingStatus` with green/yellow/red states derived from ARCore tracking state, feature-point counts, marker recency, and recent alignment recency.
 - Alignment correspondences live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/spatial/AlignmentSample.kt` (`AlignmentPoint` pairs of world/model points) and are surfaced to the UI via `alignment/ManualAlignmentState.kt`.
 - Test GLB asset packaged at `feature-arview/src/main/assets/models/test_node.glb`.
-- AR screenshots: `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArCaptureService.kt` defines the API, implemented by `SurfaceViewArCaptureService` using PixelCopy to save PNGs under `filesDir/evidence/` and return a file `Uri`.
+- AR screenshots: `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArCaptureService.kt` defines the API, implemented by `SurfaceViewArCaptureService` using PixelCopy to save PNGs under `filesDir/evidence/ar_screenshots/` and return a file `Uri`.
 
 ### Seed data (Sprint 2)
 
@@ -289,7 +289,7 @@ ARWeld/
 - `metaJson` stores flexible metadata (camera params, AR alignment, units). `createdAt` uses milliseconds since epoch.
 - `EvidenceRepository` exposes `savePhoto(eventId, file)` and `saveArScreenshot(eventId, uri, meta)` implemented in `core-data/src/main/kotlin/com/example/arweld/core/data/repository/EvidenceRepositoryImpl.kt` to hash the file, persist metadata, and return the domain `Evidence`.
 - `ArScreenshotMeta` (markerIds, trackingState, alignmentQualityScore, distanceToMarker) lives alongside the contract in `core-domain/src/main/kotlin/com/example/arweld/core/domain/evidence/EvidenceRepository.kt` and is serialized into `metaJson` for AR screenshots.
-- Photo capture is provided by `PhotoCaptureService` (CameraX) which saves files to `filesDir/evidence/photos/`. AR screenshots are produced by `ArCaptureService` (core-ar) into `filesDir/evidence/` and passed to `saveArScreenshot` with alignment metadata. Future video capture will follow the same pattern.
+- Photo capture is provided by `PhotoCaptureService` (CameraX) which saves files to `filesDir/evidence/photos/`. AR screenshots are produced by `ArCaptureService` (core-ar) into `filesDir/evidence/ar_screenshots/` and passed to `saveArScreenshot` with alignment metadata. Future video capture will follow the same pattern.
 - SHA-256 hashing for evidence files lives in `core-data/src/main/kotlin/com/example/arweld/core/data/file/ChecksumCalculator.kt`
   via `computeSha256(file: File)`; `savePhoto` stores the resulting checksum on the `Evidence.sha256` field for integrity checks.
 
