@@ -15,7 +15,7 @@ Tip for CI-like runs: `./gradlew s1QualityGate --no-daemon --stacktrace`
 3. **Lint:** `:app:lintDebug`
 
 **Note:** Instrumentation tests are **NOT** included in this gate. Use `./gradlew s2InstrumentationSmoke` to run instrumentation tests separately.
-**Note:** If the manifest requests `android.permission.CAMERA`, lint expects a matching `<uses-feature android:name="android.hardware.camera" android:required="false" />` declaration. Keep the permission but mark the camera feature as not required to avoid ChromeOS hardware lint errors.
+**Note:** If the manifest requests `android.permission.CAMERA`, lint expects a matching `<uses-feature android:name="android.hardware.camera" android:required="true" />` declaration when camera hardware is required.
 
 ## Typical failure causes
 - **Lint violations:** Style or correctness issues flagged by Android Lint
