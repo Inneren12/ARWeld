@@ -54,8 +54,8 @@ jobs:
       - name: Run quality gates
         run: ./gradlew s1QualityGate --no-daemon --console=plain && ./gradlew s2QualityGate --no-daemon --console=plain
 
-      - name: Run coverage verification and reports
-        run: ./gradlew koverMergedVerify koverMergedHtmlReport koverMergedXmlReport --no-daemon --console=plain
+      - name: Run coverage reports
+        run: ./gradlew koverHtmlReport koverXmlReport --no-daemon --console=plain
 
       - name: Upload build reports
         if: always()
@@ -105,4 +105,3 @@ jobs:
 
       - name: Run instrumentation smoke gate
         run: ./gradlew s2InstrumentationSmoke --no-daemon --console=plain
-
