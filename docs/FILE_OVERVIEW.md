@@ -142,6 +142,13 @@ ARWeld/
 │       ├── src/main/AndroidManifest.xml
 │       └── build.gradle.kts
 │
+│   └── drawing2d/                            # Drawing2D schema + contracts (pure Kotlin/JVM)
+│       ├── src/main/kotlin/com/example/arweld/core/drawing2d/
+│       │   └── Drawing2DContract.kt          # Schema version + placeholder contracts
+│       ├── src/test/kotlin/com/example/arweld/core/drawing2d/
+│       │   └── CoreDrawing2DModuleTest.kt    # Unit tests for module scaffold
+│       └── build.gradle.kts
+│
 ├── feature/
 │   ├── home/                              # Home screen
 │   │   ├── src/main/kotlin/com/example/arweld/feature/home/
@@ -1152,6 +1159,7 @@ androidTestImplementation(libs.androidx.junit)
 | QC evidence policies | `core/domain/policy/` |
 | AR rendering | `feature/arview/ar/` and `rendering/` |
 | Pose + CameraIntrinsics shared types | `core-structural/src/main/kotlin/com/example/arweld/core/domain/spatial/PoseTypes.kt` |
+| Drawing2D schema + contracts | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DContract.kt` |
 | Export logic | `feature/supervisor/export/` |
 
 ### "How do I...?"
