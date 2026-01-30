@@ -278,6 +278,7 @@ ARWeld/
 │   ├── PROJECT_OVERVIEW.md                # High-level overview
 │   ├── MODULES.md                         # Module descriptions
 │   ├── drawing/DRAWING2D_V1.md             # Drawing2D v1 schema + storage spec
+│   ├── drawing/SCHEMA_EVOLUTION.md         # Drawing2D + artifact schema evolution policy
 │   └── FILE_OVERVIEW.md                   # This file
 │
 ├── build.gradle.kts                       # Root project build config
