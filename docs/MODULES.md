@@ -218,7 +218,7 @@ Pure Kotlin/JVM module providing Drawing2D v1 schema and validation contracts. H
 
 **Key Responsibilities:**
 - Define Drawing2D schema data classes (future: with @Serializable annotations)
-- Provide validation utilities for schema compliance
+- Provide validation utilities for schema compliance, including reporting primitives (ViolationV1)
 - Support 2D/3D representation conversions (future)
 
 **Dependencies:**
