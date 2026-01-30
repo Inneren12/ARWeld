@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "drawingId": "drawing-min-001",
+  "rev": 0,
+  "page": {
+    "widthPx": 100,
+    "heightPx": 100
+  },
+  "layers": [
+    {
+      "id": "layer-1",
+      "name": "Default",
+      "order": 0
+    }
+  ],
+  "entities": [
+    {
+      "type": "line",
+      "id": "line-1",
+      "layerId": "layer-1",
+      "a": { "x": 0.0, "y": 0.0 },
+      "b": { "x": 10.0, "y": 10.0 }
+    }
+  ]
+}
