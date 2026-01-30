@@ -1384,6 +1384,63 @@ Test state transitions:
 - `docs/FILE_OVERVIEW.md` (updated)
 - `docs/stage.md` (updated)
 
+### S2-23 — intrinsicsHashV1 helper + deterministic unit tests (AR Sprint 2 PR2) ✅
+
+**Goal:** Add deterministic hash helper for camera intrinsics to populate `AlignmentSnapshot.intrinsicsHash` field.
+
+**Implementation Date:** 2026-01-30
+
+**What Was Implemented:**
+
+1. **IntrinsicsHash.kt** (`core-ar/src/main/kotlin/com/example/arweld/core/ar/alignment/IntrinsicsHash.kt`):
+   - `intrinsicsHashV1(width, height, fx, fy, cx, cy)` — top-level function producing deterministic hash
+   - `intrinsicsHashV1(intrinsics: CameraIntrinsics)` — overload accepting CameraIntrinsics object
+   - `IntrinsicsHash.computeV1()` — object method for explicit invocation
+   - `IntrinsicsHash.canonicalize()` — internal function for byte canonicalization
+
+2. **Algorithm (v1):**
+   - Fixed-point conversion: doubles converted to millipixels (×1000, rounded to nearest long)
+   - Byte encoding: big-endian with "v1" ASCII prefix (42 bytes total)
+   - Hashing: SHA-256 digest
+   - Output: Base64url without padding (43 characters)
+
+3. **Unit Tests** (`core-ar/src/test/kotlin/com/example/arweld/core/ar/alignment/IntrinsicsHashTest.kt`):
+   - Golden test: known input produces exact expected hash `h8fmegG20PIefeyS5O1-YzsyFdziNU_9y2avmcrVRhk`
+   - Sensitivity tests: changing any parameter (width/height/fx/fy/cx/cy) changes hash
+   - Stability test: same input repeated yields identical output
+   - Canonicalization tests: byte layout and millipixel rounding verification
+   - Edge cases: zero values, negative values, large dimensions, high-precision inputs
+
+4. **Documentation:**
+   - `docs/ar/alignment_snapshot_v1.md` — detailed algorithm specification with byte layout table
+   - Updated `docs/FILE_OVERVIEW.md` with new helper location
+   - Updated `docs/stage.md` with this entry
+
+**Canonicalization Rules:**
+- Millipixel precision (0.001 px) avoids float jitter across devices/runs
+- Big-endian byte order ensures platform-independent determinism
+- Version prefix enables future algorithm evolution without hash collisions
+
+**Acceptance Criteria:**
+- ✅ Deterministic hash with golden test passing
+- ✅ No new dependencies (uses standard JVM crypto: MessageDigest, Base64)
+- ✅ Documentation clearly states algorithm + precision/rounding
+- ✅ Sensitivity tests verify each parameter affects hash
+- ✅ CameraIntrinsics overload integrates with core-structural types
+
+**Test Commands:**
+```bash
+./gradlew :core-ar:testDebugUnitTest --tests "*.IntrinsicsHashTest"
+./gradlew :app:assembleDebug
+```
+
+**Files Changed:**
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/alignment/IntrinsicsHash.kt` (new)
+- `core-ar/src/test/kotlin/com/example/arweld/core/ar/alignment/IntrinsicsHashTest.kt` (new)
+- `docs/ar/alignment_snapshot_v1.md` (updated with intrinsicsHashV1 algorithm)
+- `docs/FILE_OVERVIEW.md` (updated)
+- `docs/stage.md` (updated)
+
 ---
 
 ### 2.1 Scanner (feature:scanner or core:scanner)
