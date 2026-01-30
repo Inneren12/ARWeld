@@ -71,6 +71,9 @@ The `intrinsicsHashV1` function produces a deterministic, stable hash for camera
 
 Doubles are converted to fixed-point integers using **millipixel precision** (1e-3 px):
 - Each double value is multiplied by 1000 and rounded to the nearest long integer
+- For non-negative intrinsics values, the exact rule is:  
+  `quantMilli = floor(valuePx * 1000.0 + 0.5)`  
+  (ties at `x.xxx5` round up)
 - This avoids float jitter from slight floating-point precision differences across devices/runs
 - Precision: 0.001 pixels (sufficient for sub-pixel alignment quality metrics)
 - Range: Values up to ±9.2×10¹⁵ millipixels (covers any practical resolution)
@@ -124,9 +127,15 @@ Resulting hash: `h8fmegG20PIefeyS5O1-YzsyFdziNU_9y2avmcrVRhk`
 
 #### Precision Behavior
 
-- Changes ≥ 0.001 px (1 millipixel) produce a different hash
-- Changes < 0.0005 px round to the same value (no hash change)
-- Rounding uses standard half-to-even (banker's rounding) via `roundToLong()`
+- Hash changes only when the quantized millipixel integer changes; crossing a 0.0005 px rounding boundary can change the hash.
+- For non-negative values, any change ≥ 0.001 px always changes the quantized millipixel value by exactly 1.
+- Quantization rule (non-negative values): `floor(valuePx * 1000.0 + 0.5)` (round half up).
+
+#### Examples (millipixel quantization)
+
+- `valuePx = 1.2344` → `quantMilli = floor(1234.4 + 0.5) = 1234`
+- `valuePx = 1.2345` → `quantMilli = floor(1234.5 + 0.5) = 1235` (tie goes up)
+- `valuePx = 1.23449` → `quantMilli = 1234`, while `valuePx = 1.23451` → `quantMilli = 1235` (boundary crossed with a small delta)
 
 #### Usage Example
 

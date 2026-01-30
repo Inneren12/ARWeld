@@ -170,6 +170,12 @@ class IntrinsicsHashTest {
     // Canonicalization Tests
     // ---------------------------------------------------------------------------
 
+    private fun extractFxMillipixels(bytes: ByteArray): Long {
+        val buffer = ByteBuffer.wrap(bytes)
+        buffer.position(10) // Skip version (2) + width (4) + height (4)
+        return buffer.long
+    }
+
     @Test
     fun `canonicalize - produces correct byte layout`() {
         val bytes = IntrinsicsHash.canonicalize(
@@ -229,6 +235,31 @@ class IntrinsicsHashTest {
 
         assertThat(fx1).isEqualTo(1500L)  // 1.4995 rounds to 1.500
         assertThat(fx2).isEqualTo(1501L)  // 1.5005 rounds to 1.501
+    }
+
+    @Test
+    fun `canonicalize - rounds half up at 0_0005`() {
+        val bytes = IntrinsicsHash.canonicalize(1920, 1080, 0.0005, 1.0, 1.0, 1.0)
+        val fx = extractFxMillipixels(bytes)
+
+        assertThat(fx).isEqualTo(1L)
+    }
+
+    @Test
+    fun `canonicalize - rounds half up at 1_2345`() {
+        val bytes = IntrinsicsHash.canonicalize(1920, 1080, 1.2345, 1.0, 1.0, 1.0)
+        val fx = extractFxMillipixels(bytes)
+
+        assertThat(fx).isEqualTo(1235L)
+    }
+
+    @Test
+    fun `canonicalize - small delta can cross rounding boundary`() {
+        val lower = IntrinsicsHash.canonicalize(1920, 1080, 1.23449, 1.0, 1.0, 1.0)
+        val upper = IntrinsicsHash.canonicalize(1920, 1080, 1.23451, 1.0, 1.0, 1.0)
+
+        assertThat(extractFxMillipixels(lower)).isEqualTo(1234L)
+        assertThat(extractFxMillipixels(upper)).isEqualTo(1235L)
     }
 
     // ---------------------------------------------------------------------------
