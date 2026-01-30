@@ -8,7 +8,6 @@ import com.example.arweld.feature.scanner.camera.ScannerEngine
 import com.google.mlkit.vision.common.InputImage
 import dagger.Module
 import dagger.Provides
-import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.TestInstallIn
 import dagger.hilt.components.SingletonComponent
 

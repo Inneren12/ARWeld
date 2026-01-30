@@ -283,6 +283,28 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 
 ---
 
+## P1-AR-S1-10b — Fix androidTest Hilt wiring + disable managed devices in CI (no logic changes)
+
+**Status:** Complete
+**Date:** TBD
+
+### Summary
+- Ensured androidTest Hilt modules resolve by keeping TestInstallIn wired and adding ARCore to the androidTest classpath.
+- Disabled managed-device instrumentation smoke in CI by default to avoid x86_64 acceleration requirements.
+
+### Moved/Owned Paths
+- `app/src/androidTest/java/com/example/arweld/di/FakeScannerModule.kt`
+- `app/build.gradle.kts`
+- `.github/workflows/android-ci.yml`
+
+### Commands Run
+- `./gradlew :app:kspDebugAndroidTestKotlin`
+- `./gradlew :app:compileDebugAndroidTestKotlin`
+- `./gradlew :app:testDebugUnitTest`
+- `./gradlew :app:assembleDebug`
+
+---
+
 ## P1-AR-S1-11 — Add AR screen launch smoke instrumentation test (no AR detection required)
 
 **Status:** Complete
