@@ -18,6 +18,10 @@ The `core-ar` module provides the core AR engine interface and rendering primiti
 | Kotlinx Serialization | **YES** | JSON serialization for model data |
 | ML Kit Barcode (`com.google.mlkit:barcode-scanning`) | **YES** | Marker detection backend |
 
+**PoseTypes location:** `Pose3D`, `Vector3`, `Quaternion`, and `CameraIntrinsics` live in
+`core-structural` (package `com.example.arweld.core.domain.spatial`), so `core-ar` imports them
+from `core-structural` without depending on `core-domain`.
+
 ## Forbidden Dependencies
 
 | Dependency | Forbidden | Reason |
@@ -113,61 +117,62 @@ entry points so it remains UI-layer only while the app provides implementation w
 This keeps `core-ar` free of Hilt while centralizing wiring in the app module, with no behavior
 changes to the AR pipeline.
 
-## Moved Spatial Helpers (AR Sprint 1 / Task 02)
+## Sprint 1 task log (core-ar boundary changes)
 
-The following spatial/math helper classes were moved from `feature-arview` into `core-ar` to enable AR engine code to live in the core module:
+Each Sprint 1 task is recorded once below with PR id/name, moved-file table, and verification
+commands. For the consolidated closeout rollup, see
+[`docs/sprints/AR_S1_CLOSEOUT.md`](../sprints/AR_S1_CLOSEOUT.md).
 
-### Relocated Classes
+### P1-AR-S1-01 — Create :core-ar module (initial boundary + wiring)
+
+**PR:** P1-AR-S1-01 — Create :core-ar module
+
+**Moved/Owned Files**
+
+| Original Location | New Location |
+|-------------------|--------------|
+| _New module_ | `core-ar/build.gradle.kts` |
+| _New module_ | `core-ar/src/main/AndroidManifest.xml` |
+| _New module_ | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArEngine.kt` |
+| _New module_ | `docs/architecture/core-ar_boundary.md` |
+
+**Verification commands (documented):**
+- `./gradlew :core-ar:assembleDebug`
+
+### P1-AR-S1-02 — Move math/spatial helpers into :core-ar
+
+**PR:** P1-AR-S1-02 — Move Math/Spatial Helpers to :core-ar
+
+**Moved Files**
 
 | Class | Original Location | New Location |
 |-------|-------------------|--------------|
 | `Point2f` | `feature-arview/.../geometry/Point2f.kt` | `core-ar/.../spatial/Point2f.kt` |
 | `orderCornersClockwiseFromTopLeft()` | `feature-arview/.../geometry/CornerOrdering.kt` | `core-ar/.../spatial/CornerOrdering.kt` |
 
-### Package Change
+**Verification commands (documented):**
+- `./gradlew :core-ar:assembleDebug`
+- `./gradlew :core-ar:testDebugUnitTest`
 
-- **Old package:** `com.example.arweld.feature.arview.geometry`
-- **New package:** `com.example.arweld.core.ar.spatial`
+### P1-AR-S1-03 — Move ARCore session manager into :core-ar
 
-### What Was Moved
+**PR:** P1-AR-S1-03 — Move ARCore Session Manager to :core-ar
 
-1. **Point2f.kt** — Pure Kotlin 2D point class for JVM-compatible geometry operations, plus conversion functions to/from Android `PointF`.
-
-2. **CornerOrdering.kt** — Algorithm to order marker corners clockwise from top-left. Used by marker detection and pose estimation.
-
-### What Was NOT Moved
-
-- **ArCoreMappers.kt** — Stays in `feature-arview` as it bridges ARCore-specific types to domain types
-- **Session/detector/estimator** — Will be moved in subsequent tasks
-- **Smoothing/refine/drift logic** — Out of scope for this task
-
-## Session Manager Moved (AR Sprint 1 / Task 03)
-
-The ARCore session lifecycle manager now lives in `core-ar` so AR session setup can be shared without coupling to feature UI code.
-
-### Relocated Class
+**Moved Files**
 
 | Class | Original Location | New Location |
 |-------|-------------------|--------------|
-| `ARCoreSessionManager` | `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARCoreSessionManager.kt` | `core-ar/src/main/kotlin/com/example/arweld/core/ar/arcore/ARCoreSessionManager.kt` |
+| `ARCoreSessionManager` | `feature-arview/.../arcore/ARCoreSessionManager.kt` | `core-ar/.../arcore/ARCoreSessionManager.kt` |
 
-### Notes
+**Verification commands (documented):**
+- `./gradlew :core-ar:assembleDebug`
+- `./gradlew :feature-arview:compileDebugKotlin`
 
-- Behavior is unchanged: lazy session creation on resume, safe pause/destroy, and display-geometry updates remain identical.
-- `feature-arview` now depends on `core-ar` for session lifecycle while keeping UI/lifecycle wiring in the feature module.
+### P1-AR-S1-04 — Move marker detection pipeline into :core-ar
 
-### Migration Notes
+**PR:** P1-AR-S1-04 — Move Marker Detection Pipeline to :core-ar
 
-- Consuming code in `feature-arview` updated imports from `feature.arview.geometry` → `core.ar.spatial`
-- `feature-arview/build.gradle.kts` now includes `implementation(project(":core-ar"))`
-- Unit tests added in `core-ar/src/test/.../spatial/CornerOrderingTest.kt`
-- No behavior changes; move-only refactoring
-
-## Marker Pipeline Moved (AR Sprint 1 / Task 04)
-
-The marker detection interface and default ML Kit-backed implementation now live in `core-ar` so AR engine code owns the detection pipeline.
-
-### Relocated Classes
+**Moved Files**
 
 | Class | Original Location | New Location |
 |-------|-------------------|--------------|
@@ -175,35 +180,125 @@ The marker detection interface and default ML Kit-backed implementation now live
 | `DetectedMarker` | `feature-arview/.../marker/MarkerDetector.kt` | `core-ar/.../marker/MarkerDetector.kt` |
 | `RealMarkerDetector` | `feature-arview/.../marker/RealMarkerDetector.kt` | `core-ar/.../marker/RealMarkerDetector.kt` |
 
-### Notes
+**Verification commands (documented):**
+- `./gradlew :core-ar:assembleDebug`
+- `./gradlew :core-ar:testDebugUnitTest`
+- `./gradlew :feature-arview:compileDebugKotlin`
 
-- `feature-arview` keeps `SimulatedMarkerDetector` for debug-only triggers and simply depends on the core interface.
-- No behavior changes: detection cadence, thresholds, and rotation handling remain identical.
+### P1-AR-S1-05 — Move pose estimator (PnP) into :core-ar
 
-## Capture Service Added (AR Sprint 1 / Task 09)
+**PR:** P1-AR-S1-05 — Move MarkerPoseEstimator into :core-ar
 
-The AR screenshot capture flow now lives in `core-ar` as a thin service API. The service performs
-PixelCopy from the AR `SurfaceView`, writes a PNG file under the app-scoped evidence directory, and
-returns the file `Uri` plus size metadata. Tracking/alignment metadata is supplied by the feature
-layer and attached to the result to keep `core-ar` free of domain dependencies.
+**Moved Files**
 
-### API Summary (v0)
+| Class | Original Location | New Location |
+|-------|-------------------|--------------|
+| `MarkerPoseEstimator` | `feature-arview/.../pose/MarkerPoseEstimator.kt` | `core-ar/.../pose/MarkerPoseEstimator.kt` |
+| `MarkerPoseEstimatorTest` | `feature-arview/src/test/.../pose/MarkerPoseEstimatorTest.kt` | `core-ar/src/test/.../pose/MarkerPoseEstimatorTest.kt` |
 
-- `ArCaptureService.captureScreenshot(request)` returns `ArCaptureResult` with file `Uri`, width,
-  height, timestamp, and optional `ArCaptureMeta`.
-- `createSurfaceViewCaptureService(surfaceView)` constructs the default implementation.
-- `ArCaptureServiceRegistry` exposes the active capture service instance when needed.
+**Verification commands (documented):**
+- `./gradlew :core-ar:compileDebugKotlin`
 
-### Owned Paths
+### P1-AR-S1-06 — Align pose types + PnP pipeline with core-structural
 
-- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArCaptureService.kt`
-- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArCaptureServiceRegistry.kt`
-- `core-ar/src/main/kotlin/com/example/arweld/core/ar/capture/SurfaceViewArCaptureService.kt`
+**PR:** P1-AR-S1-06 — Move PoseTypes to core-structural (remove core-domain dependency)
 
-### Integration Notes
+**Moved Files**
 
-- `feature-arview` calls the capture service and maps `ArCaptureMeta` to domain `ArScreenshotMeta`
-  when saving evidence via `core-data`.
+| Class | Original Location | New Location |
+|-------|-------------------|--------------|
+| `PoseTypes` (Pose3D/Vector3/Quaternion/CameraIntrinsics) | `core-domain/.../spatial/PoseTypes.kt` | `core-structural/.../spatial/PoseTypes.kt` |
+
+**Verification commands (documented):**
+- `./gradlew :core-ar:compileDebugKotlin`
+
+### P1-AR-S1-07 — Move MultiMarkerPoseRefiner into :core-ar
+
+**PR:** P1-AR-S1-07 — Move MultiMarkerPoseRefiner into :core-ar
+
+**Moved Files**
+
+| Class | Original Location | New Location |
+|-------|-------------------|--------------|
+| `MultiMarkerPoseRefiner` | `feature-arview/.../pose/MultiMarkerPoseRefiner.kt` | `core-ar/.../pose/MultiMarkerPoseRefiner.kt` |
+
+**Verification commands (documented):**
+- `./gradlew :core-ar:compileDebugKotlin`
+- `./gradlew :feature-arview:compileDebugKotlin`
+
+### P1-AR-S1-08 — Move drift + tracking state into :core-ar
+
+**PR:** P1-AR-S1-08 — Move DriftMonitor + TrackingQuality state into :core-ar
+
+**Moved Files**
+
+| Class | Original Location | New Location |
+|-------|-------------------|--------------|
+| `DriftMonitor` | `feature-arview/.../alignment/DriftMonitor.kt` | `core-ar/.../alignment/DriftMonitor.kt` |
+| `TrackingQuality` | `feature-arview/.../tracking/TrackingQuality.kt` | `core-ar/.../tracking/TrackingQuality.kt` |
+| `TrackingStatus` | `feature-arview/.../tracking/TrackingQuality.kt` | `core-ar/.../tracking/TrackingQuality.kt` |
+| `PerformanceMode` | `feature-arview/.../tracking/PerformanceMode.kt` | `core-ar/.../tracking/PerformanceMode.kt` |
+
+**Verification commands (documented):**
+- `./gradlew :core-ar:compileDebugKotlin`
+- `./gradlew :feature-arview:compileDebugKotlin`
+
+### P1-AR-S1-09 — Move AR screenshot capture into :core-ar
+
+**PR:** P1-AR-S1-09 — Move AR screenshot capture utility into :core-ar
+
+**Moved/Owned Files**
+
+| Original Location | New Location |
+|-------------------|--------------|
+| `feature-arview/.../capture/SurfaceViewArCaptureService.kt` | `core-ar/.../capture/SurfaceViewArCaptureService.kt` |
+| `feature-arview/.../api/ArCaptureService.kt` | `core-ar/.../api/ArCaptureService.kt` |
+| `feature-arview/.../api/ArCaptureServiceRegistry.kt` | `core-ar/.../api/ArCaptureServiceRegistry.kt` |
+
+**Verification commands (documented):**
+- `./gradlew :core-ar:compileDebugKotlin`
+
+### P1-AR-S1-10 — Rewire DI bindings for :core-ar APIs
+
+**PR:** P1-AR-S1-10 — Rewire DI: bind :core-ar interfaces via app/di
+
+**Moved/Owned Files**
+
+| Original Location | New Location |
+|-------------------|--------------|
+| _New bindings_ | `app/src/main/kotlin/com/example/arweld/di/ArCoreModule.kt` |
+| _New factory_ | `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ArViewControllerFactory.kt` |
+
+**Verification commands (documented):**
+- `./gradlew :app:assembleDebug`
+
+### P1-AR-S1-11 — Add AR screen launch smoke instrumentation test
+
+**PR:** P1-AR-S1-11 — Add AR screen launch smoke instrumentation test
+
+**Moved/Owned Files**
+
+| Original Location | New Location |
+|-------------------|--------------|
+| _New test module_ | `app/src/androidTest/java/com/example/arweld/ui/ar/ArCoreTestModule.kt` |
+| _New smoke test_ | `app/src/androidTest/java/com/example/arweld/ui/ar/ARViewSmokeTest.kt` |
+| _New smoke test_ | `app/src/androidTest/java/com/example/arweld/ui/ar/ARViewNavigationSmokeTest.kt` |
+
+**Verification commands (documented):**
+- `./gradlew :app:connectedDebugAndroidTest`
+
+### P1-AR-S1-12 — Add Gradle guard for :core-ar dependency boundaries
+
+**PR:** P1-AR-S1-12 — Add Gradle guard for :core-ar dependency boundaries
+
+**Moved/Owned Files**
+
+| Original Location | New Location |
+|-------------------|--------------|
+| _New Gradle task_ | `build.gradle.kts` (`verifyCoreArBoundaries`) |
+
+**Verification commands (documented):**
+- `./gradlew verifyCoreArBoundaries`
 
 ## Future Considerations
 
@@ -215,53 +310,3 @@ As the AR system evolves, additional APIs may be added to `core-ar`:
 - `TrackingState` — Expose tracking quality metrics
 
 All additions must follow the same boundary rules: no domain/data/UI dependencies.
-
-## Pose Estimation + PnP moved in PR P1-AR-S1-06
-
-The pose estimation and PnP pipeline now live fully in `core-ar`, and spatial math types were relocated to `core-structural` so `core-ar` no longer depends on `core-domain`.
-
-### Relocated Classes
-
-| Class | Original Location | New Location |
-|-------|-------------------|--------------|
-| `MultiMarkerPoseRefiner` | `feature-arview/.../pose/MultiMarkerPoseRefiner.kt` | `core-ar/.../pose/MultiMarkerPoseRefiner.kt` |
-| `PoseTypes` (Pose3D/Vector3/Quaternion/CameraIntrinsics) | `core-domain/.../spatial/PoseTypes.kt` | `core-structural/.../spatial/PoseTypes.kt` |
-
-### Rationale
-
-- Keeps pose estimation logic in the core AR engine for reuse and testing.
-- Removes `core-ar`'s dependency on `core-domain` while preserving shared spatial types via `core-structural`.
-- Maintains runtime behavior: only module/package wiring moved.
-
-## Multi-marker refine moved in P1-AR-S1-07
-
-The multi-marker refinement logic is now owned by `core-ar`, with behavior unchanged.
-
-### Moved Files
-
-| Class | Original Location | New Location |
-|-------|-------------------|--------------|
-| `MultiMarkerPoseRefiner` | `feature-arview/.../pose/MultiMarkerPoseRefiner.kt` | `core-ar/.../pose/MultiMarkerPoseRefiner.kt` |
-
-### Notes
-
-- Behavior unchanged; move-only refactor.
-- `feature-arview` consumes the refiner via `core-ar` imports.
-
-## Drift + tracking state moved in P1-AR-S1-08
-
-The drift monitoring and tracking-quality state models now live in `core-ar` so the AR engine owns tracking health without UI coupling.
-
-### Moved Files
-
-| Class | Original Location | New Location |
-|-------|-------------------|--------------|
-| `DriftMonitor` | `feature-arview/.../alignment/DriftMonitor.kt` | `core-ar/.../alignment/DriftMonitor.kt` |
-| `TrackingQuality` | `feature-arview/.../tracking/TrackingQuality.kt` | `core-ar/.../tracking/TrackingQuality.kt` |
-| `TrackingStatus` | `feature-arview/.../tracking/TrackingQuality.kt` | `core-ar/.../tracking/TrackingQuality.kt` |
-| `PerformanceMode` | `feature-arview/.../tracking/PerformanceMode.kt` | `core-ar/.../tracking/PerformanceMode.kt` |
-
-### Notes
-
-- No logic changes; thresholds, smoothing, and state transitions remain identical.
-- `feature-arview` continues to own UI mapping (colors, strings, badges) using the core state models.
