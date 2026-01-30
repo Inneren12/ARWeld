@@ -966,6 +966,12 @@ class WorkItemReducerTest {
 }
 ```
 
+### Drawing2D validation fixtures (core:drawing2d)
+**Location:** `core-drawing2d/src/test/resources/drawing2d/v1/`
+- Golden fixtures live under `drawing2d/v1/valid_*.json` and must decode with `Drawing2DJson`.
+- Add new invalid cases in `core-drawing2d/src/test/kotlin/com/example/arweld/core/drawing2d/validation/DrawingValidatorInvalidMatrixTest.kt`
+  by extending the `InvalidCase` table with a minimal `ExpectedViolation` list (code/path/severity only).
+
 ### Repository Tests (core:data)
 **Location:** `core/data/src/test/kotlin/com/example/arweld/core/data/`
 
