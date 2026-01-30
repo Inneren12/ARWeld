@@ -66,6 +66,7 @@ dependencies {
     implementation(project(":feature-qc"))
 
     // Core modules
+    implementation(project(":core-ar"))
     implementation(project(":core-domain"))
     implementation(project(":core-data"))
 
@@ -109,6 +110,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.google.ar.core)
     androidTestImplementation(libs.hilt.android.testing)
     kspAndroidTest(libs.hilt.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)

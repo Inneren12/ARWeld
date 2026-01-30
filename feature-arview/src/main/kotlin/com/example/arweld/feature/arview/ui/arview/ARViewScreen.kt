@@ -39,6 +39,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.arweld.core.ar.api.ArCaptureMeta
 import com.example.arweld.core.domain.diagnostics.DeviceHealthProvider
 import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.core.domain.evidence.ArScreenshotMeta
@@ -248,12 +249,9 @@ fun ARViewScreen(
                             val message = runCatching {
                                 val result = controller.captureArScreenshot(workItemId)
                                 val captureMeta = result.meta
-                                val meta = ArScreenshotMeta(
-                                    markerIds = captureMeta?.markerIds.orEmpty(),
-                                    trackingState = captureMeta?.trackingState ?: "UNKNOWN",
-                                    alignmentQualityScore = captureMeta?.alignmentQualityScore ?: 0f,
-                                    distanceToMarker = captureMeta?.distanceToMarker,
-                                    timestamp = captureMeta?.timestamp ?: System.currentTimeMillis(),
+                                val meta = buildArScreenshotMeta(
+                                    captureMeta = captureMeta,
+                                    fallbackTimestamp = System.currentTimeMillis(),
                                 )
 
                                 onScreenshotCaptured.invoke(result.fileUri, meta)
@@ -278,6 +276,20 @@ fun ARViewScreen(
             infoOverlay()
         }
     }
+}
+
+internal fun buildArScreenshotMeta(
+    captureMeta: ArCaptureMeta?,
+    fallbackTimestamp: Long,
+): ArScreenshotMeta {
+    return ArScreenshotMeta(
+        markerIds = captureMeta?.markerIds.orEmpty(),
+        trackingState = captureMeta?.trackingState ?: "UNKNOWN",
+        alignmentQualityScore = captureMeta?.alignmentQualityScore ?: 0f,
+        // Numeric conversion only between Double and Float.
+        distanceToMarker = captureMeta?.distanceToMarker?.toFloat(),
+        timestamp = captureMeta?.timestamp ?: fallbackTimestamp,
+    )
 }
 
 @EntryPoint
