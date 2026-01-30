@@ -9,15 +9,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -33,15 +38,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
 import com.example.arweld.core.drawing2d.artifacts.io.v1.ManifestWriterV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
-import com.example.arweld.core.drawing2d.artifacts.v1.ManifestV1
 import com.example.arweld.feature.drawingimport.artifacts.DrawingImportArtifacts
 import com.example.arweld.feature.drawingimport.camera.CameraSession
 import java.io.File
@@ -58,9 +66,11 @@ fun DrawingImportScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var previewView: PreviewView? by remember { mutableStateOf(null) }
-    var captureState by remember { mutableStateOf(CaptureState.Idle) }
-    var projectId by rememberSaveable { mutableStateOf<String?>(null) }
-    var lastSavedInfo by remember { mutableStateOf<SavedCaptureInfo?>(null) }
+    var screenState by rememberSaveable {
+        mutableStateOf<DrawingImportUiState>(DrawingImportUiState.Idle)
+    }
+    var activeProjectId by rememberSaveable { mutableStateOf<String?>(null) }
+    var imageError by remember { mutableStateOf(false) }
     var uiState by remember {
         mutableStateOf<CameraPermissionState>(
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -72,6 +82,9 @@ fun DrawingImportScreen(
             }
         )
     }
+    if (uiState is CameraPermissionState.Ready && screenState == DrawingImportUiState.Idle) {
+        screenState = DrawingImportUiState.Ready
+    }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -82,14 +95,18 @@ fun DrawingImportScreen(
         }
     }
 
-    DisposableEffect(uiState, lifecycleOwner, previewView) {
+    val shouldBindCamera = uiState is CameraPermissionState.Ready &&
+        (screenState is DrawingImportUiState.Ready || screenState is DrawingImportUiState.Capturing)
+
+    DisposableEffect(shouldBindCamera, lifecycleOwner, previewView) {
         val currentPreviewView = previewView
-        if (uiState is CameraPermissionState.Ready && currentPreviewView != null) {
+        if (shouldBindCamera && currentPreviewView != null) {
             cameraSession.start(lifecycleOwner, currentPreviewView) { throwable ->
                 cameraSession.stop()
                 uiState = CameraPermissionState.CameraError(
                     throwable.message ?: "Camera failed to start. Please try again.",
                 )
+                screenState = DrawingImportUiState.Error("Camera failed to start. Please try again.")
             }
         }
         onDispose {
@@ -102,7 +119,7 @@ fun DrawingImportScreen(
         color = MaterialTheme.colorScheme.background
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (uiState is CameraPermissionState.Ready) {
+            if (shouldBindCamera) {
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
                     factory = { factoryContext ->
@@ -192,33 +209,131 @@ fun DrawingImportScreen(
                         }
 
                         CameraPermissionState.Ready -> {
-                            Text(
-                                text = "Camera ready",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            lastSavedInfo?.let { saved ->
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Raw saved",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                                Text(
-                                    text = "Project: ${saved.projectId}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                )
-                                Text(
-                                    text = saved.projectDir,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                )
-                                Text(
-                                    text = "RelPath: ${saved.relPath}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                )
+                            when (val captureState = screenState) {
+                                DrawingImportUiState.Idle,
+                                DrawingImportUiState.Ready,
+                                DrawingImportUiState.Capturing,
+                                -> {
+                                    Text(
+                                        text = if (captureState == DrawingImportUiState.Capturing) {
+                                            "Capturing..."
+                                        } else {
+                                            "Camera ready"
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                }
+
+                                is DrawingImportUiState.Error -> {
+                                    Text(
+                                        text = captureState.message,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Button(
+                                        onClick = {
+                                            screenState = DrawingImportUiState.Ready
+                                        },
+                                    ) {
+                                        Text(text = "Retry Capture")
+                                    }
+                                }
+
+                                is DrawingImportUiState.Saved -> {
+                                    val rawEntry = captureState.session.artifacts.firstOrNull {
+                                        it.kind == ArtifactKindV1.RAW_IMAGE
+                                    }
+                                    val manifestEntry = captureState.session.artifacts.firstOrNull {
+                                        it.kind == ArtifactKindV1.MANIFEST_JSON
+                                    }
+                                    val rawFile = rawEntry?.let {
+                                        File(captureState.session.projectDir, it.relPath)
+                                    }
+
+                                    Text(
+                                        text = "Capture saved",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = "Project ID",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                    )
+                                    Text(
+                                        text = captureState.session.projectId,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Card(
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surface
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "Raw preview",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .heightIn(min = 180.dp, max = 260.dp)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                if (rawFile != null) {
+                                                    AsyncImage(
+                                                        model = ImageRequest.Builder(context)
+                                                            .data(rawFile)
+                                                            .crossfade(true)
+                                                            .build(),
+                                                        contentDescription = "Captured raw drawing preview",
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        onError = { imageError = true },
+                                                    )
+                                                }
+                                                if (rawFile == null || imageError) {
+                                                    Text(
+                                                        text = "Preview unavailable",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text(
+                                            text = "Artifacts",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                        ArtifactSummaryRow(
+                                            label = "Raw",
+                                            relPath = rawEntry?.relPath ?: "Missing",
+                                            sha256 = rawEntry?.sha256 ?: "--",
+                                        )
+                                        ArtifactSummaryRow(
+                                            label = "Manifest",
+                                            relPath = manifestEntry?.relPath ?: "Missing",
+                                            sha256 = manifestEntry?.sha256 ?: "--",
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -227,83 +342,121 @@ fun DrawingImportScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    if (captureState == CaptureState.Capturing) {
-                        Text(
-                            text = "Capturing...",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
                     if (uiState is CameraPermissionState.Ready) {
-                        Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    if (captureState == CaptureState.Capturing) return@launch
-                                    captureState = CaptureState.Capturing
-                                    val captureProjectId = projectId ?: UUID.randomUUID().toString()
-                                    projectId = captureProjectId
-                                    val tempDir = File(context.cacheDir, "drawing-import")
-                                    if (!tempDir.exists()) {
-                                        tempDir.mkdirs()
-                                    }
-                                    val tempFile = File(tempDir, "raw_capture.jpg")
-                                    try {
-                                        val targetRotation = previewView?.display?.rotation
-                                        cameraSession.captureImage(tempFile, targetRotation)
-                                        val projectDir = File(
-                                            DrawingImportArtifacts.artifactsRoot(context),
-                                            captureProjectId,
-                                        )
-                                        val store = FileArtifactStoreV1(projectDir)
-                                        val rawEntry = store.writeBytes(
-                                            kind = ArtifactKindV1.RAW_IMAGE,
-                                            relPath = DrawingImportArtifacts.rawImageRelPath(),
-                                            bytes = tempFile.readBytes(),
-                                            mime = "image/jpeg",
-                                        )
-                                        val manifest = ManifestV1(
-                                            projectId = captureProjectId,
-                                            artifacts = listOf(rawEntry),
-                                        )
-                                        ManifestWriterV1().write(projectDir, manifest)
-                                        lastSavedInfo = SavedCaptureInfo(
-                                            projectId = captureProjectId,
-                                            projectDir = projectDir.path,
-                                            relPath = rawEntry.relPath,
-                                        )
-                                        snackbarHostState.showSnackbar("Raw saved")
-                                        captureState = CaptureState.Saved
-                                    } catch (error: Throwable) {
-                                        captureState = CaptureState.Error
-                                        snackbarHostState.showSnackbar(
-                                            error.message ?: "Capture failed",
-                                        )
-                                    } finally {
-                                        tempFile.delete()
-                                    }
+                        if (screenState is DrawingImportUiState.Saved) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Button(
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        val session = (screenState as? DrawingImportUiState.Saved)?.session
+                                        session?.projectDir?.deleteRecursively()
+                                        activeProjectId = null
+                                        imageError = false
+                                        screenState = DrawingImportUiState.Ready
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondary,
+                                        contentColor = MaterialTheme.colorScheme.onSecondary,
+                                    ),
+                                ) {
+                                    Text(text = "Retake")
                                 }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
-                        ) {
-                            Text(text = "Capture")
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = {
-                                captureState = CaptureState.Idle
-                                projectId = UUID.randomUUID().toString()
-                                lastSavedInfo = null
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondary,
-                                contentColor = MaterialTheme.colorScheme.onSecondary,
-                            ),
-                        ) {
-                            Text(text = "Reset")
+                                Button(
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                "Next: page detection (coming in PR07+)",
+                                            )
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    ),
+                                ) {
+                                    Text(text = "Continue")
+                                }
+                            }
+                        } else {
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        if (screenState == DrawingImportUiState.Capturing) return@launch
+                                        screenState = DrawingImportUiState.Capturing
+                                        val captureProjectId = activeProjectId ?: UUID.randomUUID().toString()
+                                        activeProjectId = captureProjectId
+                                        val tempDir = File(context.cacheDir, "drawing-import")
+                                        if (!tempDir.exists()) {
+                                            tempDir.mkdirs()
+                                        }
+                                        val tempFile = File(tempDir, "raw_capture.jpg")
+                                        try {
+                                            val targetRotation = previewView?.display?.rotation
+                                            cameraSession.captureImage(tempFile, targetRotation)
+                                            val projectDir = File(
+                                                DrawingImportArtifacts.artifactsRoot(context),
+                                                captureProjectId,
+                                            )
+                                            val store = FileArtifactStoreV1(projectDir)
+                                            val rawEntry = store.writeBytes(
+                                                kind = ArtifactKindV1.RAW_IMAGE,
+                                                relPath = DrawingImportArtifacts.rawImageRelPath(),
+                                                bytes = tempFile.readBytes(),
+                                                mime = "image/jpeg",
+                                            )
+                                            val manifestEntry = ManifestWriterV1().write(
+                                                projectDir,
+                                                DrawingImportArtifacts.buildManifest(
+                                                    projectId = captureProjectId,
+                                                    artifacts = listOf(rawEntry),
+                                                ),
+                                            )
+                                            imageError = false
+                                            screenState = DrawingImportUiState.Saved(
+                                                DrawingImportSession(
+                                                    projectId = captureProjectId,
+                                                    projectDir = projectDir,
+                                                    artifacts = listOf(rawEntry, manifestEntry),
+                                                )
+                                            )
+                                            snackbarHostState.showSnackbar("Raw saved")
+                                        } catch (error: Throwable) {
+                                            screenState = DrawingImportUiState.Error(
+                                                error.message ?: "Capture failed",
+                                            )
+                                            snackbarHostState.showSnackbar(
+                                                error.message ?: "Capture failed",
+                                            )
+                                        } finally {
+                                            tempFile.delete()
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                            ) {
+                                Text(text = "Capture")
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    activeProjectId = null
+                                    imageError = false
+                                    screenState = DrawingImportUiState.Ready
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondary,
+                                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                                ),
+                            ) {
+                                Text(text = "Reset")
+                            }
                         }
                     }
                 }
@@ -327,15 +480,33 @@ private sealed interface CameraPermissionState {
     data class CameraError(val message: String) : CameraPermissionState
 }
 
-private enum class CaptureState {
-    Idle,
-    Capturing,
-    Saved,
-    Error,
+@Composable
+private fun ArtifactSummaryRow(
+    label: String,
+    relPath: String,
+    sha256: String,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = relPath,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = "SHA: ${shortenSha(sha256)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+    }
 }
 
-private data class SavedCaptureInfo(
-    val projectId: String,
-    val projectDir: String,
-    val relPath: String,
-)
+private fun shortenSha(sha256: String, max: Int = 12): String {
+    return if (sha256.length <= max) sha256 else sha256.take(max)
+}
