@@ -47,11 +47,17 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
 import com.example.arweld.core.drawing2d.artifacts.io.v1.ManifestWriterV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
+import com.example.arweld.feature.drawingimport.BuildConfig
 import com.example.arweld.feature.drawingimport.artifacts.DrawingImportArtifacts
 import com.example.arweld.feature.drawingimport.camera.CameraSession
+import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorCode
+import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorMapper
+import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
+import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLogger
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.launch
@@ -59,6 +65,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun DrawingImportScreen(
     modifier: Modifier = Modifier,
+    diagnosticsRecorder: DiagnosticsRecorder,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -71,6 +78,12 @@ fun DrawingImportScreen(
     }
     var activeProjectId by rememberSaveable { mutableStateOf<String?>(null) }
     var imageError by remember { mutableStateOf(false) }
+    var lastEventName by remember { mutableStateOf<String?>(null) }
+    var lastErrorCode by remember { mutableStateOf<DrawingImportErrorCode?>(null) }
+    var hasLoggedCameraReady by remember { mutableStateOf(false) }
+    val diagnosticsLogger = remember(diagnosticsRecorder) {
+        DrawingImportEventLogger(diagnosticsRecorder)
+    }
     var uiState by remember {
         mutableStateOf<CameraPermissionState>(
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -93,21 +106,83 @@ fun DrawingImportScreen(
         } else {
             CameraPermissionState.PermissionDenied
         }
+        val permissionState = if (granted) "granted" else "denied"
+        logDiagnosticsEvent(
+            logger = diagnosticsLogger,
+            event = DrawingImportEvent.PERMISSION_RESULT,
+            state = permissionState,
+            projectId = activeProjectId,
+            onLogged = { lastEventName = DrawingImportEvent.PERMISSION_RESULT.eventName },
+        )
+        if (!granted) {
+            logDiagnosticsError(
+                logger = diagnosticsLogger,
+                projectId = activeProjectId,
+                code = DrawingImportErrorCode.PERMISSION_DENIED,
+                onLogged = {
+                    lastEventName = DrawingImportEvent.ERROR.eventName
+                    lastErrorCode = DrawingImportErrorCode.PERMISSION_DENIED
+                },
+            )
+        }
     }
 
     val shouldBindCamera = uiState is CameraPermissionState.Ready &&
         (screenState is DrawingImportUiState.Ready || screenState is DrawingImportUiState.Capturing)
 
+    DisposableEffect(shouldBindCamera) {
+        if (!shouldBindCamera) {
+            hasLoggedCameraReady = false
+        }
+        onDispose { }
+    }
+
     DisposableEffect(shouldBindCamera, lifecycleOwner, previewView) {
         val currentPreviewView = previewView
         if (shouldBindCamera && currentPreviewView != null) {
-            cameraSession.start(lifecycleOwner, currentPreviewView) { throwable ->
-                cameraSession.stop()
-                uiState = CameraPermissionState.CameraError(
-                    throwable.message ?: "Camera failed to start. Please try again.",
-                )
-                screenState = DrawingImportUiState.Error("Camera failed to start. Please try again.")
-            }
+            cameraSession.start(
+                lifecycleOwner,
+                currentPreviewView,
+                onReady = {
+                    if (!hasLoggedCameraReady) {
+                        logDiagnosticsEvent(
+                            logger = diagnosticsLogger,
+                            event = DrawingImportEvent.CAMERA_BIND_SUCCESS,
+                            state = "ready",
+                            projectId = activeProjectId,
+                            onLogged = {
+                                lastEventName = DrawingImportEvent.CAMERA_BIND_SUCCESS.eventName
+                            },
+                        )
+                        hasLoggedCameraReady = true
+                    }
+                },
+                onError = { throwable ->
+                    cameraSession.stop()
+                    uiState = CameraPermissionState.CameraError(
+                        throwable.message ?: "Camera failed to start. Please try again.",
+                    )
+                    screenState = DrawingImportUiState.Error("Camera failed to start. Please try again.")
+                    logDiagnosticsEvent(
+                        logger = diagnosticsLogger,
+                        event = DrawingImportEvent.CAMERA_BIND_FAILED,
+                        state = "failed",
+                        projectId = activeProjectId,
+                        onLogged = {
+                            lastEventName = DrawingImportEvent.CAMERA_BIND_FAILED.eventName
+                        },
+                    )
+                    logDiagnosticsError(
+                        logger = diagnosticsLogger,
+                        projectId = activeProjectId,
+                        code = DrawingImportErrorCode.CAMERA_BIND_FAILED,
+                        onLogged = {
+                            lastEventName = DrawingImportEvent.ERROR.eventName
+                            lastErrorCode = DrawingImportErrorCode.CAMERA_BIND_FAILED
+                        },
+                    )
+                },
+            )
         }
         onDispose {
             cameraSession.stop()
@@ -300,7 +375,20 @@ fun DrawingImportScreen(
                                                             .build(),
                                                         contentDescription = "Captured raw drawing preview",
                                                         modifier = Modifier.fillMaxSize(),
-                                                        onError = { imageError = true },
+                                                        onError = {
+                                                            if (!imageError) {
+                                                                logDiagnosticsError(
+                                                                    logger = diagnosticsLogger,
+                                                                    projectId = captureState.session.projectId,
+                                                                    code = DrawingImportErrorCode.PREVIEW_LOAD_FAILED,
+                                                                    onLogged = {
+                                                                        lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                        lastErrorCode = DrawingImportErrorCode.PREVIEW_LOAD_FAILED
+                                                                    },
+                                                                )
+                                                            }
+                                                            imageError = true
+                                                        },
                                                     )
                                                 }
                                                 if (rawFile == null || imageError) {
@@ -342,6 +430,13 @@ fun DrawingImportScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    if (BuildConfig.DEBUG) {
+                        DebugDetailsCard(
+                            lastEventName = lastEventName,
+                            lastErrorCode = lastErrorCode,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                     if (uiState is CameraPermissionState.Ready) {
                         if (screenState is DrawingImportUiState.Saved) {
                             Row(
@@ -352,6 +447,16 @@ fun DrawingImportScreen(
                                     modifier = Modifier.weight(1f),
                                     onClick = {
                                         val session = (screenState as? DrawingImportUiState.Saved)?.session
+                                        logDiagnosticsEvent(
+                                            logger = diagnosticsLogger,
+                                            event = DrawingImportEvent.SESSION_RESET,
+                                            state = "retake",
+                                            projectId = session?.projectId,
+                                            onLogged = {
+                                                lastEventName = DrawingImportEvent.SESSION_RESET.eventName
+                                                lastErrorCode = null
+                                            },
+                                        )
                                         session?.projectDir?.deleteRecursively()
                                         activeProjectId = null
                                         imageError = false
@@ -389,6 +494,15 @@ fun DrawingImportScreen(
                                         screenState = DrawingImportUiState.Capturing
                                         val captureProjectId = activeProjectId ?: UUID.randomUUID().toString()
                                         activeProjectId = captureProjectId
+                                        logDiagnosticsEvent(
+                                            logger = diagnosticsLogger,
+                                            event = DrawingImportEvent.CAPTURE_START,
+                                            state = "start",
+                                            projectId = captureProjectId,
+                                            onLogged = {
+                                                lastEventName = DrawingImportEvent.CAPTURE_START.eventName
+                                            },
+                                        )
                                         val tempDir = File(context.cacheDir, "drawing-import")
                                         if (!tempDir.exists()) {
                                             tempDir.mkdirs()
@@ -397,6 +511,27 @@ fun DrawingImportScreen(
                                         try {
                                             val targetRotation = previewView?.display?.rotation
                                             cameraSession.captureImage(tempFile, targetRotation)
+                                        } catch (error: Throwable) {
+                                            val code = DrawingImportErrorMapper.fromThrowable(error)
+                                            screenState = DrawingImportUiState.Error(
+                                                DrawingImportErrorMapper.messageFor(code),
+                                            )
+                                            logDiagnosticsError(
+                                                logger = diagnosticsLogger,
+                                                projectId = captureProjectId,
+                                                code = code,
+                                                onLogged = {
+                                                    lastEventName = DrawingImportEvent.ERROR.eventName
+                                                    lastErrorCode = code
+                                                },
+                                            )
+                                            snackbarHostState.showSnackbar(
+                                                DrawingImportErrorMapper.messageFor(code),
+                                            )
+                                            tempFile.delete()
+                                            return@launch
+                                        }
+                                        try {
                                             val projectDir = File(
                                                 DrawingImportArtifacts.artifactsRoot(context),
                                                 captureProjectId,
@@ -423,14 +558,36 @@ fun DrawingImportScreen(
                                                     artifacts = listOf(rawEntry, manifestEntry),
                                                 )
                                             )
+                                            logDiagnosticsEvent(
+                                                logger = diagnosticsLogger,
+                                                event = DrawingImportEvent.CAPTURE_SAVED,
+                                                state = "saved",
+                                                projectId = captureProjectId,
+                                                extras = mapOf(
+                                                    "artifactRawRelPath" to rawEntry.relPath,
+                                                    "artifactRawSha" to shortenSha(rawEntry.sha256),
+                                                    "artifactManifestRelPath" to manifestEntry.relPath,
+                                                    "artifactManifestSha" to shortenSha(manifestEntry.sha256),
+                                                ),
+                                                onLogged = {
+                                                    lastEventName = DrawingImportEvent.CAPTURE_SAVED.eventName
+                                                },
+                                            )
                                             snackbarHostState.showSnackbar("Raw saved")
                                         } catch (error: Throwable) {
-                                            screenState = DrawingImportUiState.Error(
-                                                error.message ?: "Capture failed",
+                                            val code = DrawingImportErrorMapper.fromThrowable(error)
+                                            val message = DrawingImportErrorMapper.messageFor(code)
+                                            screenState = DrawingImportUiState.Error(message)
+                                            logDiagnosticsError(
+                                                logger = diagnosticsLogger,
+                                                projectId = captureProjectId,
+                                                code = code,
+                                                onLogged = {
+                                                    lastEventName = DrawingImportEvent.ERROR.eventName
+                                                    lastErrorCode = code
+                                                },
                                             )
-                                            snackbarHostState.showSnackbar(
-                                                error.message ?: "Capture failed",
-                                            )
+                                            snackbarHostState.showSnackbar(message)
                                         } finally {
                                             tempFile.delete()
                                         }
@@ -446,6 +603,16 @@ fun DrawingImportScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Button(
                                 onClick = {
+                                    logDiagnosticsEvent(
+                                        logger = diagnosticsLogger,
+                                        event = DrawingImportEvent.SESSION_RESET,
+                                        state = "reset",
+                                        projectId = activeProjectId,
+                                        onLogged = {
+                                            lastEventName = DrawingImportEvent.SESSION_RESET.eventName
+                                            lastErrorCode = null
+                                        },
+                                    )
                                     activeProjectId = null
                                     imageError = false
                                     screenState = DrawingImportUiState.Ready
@@ -470,6 +637,17 @@ fun DrawingImportScreen(
                     .padding(bottom = 12.dp),
             )
         }
+    }
+
+    DisposableEffect(Unit) {
+        logDiagnosticsEvent(
+            logger = diagnosticsLogger,
+            event = DrawingImportEvent.SCREEN_OPENED,
+            state = "opened",
+            projectId = activeProjectId,
+            onLogged = { lastEventName = DrawingImportEvent.SCREEN_OPENED.eventName },
+        )
+        onDispose { }
     }
 }
 
@@ -509,4 +687,71 @@ private fun ArtifactSummaryRow(
 
 private fun shortenSha(sha256: String, max: Int = 12): String {
     return if (sha256.length <= max) sha256 else sha256.take(max)
+}
+
+@Composable
+private fun DebugDetailsCard(
+    lastEventName: String?,
+    lastErrorCode: DrawingImportErrorCode?,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "Debug details",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "Last event: ${lastEventName ?: "none"}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "Last error: ${lastErrorCode?.name ?: "none"}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun logDiagnosticsEvent(
+    logger: DrawingImportEventLogger,
+    event: DrawingImportEvent,
+    state: String,
+    projectId: String?,
+    extras: Map<String, String> = emptyMap(),
+    onLogged: () -> Unit,
+) {
+    logger.logEvent(
+        event = event,
+        state = state,
+        projectId = projectId,
+        extras = extras,
+    )
+    onLogged()
+}
+
+private fun logDiagnosticsError(
+    logger: DrawingImportEventLogger,
+    projectId: String?,
+    code: DrawingImportErrorCode,
+    onLogged: () -> Unit,
+) {
+    logger.logEvent(
+        event = DrawingImportEvent.ERROR,
+        state = "error",
+        projectId = projectId,
+        errorCode = code,
+        message = DrawingImportErrorMapper.messageFor(code),
+    )
+    onLogged()
 }

@@ -28,6 +28,7 @@ class CameraSession(
     fun start(
         lifecycleOwner: LifecycleOwner,
         previewView: PreviewView,
+        onReady: () -> Unit,
         onError: (Throwable) -> Unit,
     ) {
         val executor = cameraExecutor ?: Executors.newSingleThreadExecutor().also {
@@ -63,6 +64,7 @@ class CameraSession(
                         capture,
                     )
                     imageCapture = capture
+                    onReady()
                 } catch (throwable: Throwable) {
                     onError(throwable)
                 }

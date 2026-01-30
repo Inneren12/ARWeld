@@ -14,7 +14,8 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 
 ### Drawing import entry points
 
-- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/ui/DrawingImportScreen.kt` — Placeholder Drawing Import UI (S2-PR01).
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/ui/DrawingImportScreen.kt` — Drawing Import UI with raw capture and structured diagnostics events.
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/diagnostics/DrawingImportDiagnostics.kt` — Event + error code catalog and structured logging helpers for drawing import.
 - `app/src/main/kotlin/com/example/arweld/ui/drawingimport/DrawingImportRoute.kt` — App-level navigation wrapper for Drawing Import.
 
 ### AR view and rendering (feature-arview)
