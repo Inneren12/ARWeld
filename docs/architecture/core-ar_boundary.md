@@ -199,19 +199,18 @@ commands. For the consolidated closeout rollup, see
 **Verification commands (documented):**
 - `./gradlew :core-ar:compileDebugKotlin`
 
-### P1-AR-S1-06 — Align pose estimator + PnP pipeline with core-structural
+### P1-AR-S1-06 — Align pose types with core-structural dependency cleanup
 
-**PR:** P1-AR-S1-06 — Move pose estimator + pose types to core-structural
+**PR:** P1-AR-S1-06 — Move pose types to core-structural
 
 **Moved/Owned Files**
 
 | Class | Original Location | New Location |
 |-------|-------------------|--------------|
-| `MarkerPoseEstimator` + `MarkerPoseEstimateResult` (PnP pipeline) | `feature-arview/.../pose/MarkerPoseEstimator.kt` | `core-ar/.../pose/MarkerPoseEstimator.kt` |
 | `PoseTypes` (Pose3D/Vector3/Quaternion/CameraIntrinsics) | `core-domain/.../spatial/PoseTypes.kt` | `core-structural/.../spatial/PoseTypes.kt` |
 
 **Rationale**
-- Consolidate pose estimation (PnP) under `core-ar` while keeping shared spatial math in `core-structural` to avoid any `core-domain` dependency.
+- Keep shared spatial math in `core-structural` so `core-ar` can consume `PoseTypes` without taking a `core-domain` dependency.
 
 **Verification commands (documented):**
 - `./gradlew :core-ar:compileDebugKotlin`
@@ -260,6 +259,9 @@ commands. For the consolidated closeout rollup, see
 | `feature-arview/.../capture/SurfaceViewArCaptureService.kt` | `core-ar/.../capture/SurfaceViewArCaptureService.kt` |
 | `feature-arview/.../api/ArCaptureService.kt` | `core-ar/.../api/ArCaptureService.kt` |
 | `feature-arview/.../api/ArCaptureServiceRegistry.kt` | `core-ar/.../api/ArCaptureServiceRegistry.kt` |
+
+**Capture storage:**
+- `filesDir/evidence/ar_screenshots/` (PNG output)
 
 **Verification commands (documented):**
 - `./gradlew :core-ar:compileDebugKotlin`
