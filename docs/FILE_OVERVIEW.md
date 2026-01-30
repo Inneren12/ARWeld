@@ -119,13 +119,18 @@ ARWeld/
 │   └── ar/                                # Core AR engine (NO domain/data deps)
 │       ├── src/main/kotlin/com/example/arweld/core/ar/
 │       │   ├── api/                       # Public AR interfaces
-│       │   │   └── ArEngine.kt            # Core AR engine interface
+│       │   │   ├── ArEngine.kt            # Core AR engine interface
+│       │   │   ├── AlignmentQuality.kt    # Reprojection error metrics (S2-22)
+│       │   │   └── AlignmentSnapshot.kt   # Audit-grade alignment payload v1 (S2-22)
 │       │   ├── marker/                    # Marker detection pipeline
 │       │   │   ├── MarkerDetector.kt      # Marker detector interface + DetectedMarker
 │       │   │   └── RealMarkerDetector.kt  # ML Kit barcode-based detector
 │       │   └── spatial/                   # Spatial/math helpers for AR engine
 │       │       ├── Point2f.kt             # Pure Kotlin 2D point + Android PointF converters
 │       │       └── CornerOrdering.kt      # Clockwise corner ordering for markers
+│       ├── src/test/kotlin/com/example/arweld/core/ar/api/
+│       │   ├── AlignmentQualityTest.kt    # Unit tests for AlignmentQuality validation (S2-22)
+│       │   └── AlignmentSnapshotTest.kt   # Unit tests for AlignmentSnapshot validation (S2-22)
 │       ├── src/test/kotlin/com/example/arweld/core/ar/spatial/
 │       │   └── CornerOrderingTest.kt      # Unit tests for corner ordering
 │       ├── src/test/kotlin/com/example/arweld/core/ar/marker/
@@ -1118,6 +1123,8 @@ androidTestImplementation(libs.androidx.junit)
 | What | Location |
 |------|----------|
 | Core AR engine interface | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/ArEngine.kt` |
+| AlignmentSnapshot schema (v1) | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/AlignmentSnapshot.kt` |
+| AlignmentQuality metrics | `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/AlignmentQuality.kt` |
 | AR spatial helpers (Point2f, corner ordering) | `core-ar/src/main/kotlin/com/example/arweld/core/ar/spatial/` |
 | Marker detection interface + default impl | `core-ar/src/main/kotlin/com/example/arweld/core/ar/marker/` |
 | ARCore session lifecycle manager | `core-ar/src/main/kotlin/com/example/arweld/core/ar/arcore/ARCoreSessionManager.kt` |

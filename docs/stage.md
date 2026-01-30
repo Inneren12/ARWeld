@@ -1339,6 +1339,53 @@ Test state transitions:
 - В payload присутствует позиция/ориентация модели в мире; пропуск логирования не приводит к крэшу, если нет авторизованного пользователя.
 - Документация обновлена (`docs/MODULES.md`, `docs/FILE_OVERVIEW.md`, `docs/stage.md`).
 
+### S2-22 — AlignmentSnapshot v1 + AlignmentQuality schema (AR Sprint 2 PR1) ✅
+
+**Goal:** Introduce typed, audit-grade alignment logging payload in `core-ar` module with versioned schema and validation.
+
+**Implementation Date:** 2026-01-30
+
+**What Was Implemented:**
+
+1. **AlignmentQuality.kt** (`core-ar/src/main/kotlin/com/example/arweld/core/ar/api/AlignmentQuality.kt`):
+   - Data class with `meanPx`, `maxPx`, `samples` fields
+   - Runtime validation: all fields must be >= 0
+   - KDoc explaining L2 reprojection error in pixels
+
+2. **AlignmentSnapshot.kt** (`core-ar/src/main/kotlin/com/example/arweld/core/ar/api/AlignmentSnapshot.kt`):
+   - Data class with required fields: `intrinsicsHash`, `reprojection`, `gravity`
+   - `schemaVersion = 1` (read-only constant)
+   - Runtime validation: `intrinsicsHash` must be non-blank
+   - Reuses `Vector3` from `core-structural` for gravity vector
+   - KDoc explaining coordinate frame (Android sensor coords) and field semantics
+
+3. **Unit Tests** (`core-ar/src/test/kotlin/com/example/arweld/core/ar/api/`):
+   - `AlignmentQualityTest.kt` — validates construction, negative value rejection, data class equality
+   - `AlignmentSnapshotTest.kt` — validates required fields, blank hash rejection, schemaVersion default
+
+4. **Documentation:**
+   - `docs/ar/alignment_snapshot_v1.md` — full schema specification with field descriptions and usage examples
+   - Updated `docs/FILE_OVERVIEW.md` with new API file locations
+   - Updated `docs/stage.md` with this entry
+
+**Acceptance Criteria:**
+- ✅ `core-ar` compiles
+- ✅ Unit tests pass
+- ✅ `AlignmentSnapshot` has `schemaVersion=1` and REQUIRED fields: `intrinsicsHash`, `reprojection`, `gravity`
+- ✅ All fields are non-null (compile-time) with runtime validation for business rules
+- ✅ Documentation updated with accurate paths
+
+**Files Changed:**
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/AlignmentQuality.kt` (new)
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/api/AlignmentSnapshot.kt` (new)
+- `core-ar/src/test/kotlin/com/example/arweld/core/ar/api/AlignmentQualityTest.kt` (new)
+- `core-ar/src/test/kotlin/com/example/arweld/core/ar/api/AlignmentSnapshotTest.kt` (new)
+- `docs/ar/alignment_snapshot_v1.md` (new)
+- `docs/FILE_OVERVIEW.md` (updated)
+- `docs/stage.md` (updated)
+
+---
+
 ### 2.1 Scanner (feature:scanner or core:scanner)
 
 **Implementation:**
