@@ -145,6 +145,7 @@ ARWeld/
 │   └── drawing2d/                            # Drawing2D schema + contracts (pure Kotlin/JVM)
 │       ├── src/main/kotlin/com/example/arweld/core/drawing2d/
 │       │   └── Drawing2DContract.kt          # Schema version + placeholder contracts
+│       │   └── validation/                   # Validation reporting primitives (SeverityV1, ViolationV1, PathV1)
 │       ├── src/test/kotlin/com/example/arweld/core/drawing2d/
 │       │   └── CoreDrawing2DModuleTest.kt    # Unit tests for module scaffold
 │       └── build.gradle.kts
