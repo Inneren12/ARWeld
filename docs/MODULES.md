@@ -35,6 +35,9 @@ core:domain
 
 core:structural
  └─ (no dependencies, pure Kotlin/JVM)
+
+core:drawing2d
+ └─ (no dependencies, pure Kotlin/JVM)
 ```
 
 **Dependency Rules:**
@@ -203,6 +206,33 @@ Pure Kotlin/JVM module that defines the structural steel model used by AR/QC pip
 **Notes:**
 - Units fixed to mm for v0.1; validation enforces `units == "mm"`
 - No Android dependencies; reusable in backend/offline tools
+
+---
+
+### core:drawing2d
+
+**Status:** 🚧 Scaffold (Drawing2D Sprint 1)
+
+**Description:**
+Pure Kotlin/JVM module providing Drawing2D v1 schema and validation contracts. Hosts 2D drawing representations used for AR alignment, QC workflows, and potential 2D-to-3D conversion pipelines.
+
+**Key Responsibilities:**
+- Define Drawing2D schema data classes (future: with @Serializable annotations)
+- Provide validation utilities for schema compliance
+- Support 2D/3D representation conversions (future)
+
+**Dependencies:**
+- None (pure Kotlin/JVM, no Android framework)
+
+**DI Configuration:**
+- None — instantiated directly; no dependency injection required
+
+**Key Files/Packages:**
+- `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DContract.kt` — Schema version constant and placeholder for future contracts
+
+**Notes:**
+- No Android dependencies; reusable in backend/offline tools
+- Schema version starts at 1; increment for breaking changes
 
 ---
 
@@ -660,6 +690,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 | `core:data` | 📋 Planned | Sprint 1 |
 | `core:auth` | 📋 Planned | Sprint 1 |
 | `core:structural` | ✅ Implemented | S-CORE |
+| `core:drawing2d` | 🚧 Scaffold | Drawing2D Sprint 1 |
 | `core:ar` | 🚧 In progress | AR Sprint 1 |
 | `feature:home` | 📋 Planned | Sprint 1 |
 | `feature:work` | 📋 Planned | Sprint 2 |
