@@ -145,6 +145,7 @@ ARWeld/
 │   └── drawing2d/                            # Drawing2D schema + contracts (pure Kotlin/JVM)
 │       ├── src/main/kotlin/com/example/arweld/core/drawing2d/
 │       │   └── Drawing2DContract.kt          # Schema version + placeholder contracts
+│       │   └── artifacts/v1/                 # Artifact manifest schema models (v1)
 │       │   └── validation/                   # Validation reporting primitives (SeverityV1, ViolationV1, PathV1)
 │       ├── src/test/kotlin/com/example/arweld/core/drawing2d/
 │       │   └── CoreDrawing2DModuleTest.kt    # Unit tests for module scaffold
@@ -1161,6 +1162,7 @@ androidTestImplementation(libs.androidx.junit)
 | AR rendering | `feature/arview/ar/` and `rendering/` |
 | Pose + CameraIntrinsics shared types | `core-structural/src/main/kotlin/com/example/arweld/core/domain/spatial/PoseTypes.kt` |
 | Drawing2D schema + contracts | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DContract.kt` |
+| Drawing2D artifact manifest schema | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/v1/` |
 | Export logic | `feature/supervisor/export/` |
 
 ### "How do I...?"
