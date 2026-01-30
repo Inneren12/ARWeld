@@ -10,7 +10,7 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 - `docs/architecture/core-ar_boundary.md`
 - Legacy closeout files in `docs/sprints/`
 
-**CI coverage note:** The CI workflow runs `koverHtmlReport` and `koverXmlReport` because merged Kover tasks are not registered in this build. If merged coverage is added later, update the workflow to use the merged tasks instead.
+**CI coverage note:** The CI workflow runs `-Pkover koverHtmlReport koverXmlReport` with the Kover aggregation settings plugin, which produces aggregated coverage without registering merged task names.
 
 > Dates are listed only when recorded in the original closeout notes.
 

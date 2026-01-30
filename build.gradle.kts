@@ -13,6 +13,7 @@ plugins {
     kotlin("jvm") version "2.0.21" apply false
 }
 
+// Kover aggregation is enabled via settings.gradle.kts; reports are generated with -Pkover.
 val coverageUnit = Class.forName("kotlinx.kover.gradle.plugin.dsl.CoverageUnit")
     .enumConstants
     .first { (it as Enum<*>).name == "INSTRUCTION" }

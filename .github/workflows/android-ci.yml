@@ -55,7 +55,7 @@ jobs:
         run: ./gradlew s1QualityGate --no-daemon --console=plain && ./gradlew s2QualityGate --no-daemon --console=plain
 
       - name: Run coverage reports
-        run: ./gradlew koverHtmlReport koverXmlReport --no-daemon --console=plain
+        run: ./gradlew -Pkover koverHtmlReport koverXmlReport --no-daemon --console=plain
 
       - name: Upload build reports
         if: always()
