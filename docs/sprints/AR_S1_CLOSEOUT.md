@@ -70,7 +70,7 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 ## P1-AR-S1-03 — Move ARCore session manager into :core-ar
 
 **Status:** Complete
-**Date:** 2026-02-28
+**Date:** 2026-01-30
 
 ### Summary
 - Moved `ARCoreSessionManager` into `core-ar` and updated feature references.
@@ -94,7 +94,7 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 ## P1-AR-S1-04 — Move marker detection pipeline into :core-ar
 
 **Status:** Complete
-**Date:** 2026-02-28
+**Date:** 2026-01-30
 
 ### Summary
 - Moved marker detector interface, model, and ML Kit implementation into `core-ar`.
@@ -127,7 +127,7 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 ## P1-AR-S1-05 — Move pose estimator (PnP) into :core-ar
 
 **Status:** Complete
-**Date:** 2026-03-01
+**Date:** 2026-01-30
 
 ### Summary
 - Moved `MarkerPoseEstimator` and its unit test into `core-ar` with no math changes.
@@ -152,10 +152,11 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 **Status:** Complete
 
 ### Summary
-- Relocated shared pose/spatial types to `core-structural` to remove the `core-domain` dependency from `core-ar`.
-- Ensured PnP pipeline wiring remains intact with updated module boundaries.
+- Consolidated the pose estimator (PnP pipeline) under `core-ar` while relocating shared pose types to `core-structural`.
+- Ensured `core-ar` no longer needs `core-domain` for `Pose3D`/`CameraIntrinsics` and that feature wiring remains intact.
 
 ### Moved/Owned Paths
+- `core-ar/src/main/kotlin/com/example/arweld/core/ar/pose/MarkerPoseEstimator.kt`
 - `core-structural/src/main/kotlin/com/example/arweld/core/domain/spatial/PoseTypes.kt`
 
 ### Commands Run
@@ -167,11 +168,11 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 ## P1-AR-S1-07 — Move MultiMarkerPoseRefiner into :core-ar (no logic changes)
 
 **Status:** Complete
-**Date:** 2026-03-02
+**Date:** 2026-01-30
 
 ### Summary
 - Confirmed `MultiMarkerPoseRefiner` is owned by `:core-ar` and referenced from `feature-arview` without logic changes.
-- Added a smoke-level unit test in `core-ar` to assert deterministic output for a fixed input set.
+- Ensured unit coverage for deterministic output lives in `core-ar`.
 
 ### Moved/Owned Paths
 - `core-ar/src/main/kotlin/com/example/arweld/core/ar/pose/MultiMarkerPoseRefiner.kt`
@@ -179,6 +180,7 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 
 ### Commands Run
 - `./gradlew :core-ar:compileDebugKotlin`
+- `./gradlew :core-ar:testDebugUnitTest`
 - `./gradlew :feature-arview:compileDebugKotlin`
 - `./gradlew :app:assembleDebug`
 - `./gradlew testDebugUnitTest`
@@ -188,7 +190,7 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 ## P1-AR-S1-08 — Move DriftMonitor + TrackingQuality state into :core-ar (no logic changes)
 
 **Status:** Complete
-**Date:** 2026-03-02
+**Date:** 2026-01-30
 
 ### Summary
 - Moved drift monitoring and tracking-quality state models into `:core-ar` to keep engine state in the core module.
@@ -212,7 +214,7 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 ## P1-AR-S1-09 — Move AR screenshot capture utility into :core-ar (no logic changes)
 
 **Status:** Complete
-**Date:** 2026-03-02
+**Date:** 2026-01-30
 
 ### Summary
 - Introduced `ArCaptureService` (API v0) in `core-ar` and moved SurfaceView PixelCopy capture there.
@@ -233,7 +235,7 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 ## P1-AR-S1-10 — Rewire DI: bind :core-ar interfaces via app/di (no logic changes)
 
 **Status:** Complete
-**Date:** 2026-03-02
+**Date:** 2026-01-30
 
 ### Summary
 - Introduced core-ar API factories and bound them in the app DI module without adding Hilt to core-ar.
@@ -259,7 +261,7 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 ## P1-AR-S1-11 — Add AR screen launch smoke instrumentation test (no AR detection required)
 
 **Status:** Complete
-**Date:** 2026-03-02
+**Date:** 2026-01-30
 
 ### Summary
 - Added a test-only Hilt module that swaps in a fake AR session manager and simulated marker detector.
@@ -278,7 +280,7 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 ## P1-AR-S1-12 — Add Gradle guard for :core-ar dependency boundaries
 
 **Status:** Complete
-**Date:** 2026-03-02
+**Date:** 2026-01-30
 
 ### Summary
 - Added a Gradle verification task to fail if `:core-ar` declares direct dependencies on `:core-domain` or `:core-data`.

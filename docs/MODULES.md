@@ -227,7 +227,7 @@ Android library module providing the core AR engine interface and rendering prim
 - UI integration and lifecycle management live in `feature-arview`, which depends on `core-ar`
 
 **Dependencies:**
-- `core:structural` (for MemberMeshes, Node reference frames, StructuralModel, and spatial math types)
+- `core:structural` (for MemberMeshes, Node reference frames, StructuralModel, and shared spatial math types like Pose3D/CameraIntrinsics; no core-domain dependency)
 
 **DI Configuration:**
 - None — pure interfaces/implementations; consumers wire via their own DI
