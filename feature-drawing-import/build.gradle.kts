@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(project(":core-drawing2d"))
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))

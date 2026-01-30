@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +38,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
+import com.example.arweld.core.drawing2d.artifacts.io.v1.ManifestWriterV1
+import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
+import com.example.arweld.core.drawing2d.artifacts.v1.ManifestV1
+import com.example.arweld.feature.drawingimport.artifacts.DrawingImportArtifacts
 import com.example.arweld.feature.drawingimport.camera.CameraSession
+import java.io.File
+import java.util.UUID
 import kotlinx.coroutines.launch
 
 @Composable
@@ -51,6 +59,8 @@ fun DrawingImportScreen(
     val coroutineScope = rememberCoroutineScope()
     var previewView: PreviewView? by remember { mutableStateOf(null) }
     var captureState by remember { mutableStateOf(CaptureState.Idle) }
+    var projectId by rememberSaveable { mutableStateOf<String?>(null) }
+    var lastSavedInfo by remember { mutableStateOf<SavedCaptureInfo?>(null) }
     var uiState by remember {
         mutableStateOf<CameraPermissionState>(
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -187,6 +197,29 @@ fun DrawingImportScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
+                            lastSavedInfo?.let { saved ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Raw saved",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Text(
+                                    text = "Project: ${saved.projectId}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                )
+                                Text(
+                                    text = saved.projectDir,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                )
+                                Text(
+                                    text = "RelPath: ${saved.relPath}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                )
+                            }
                         }
                     }
                 }
@@ -194,9 +227,9 @@ fun DrawingImportScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    if (captureState == CaptureState.CaptureRequested) {
+                    if (captureState == CaptureState.Capturing) {
                         Text(
-                            text = "Capture not implemented yet",
+                            text = "Capturing...",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onBackground
                         )
@@ -205,9 +238,50 @@ fun DrawingImportScreen(
                     if (uiState is CameraPermissionState.Ready) {
                         Button(
                             onClick = {
-                                captureState = CaptureState.CaptureRequested
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Capture not implemented yet")
+                                    if (captureState == CaptureState.Capturing) return@launch
+                                    captureState = CaptureState.Capturing
+                                    val captureProjectId = projectId ?: UUID.randomUUID().toString()
+                                    projectId = captureProjectId
+                                    val tempDir = File(context.cacheDir, "drawing-import")
+                                    if (!tempDir.exists()) {
+                                        tempDir.mkdirs()
+                                    }
+                                    val tempFile = File(tempDir, "raw_capture.jpg")
+                                    try {
+                                        val targetRotation = previewView?.display?.rotation
+                                        cameraSession.captureImage(tempFile, targetRotation)
+                                        val projectDir = File(
+                                            DrawingImportArtifacts.artifactsRoot(context),
+                                            captureProjectId,
+                                        )
+                                        val store = FileArtifactStoreV1(projectDir)
+                                        val rawEntry = store.writeBytes(
+                                            kind = ArtifactKindV1.RAW_IMAGE,
+                                            relPath = DrawingImportArtifacts.rawImageRelPath(),
+                                            bytes = tempFile.readBytes(),
+                                            mime = "image/jpeg",
+                                        )
+                                        val manifest = ManifestV1(
+                                            projectId = captureProjectId,
+                                            artifacts = listOf(rawEntry),
+                                        )
+                                        ManifestWriterV1().write(projectDir, manifest)
+                                        lastSavedInfo = SavedCaptureInfo(
+                                            projectId = captureProjectId,
+                                            projectDir = projectDir.path,
+                                            relPath = rawEntry.relPath,
+                                        )
+                                        snackbarHostState.showSnackbar("Raw saved")
+                                        captureState = CaptureState.Saved
+                                    } catch (error: Throwable) {
+                                        captureState = CaptureState.Error
+                                        snackbarHostState.showSnackbar(
+                                            error.message ?: "Capture failed",
+                                        )
+                                    } finally {
+                                        tempFile.delete()
+                                    }
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(
@@ -216,6 +290,20 @@ fun DrawingImportScreen(
                             ),
                         ) {
                             Text(text = "Capture")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                captureState = CaptureState.Idle
+                                projectId = UUID.randomUUID().toString()
+                                lastSavedInfo = null
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                contentColor = MaterialTheme.colorScheme.onSecondary,
+                            ),
+                        ) {
+                            Text(text = "Reset")
                         }
                     }
                 }
@@ -241,5 +329,13 @@ private sealed interface CameraPermissionState {
 
 private enum class CaptureState {
     Idle,
-    CaptureRequested,
+    Capturing,
+    Saved,
+    Error,
 }
+
+private data class SavedCaptureInfo(
+    val projectId: String,
+    val projectDir: String,
+    val relPath: String,
+)
