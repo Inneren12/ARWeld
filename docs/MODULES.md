@@ -529,16 +529,18 @@ capture and rectify flows for drawings.
 
 **Key Responsibilities:**
 - Entry screen for drawing import
-- Placeholder copy for upcoming capture/rectify steps
+- Capture raw drawings and persist artifacts for later steps
+- Emit structured diagnostics events for drawing import transitions
 
 **Dependencies:**
-- None (Compose-only UI)
+- `core:domain` (diagnostics logging)
+- `core:drawing2d` (artifact manifest + storage)
 
 **Key Files:**
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/ui/DrawingImportScreen.kt`
 
 **Notes:**
-- No camera, IO, or detection logic yet (scaffold only)
+- Emits stable diagnostics events for permission, camera, capture, and reset flows
 
 ---
 
