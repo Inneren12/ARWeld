@@ -112,7 +112,9 @@ entry points so it remains UI-layer only while the app provides implementation w
 2. `core-ar` provides default implementations (e.g., `ARCoreSessionManager`, `RealMarkerDetector`,
    `SurfaceViewArCaptureService`) in non-API packages.
 3. `app` binds the factories to implementations in `app/di/ArCoreModule.kt` and exposes an
-   `ArViewControllerFactory` for `feature-arview` to consume via an `EntryPoint`.
+   `ArViewControllerFactory` for `feature-arview` to consume via an `EntryPoint`. The app module
+   must depend on `:core-ar` and `:feature-arview` so these bindings resolve during KSP/Hilt
+   processing.
 
 This keeps `core-ar` free of Hilt while centralizing wiring in the app module, with no behavior
 changes to the AR pipeline.

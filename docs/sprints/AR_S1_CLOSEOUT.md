@@ -261,6 +261,28 @@ all prior per-task closeout notes. It supersedes legacy closeout fragments in
 
 ---
 
+## P1-AR-S1-10a — Fix Hilt wiring + CI managed device gating (no logic changes)
+
+**Status:** Complete
+**Date:** TBD
+
+### Summary
+- Ensured the app module depends on `:core-ar` so Hilt/KSP can resolve AR factory bindings.
+- Gated managed-device instrumentation tests behind a manual CI dispatch to avoid x86_64 accel requirements.
+
+### Moved/Owned Paths
+- `app/build.gradle.kts`
+- `.github/workflows/instrumentation-smoke.yml`
+- `docs/architecture/core-ar_boundary.md`
+
+### Commands Run
+- `./gradlew :app:compileDebugKotlin`
+- `./gradlew :app:kspDebugKotlin`
+- `./gradlew :app:assembleDebug`
+- `./gradlew testDebugUnitTest`
+
+---
+
 ## P1-AR-S1-11 — Add AR screen launch smoke instrumentation test (no AR detection required)
 
 **Status:** Complete

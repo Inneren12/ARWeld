@@ -66,6 +66,7 @@ dependencies {
     implementation(project(":feature-qc"))
 
     // Core modules
+    implementation(project(":core-ar"))
     implementation(project(":core-domain"))
     implementation(project(":core-data"))
 

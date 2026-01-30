@@ -5,11 +5,18 @@ on:
     branches:
       - "**"
   pull_request:
+  workflow_dispatch:
+    inputs:
+      run_managed_device_tests:
+        description: "Run managed device instrumentation tests"
+        required: false
+        default: "false"
 
 jobs:
   androidTest:
     name: Run Compose smoke tests on managed device
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_managed_device_tests == 'true' }}
     defaults:
       run:
         working-directory: ${{ github.workspace }}
