@@ -233,11 +233,13 @@ Pure Kotlin/JVM module providing Drawing2D v1 schema and validation contracts. H
 - `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DCanonicalizer.kt` — Deterministic ordering helpers for canonical JSON
 - `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/` — Drawing2D v1 schema models (root `Drawing2D`, layers, entities, attachments)
 - `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/v1/` — Artifact manifest schema models (v1)
+- `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/` — Artifact bundle IO (manifest, checksums, relPath safety)
 - `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/validation/` — Validation primitives and v1 structural validator (`CodesV1`, `DrawingValidatorV1`)
 
 **Notes:**
 - No Android dependencies; reusable in backend/offline tools
 - Schema version starts at 1; increment for breaking changes
+- Drawing2D docs: `docs/drawing/DRAWING2D_V1.md`, `docs/drawing/SCHEMA_EVOLUTION.md`
 
 ---
 
