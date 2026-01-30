@@ -36,6 +36,7 @@ fun HomeScreen(
     onNavigateToReports: () -> Unit = {},
     onNavigateToExportCenter: () -> Unit = {},
     onNavigateToOfflineQueue: () -> Unit = {},
+    onNavigateToDrawingImport: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -69,6 +70,7 @@ fun HomeScreen(
                     onNavigateToReports = onNavigateToReports,
                     onNavigateToExportCenter = onNavigateToExportCenter,
                     onNavigateToOfflineQueue = onNavigateToOfflineQueue,
+                    onNavigateToDrawingImport = onNavigateToDrawingImport,
                     onLogout = { viewModel.logout() }
                 )
             }
@@ -101,6 +103,7 @@ private fun HomeContent(
     onNavigateToReports: () -> Unit,
     onNavigateToExportCenter: () -> Unit,
     onNavigateToOfflineQueue: () -> Unit,
+    onNavigateToDrawingImport: () -> Unit,
     onLogout: () -> Unit
 ) {
     Column(
@@ -235,6 +238,13 @@ private fun HomeContent(
             modifier = Modifier.fillMaxWidth(0.7f)
         ) {
             Text("Scan Code")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onNavigateToDrawingImport,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("Drawing Import")
         }
         Spacer(modifier = Modifier.height(24.dp))
         Button(

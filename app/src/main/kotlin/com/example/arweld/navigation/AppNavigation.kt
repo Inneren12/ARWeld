@@ -21,6 +21,7 @@ import com.example.arweld.ui.auth.LoginRoute
 import com.example.arweld.ui.auth.SplashScreen
 import com.example.arweld.ui.home.HomeRoute
 import com.example.arweld.ui.ar.ARViewRoute
+import com.example.arweld.ui.drawingimport.DrawingImportRoute
 import com.example.arweld.ui.work.AssemblerQueueRoute
 import com.example.arweld.ui.work.QcQueueRoute
 import com.example.arweld.ui.work.QcChecklistRoute
@@ -123,6 +124,9 @@ fun AppNavigation(
             }
             composable(ROUTE_SCAN_CODE) {
                 ScanCodeRoute(navController = resolvedNavController)
+            }
+            composable(ROUTE_DRAWING_IMPORT) {
+                DrawingImportRoute()
             }
             composable(
                 route = "$ROUTE_WORK_ITEM_SUMMARY?workItemId={workItemId}",
