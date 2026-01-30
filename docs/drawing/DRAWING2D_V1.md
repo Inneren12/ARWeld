@@ -161,7 +161,7 @@ Determinism ensures repeatable hashing and stable exports:
 - `drawingId`, `layer.id`, and `entity.id` must be stable and unique within a drawing.
 - SHA-256 digests are hex lowercase strings produced by `Sha256V1` and written into manifest entries and checksums lists.
 
-Source: canonicalizers, JSON config, and hashing utilities in `core-drawing2d`.【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DJson.kt†L1-L67】【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DCanonicalizer.kt†L1-L36】【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/patch/PatchCanonicalizer.kt†L1-L27】【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/v1/ManifestCanonicalizer.kt†L1-L18】【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/ChecksumsWriterV1.kt†L1-L31】【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/crypto/Sha256V1.kt†L1-L45】
+Source: canonicalizers, JSON config, and hashing utilities in `core-drawing2d`.【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DJson.kt†L1-L67】【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DCanonicalizer.kt†L1-L36】【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/patch/PatchCanonicalizer.kt†L1-L27】【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/v1/ManifestCanonicalizer.kt†L1-L18】【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/ChecksumsWriterV1.kt†L1-L31】【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/crypto/Sha256V1.kt†L1-L45】
 
 ## Artifact storage layout (v1)
 Drawing2D exports use a stable directory layout for assets. The v1 layout is defined by `ProjectLayoutV1`.
@@ -236,7 +236,7 @@ Source: `ManifestV1`, `ArtifactEntryV1`, `ArtifactKindV1`.【F:core-drawing2d/sr
 ## checksums.sha256 format + example
 The checksums file lists SHA-256 digests for each artifact, sorted by `relPath`, one per line with two spaces between the hash and path, and a trailing newline. Format is compatible with standard sha256sum tools.
 
-Source: `ChecksumsWriterV1`.【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/ChecksumsWriterV1.kt†L1-L31】
+Source: `ChecksumsWriterV1`.【F:core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/ChecksumsWriterV1.kt†L1-L31】
 
 **Example:**
 ```

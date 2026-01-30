@@ -1,4 +1,4 @@
-package com.example.arweld.core.drawing2d.artifacts.io
+package com.example.arweld.core.drawing2d.artifacts.io.v1
 
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
 import com.example.arweld.core.drawing2d.crypto.Sha256V1

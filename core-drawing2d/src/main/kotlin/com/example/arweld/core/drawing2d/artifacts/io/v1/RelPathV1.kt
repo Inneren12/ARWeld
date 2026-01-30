@@ -1,4 +1,4 @@
-package com.example.arweld.core.drawing2d.artifacts.io
+package com.example.arweld.core.drawing2d.artifacts.io.v1
 
 import java.nio.file.Paths
 
