@@ -132,3 +132,20 @@ This document accumulates sprint-closeout notes for AR Sprint 1 tasks.
 - `./gradlew :app:connectedDebugAndroidTest`
 
 ---
+
+## P1-AR-S1-12 — Add Gradle guard for :core-ar dependency boundaries
+
+**Status:** Complete
+**Date:** 2026-03-02
+
+### Summary
+
+- Added a Gradle verification task that fails if `:core-ar` declares direct project dependencies on
+  `:core-domain` or `:core-data`.
+- Wired the guard into the existing sprint quality gate tasks so CI enforces the boundary.
+
+### Commands Run
+
+- `./gradlew verifyCoreArBoundaries`
+
+---

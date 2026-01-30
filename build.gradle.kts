@@ -1,3 +1,4 @@
+import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.kotlin.dsl.withGroovyBuilder
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
@@ -90,10 +91,40 @@ tasks.register("verifyArViewDebugLogging") {
     }
 }
 
+tasks.register("verifyCoreArBoundaries") {
+    group = "verification"
+    description = "Fails if :core-ar depends on forbidden modules (:core-domain, :core-data)."
+    doLast {
+        val coreArProject = project.findProject(":core-ar") ?: return@doLast
+        val forbiddenModules = setOf(":core-domain", ":core-data")
+        val configsToCheck = listOf("implementation", "api")
+        val violations = configsToCheck.flatMap { configName ->
+            val config = coreArProject.configurations.findByName(configName) ?: return@flatMap emptyList()
+            config.dependencies.withType(ProjectDependency::class.java)
+                .mapNotNull { dependency ->
+                    val path = dependency.dependencyProject.path
+                    if (path in forbiddenModules) {
+                        "${configName}: $path"
+                    } else {
+                        null
+                    }
+                }
+        }
+        if (violations.isNotEmpty()) {
+            throw GradleException(
+                "Forbidden :core-ar dependencies detected. Remove project dependencies on " +
+                    "${forbiddenModules.joinToString()}.\n" +
+                    violations.joinToString(separator = "\n"),
+            )
+        }
+    }
+}
+
 tasks.register("s1QualityGate") {
     group = "verification"
     description = "Runs the Sprint 1 local quality gate: assemble, unit tests, and lint (NO instrumentation)."
     dependsOn(
+        "verifyCoreArBoundaries",
         "verifyArViewDebugLogging",
         ":app:assembleDebug",
         ":app:assembleRelease",
@@ -106,6 +137,7 @@ tasks.register("s2QualityGate") {
     group = "verification"
     description = "Runs the Sprint 2 local quality gate: assemble, unit tests, and lint (NO instrumentation)."
     dependsOn(
+        "verifyCoreArBoundaries",
         "verifyArViewDebugLogging",
         ":app:assembleDebug",
         ":app:assembleRelease",
