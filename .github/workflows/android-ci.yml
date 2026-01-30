@@ -3,9 +3,16 @@ name: Android CI - S1 Quality Gate
 on:
   push:
   pull_request:
-
-env:
-  RUN_MANAGED_DEVICE_TESTS: "false"
+  workflow_dispatch:
+    inputs:
+      run_managed_device_tests:
+        description: "Run Gradle Managed Device instrumentation smoke (requires emulator acceleration)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 jobs:
   build:
@@ -80,7 +87,7 @@ jobs:
   instrumentation-smoke:
     name: S2 Instrumentation Smoke
     runs-on: ubuntu-latest
-    if: ${{ env.RUN_MANAGED_DEVICE_TESTS == 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_managed_device_tests == 'true' }}
     defaults:
       run:
         working-directory: ${{ github.workspace }}
@@ -98,3 +105,4 @@ jobs:
 
       - name: Run instrumentation smoke gate
         run: ./gradlew s2InstrumentationSmoke --no-daemon --console=plain
+
