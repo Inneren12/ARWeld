@@ -9,6 +9,7 @@ app
  ├─> feature:home
  ├─> feature:work (assembler)
  ├─> feature:scanner
+ ├─> feature:drawing-import
  ├─> feature:qc
  ├─> feature:supervisor
  ├─> feature:arview
@@ -518,6 +519,29 @@ Barcode/QR code scanning with CameraX preview surface exposed to Compose. The sc
 
 ---
 
+### feature:drawing-import
+
+**Status:** 🚧 Scaffold (S2-PR01)
+
+**Description:**
+Drawing import feature stub for future 2D capture/import workflows. Provides a minimal Compose screen that will eventually host
+capture and rectify flows for drawings.
+
+**Key Responsibilities:**
+- Entry screen for drawing import
+- Placeholder copy for upcoming capture/rectify steps
+
+**Dependencies:**
+- None (Compose-only UI)
+
+**Key Files:**
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/ui/DrawingImportScreen.kt`
+
+**Notes:**
+- No camera, IO, or detection logic yet (scaffold only)
+
+---
+
 ### feature:qc
 
 **Status:** 📋 Planned (Sprint 3)
@@ -702,6 +726,7 @@ Augmented reality visualization for alignment and inspection. Sprint 2 introduce
 | `feature:home` | 📋 Planned | Sprint 1 |
 | `feature:work` | 📋 Planned | Sprint 2 |
 | `feature:scanner` | ✅ Implemented | Sprint 2 |
+| `feature:drawing-import` | 🚧 Scaffold | Sprint 2 |
 | `feature:arview` | 🚧 In progress (ARViewScreen + lifecycle) | Sprint 2 |
 | `feature:qc` | 📋 Planned | Sprint 3 |
 | `feature:supervisor` | 📋 Planned | Sprint 4 |

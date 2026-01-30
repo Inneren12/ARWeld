@@ -64,6 +64,7 @@ dependencies {
     implementation(project(":feature-supervisor"))
     implementation(project(":feature-assembler"))
     implementation(project(":feature-qc"))
+    implementation(project(":feature-drawing-import"))
 
     // Core modules
     implementation(project(":core-ar"))

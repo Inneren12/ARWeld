@@ -12,6 +12,11 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `core-domain/src/test/kotlin/com/example/arweld/core/domain/state/WorkItemReducerHappyPathTest.kt` — Reducer unit tests covering happy path and fail→rework→ready→pass rework flow.
 - `feature-work/src/main/kotlin/com/example/arweld/feature/work/viewmodel/QcChecklistViewModel.kt` — Holds UI state for the 5-point QC checklist (geometry, completeness, fasteners, marking, cleanliness); domain checklist models for QC outcomes live in `core-domain/src/main/kotlin/com/example/arweld/core/domain/work/model/QcChecklistResult.kt` (S3-16).
 
+### Drawing import entry points
+
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/ui/DrawingImportScreen.kt` — Placeholder Drawing Import UI (S2-PR01).
+- `app/src/main/kotlin/com/example/arweld/ui/drawingimport/DrawingImportRoute.kt` — App-level navigation wrapper for Drawing Import.
+
 ### AR view and rendering (feature-arview)
 
 - AR view controller + lifecycle bridge: `feature-arview/src/main/kotlin/com/example/arweld/feature/arview/arcore/ARViewController.kt` wires `SurfaceView` hosting to `ARViewLifecycleHost` and ARCore session events.
@@ -929,6 +934,7 @@ navController.navigate("new_screen/$itemId")
 "my_work"                        → MyWorkScreen (Assembler)
 "work_item/{workItemId}"         → WorkItemSummaryScreen (with data)
 "scan"                           → ScannerScreen
+"drawing_import"                 → DrawingImportScreen
 "ar_view?workItemId={workItemId}"→ ARViewScreen (Assembler/QC AR surface)
 
 // Sprint 3+
