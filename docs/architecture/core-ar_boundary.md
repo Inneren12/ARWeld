@@ -72,8 +72,8 @@ dependencies {
 ## Boundary Verification: automated guard
 
 An automated Gradle guard enforces the forbidden dependency rules for `:core-ar` by checking the
-`implementation` and `api` configurations for direct project dependencies on `:core-domain` or
-`:core-data`. The guard runs via:
+`implementation`, `api`, `compileOnly`, and `runtimeOnly` configurations for direct project
+dependencies on `:core-domain` or `:core-data`. The guard runs via:
 
 ```
 ./gradlew verifyCoreArBoundaries

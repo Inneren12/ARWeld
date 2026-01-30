@@ -97,7 +97,7 @@ tasks.register("verifyCoreArBoundaries") {
     doLast {
         val coreArProject = project.findProject(":core-ar") ?: return@doLast
         val forbiddenModules = setOf(":core-domain", ":core-data")
-        val configsToCheck = listOf("implementation", "api")
+        val configsToCheck = listOf("implementation", "api", "compileOnly", "runtimeOnly")
         val violations = configsToCheck.flatMap { configName ->
             val config = coreArProject.configurations.findByName(configName) ?: return@flatMap emptyList()
             config.dependencies.withType(ProjectDependency::class.java)

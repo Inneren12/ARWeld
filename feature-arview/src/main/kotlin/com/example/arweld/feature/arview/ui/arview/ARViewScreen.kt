@@ -157,7 +157,7 @@ fun ARViewScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .testTag("ar_view_screen_root")
+                .testTag("ar_view_root")
         ) {
             AndroidView(
                 factory = { controller.getView() },
@@ -173,6 +173,7 @@ fun ARViewScreen(
                     Text(
                         text = message,
                         color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("arcore_disabled_banner"),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }

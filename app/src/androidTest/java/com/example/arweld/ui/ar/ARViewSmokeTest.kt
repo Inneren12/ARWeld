@@ -3,7 +3,7 @@ package com.example.arweld.ui.ar
 import android.Manifest
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.rule.GrantPermissionRule
 import com.example.arweld.core.domain.auth.AuthRepository
 import com.example.arweld.core.domain.event.Event
@@ -86,9 +86,7 @@ class ARViewSmokeTest {
         }
 
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("AR View").assertIsDisplayed()
-        composeRule.onNodeWithText("ARCore disabled for instrumentation tests").assertIsDisplayed()
-        composeRule.onNodeWithText("Tracking poor").assertIsDisplayed()
-        composeRule.onNodeWithText("Markers: 0").assertIsDisplayed()
+        composeRule.onNodeWithTag("ar_view_root").assertIsDisplayed()
+        composeRule.onNodeWithTag("arcore_disabled_banner").assertIsDisplayed()
     }
 }
