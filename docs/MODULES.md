@@ -217,7 +217,7 @@ Pure Kotlin/JVM module that defines the structural steel model used by AR/QC pip
 Pure Kotlin/JVM module providing Drawing2D v1 schema and validation contracts. Hosts 2D drawing representations used for AR alignment, QC workflows, and potential 2D-to-3D conversion pipelines.
 
 **Key Responsibilities:**
-- Define Drawing2D schema data classes (future: with @Serializable annotations)
+- Define Drawing2D schema data classes (root `Drawing2D` + v1 entities)
 - Define artifact manifest schema models for Drawing2D exports
 - Provide validation utilities for schema compliance, including reporting primitives (ViolationV1)
 - Support 2D/3D representation conversions (future)
@@ -230,7 +230,8 @@ Pure Kotlin/JVM module providing Drawing2D v1 schema and validation contracts. H
 
 **Key Files/Packages:**
 - `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DContract.kt` — Schema version constant and placeholder for future contracts
-- `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/` — Drawing2D v1 schema models
+- `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/Drawing2DCanonicalizer.kt` — Deterministic ordering helpers for canonical JSON
+- `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/` — Drawing2D v1 schema models (root `Drawing2D`, layers, entities, attachments)
 - `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/v1/` — Artifact manifest schema models (v1)
 
 **Notes:**
