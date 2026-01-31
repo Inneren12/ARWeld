@@ -17,6 +17,9 @@ enum class DrawingImportEvent(val eventName: String, val phase: String) {
     STAGE_OK("drawing_import_pipeline_stage_ok", "pipeline"),
     STAGE_FAIL("drawing_import_pipeline_stage_fail", "pipeline"),
     PIPELINE_OK("drawing_import_pipeline_ok", "pipeline"),
+    BLUR_METRIC_START("drawing_import_blur_metric_start", "pipeline"),
+    BLUR_METRIC_OK("drawing_import_blur_metric_ok", "pipeline"),
+    BLUR_METRIC_FAIL("drawing_import_blur_metric_fail", "pipeline"),
     ERROR("drawing_import_error", "error"),
 }
 
@@ -26,6 +29,11 @@ enum class DrawingImportErrorCode {
     CAPTURE_FAILED,
     SAVE_FAILED,
     PREVIEW_LOAD_FAILED,
+    UNKNOWN,
+}
+
+enum class DrawingImportBlurFailureCode {
+    OUT_OF_MEMORY,
     UNKNOWN,
 }
 

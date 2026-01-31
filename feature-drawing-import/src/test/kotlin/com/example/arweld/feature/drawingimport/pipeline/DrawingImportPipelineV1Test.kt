@@ -76,6 +76,20 @@ class DrawingImportPipelineV1Test {
         assertEquals(PageDetectFailureCodeV1.ORDER_DEGENERATE, failureResult.failure.code)
     }
 
+    @Test
+    fun `run computes rectified blur variance`() {
+        val session = testSession()
+        val outcomes = defaultOutcomes(session)
+        val stages = FakeStages(outcomes)
+        val pipeline = DrawingImportPipelineV1(stages = stages)
+
+        val result = pipeline.run(session)
+
+        assertTrue(result is PageDetectOutcomeV1.Success)
+        val success = result as PageDetectOutcomeV1.Success
+        assertTrue(success.value.rectifiedQualityMetrics?.blurVariance != null)
+    }
+
     private fun testSession(): DrawingImportSession {
         val projectDir = createTempDir(prefix = "pipeline-test")
         val rawFile = File(projectDir, "raw/raw.jpg")

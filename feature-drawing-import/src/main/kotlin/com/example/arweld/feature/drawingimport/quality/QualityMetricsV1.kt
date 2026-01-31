@@ -33,6 +33,10 @@ data class ExposureMetricsV1(
     val clipHighPct: Double,
 )
 
+data class RectifiedQualityMetricsV1(
+    val blurVariance: Double? = null,
+)
+
 enum class MetricStatusV1 {
     OK,
     DEGENERATE,

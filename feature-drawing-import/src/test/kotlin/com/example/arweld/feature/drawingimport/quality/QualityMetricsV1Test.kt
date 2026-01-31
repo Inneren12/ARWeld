@@ -93,6 +93,18 @@ class QualityMetricsV1Test {
         blurred.recycle()
     }
 
+    @Test
+    fun `blurVarianceLaplacian is deterministic for the same bitmap`() {
+        val bitmap = createCheckerboardBitmap(width = 32, height = 32, cellSize = 2)
+
+        val first = QualityMetricsV1.blurVarianceLaplacian(bitmap)
+        val second = QualityMetricsV1.blurVarianceLaplacian(bitmap)
+
+        assertEquals(first, second, 1e-6)
+
+        bitmap.recycle()
+    }
+
     private fun createCheckerboardBitmap(width: Int, height: Int, cellSize: Int): Bitmap {
         val pixels = IntArray(width * height)
         for (y in 0 until height) {
@@ -138,6 +150,9 @@ class QualityMetricsV1Test {
             }
         }
         return Bitmap.createBitmap(out, width, height, Bitmap.Config.ARGB_8888)
+    }
+
+    @Test
     fun `exposure reports clipping for black image`() {
         val bitmap = solidBitmap(10, 10, Color.BLACK)
         val metrics = QualityMetricsV1.exposure(bitmap)

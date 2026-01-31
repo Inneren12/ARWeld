@@ -3,7 +3,6 @@ package com.example.arweld.feature.drawingimport.ui
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import java.io.ByteArrayOutputStream
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -639,6 +638,7 @@ fun DrawingImportScreen(
                                                                             width = result.value.rectifiedSize.width,
                                                                             height = result.value.rectifiedSize.height,
                                                                         ),
+                                                                        rectifiedQualityMetrics = result.value.rectifiedQualityMetrics,
                                                                     )
                                                                     screenState = DrawingImportUiState.Saved(updatedSession)
                                                                     processState = DrawingImportProcessState.Success(result.value)
@@ -1098,14 +1098,10 @@ fun DrawingImportScreen(
                                                                                 frame.width,
                                                                                 frame.height,
                                                                             )
-                                                                            val blurVariance = activeProjectId?.let { projectId ->
-                                                                                computeRectifiedBlurVariance(
-                                                                                    projectDir = File(
-                                                                                        DrawingImportArtifacts.artifactsRoot(context),
-                                                                                        projectId,
-                                                                                    ),
-                                                                                )
-                                                                            }
+                                                                            val blurVariance = (screenState as? DrawingImportUiState.Saved)
+                                                                                ?.session
+                                                                                ?.rectifiedQualityMetrics
+                                                                                ?.blurVariance
                                                                             val exposure = exposureMetrics
                                                                                 ?: ExposureMetricsV1(
                                                                                     meanY = 0.0,
@@ -1294,12 +1290,19 @@ fun DrawingImportScreen(
                                                 }
                                             pipelineResult?.let { result ->
                                                 val metrics = result.skewMetrics
+                                                val blurVariance = (screenState as? DrawingImportUiState.Saved)
+                                                    ?.session
+                                                    ?.rectifiedQualityMetrics
+                                                    ?.blurVariance
                                                 Text(
                                                     text = formatSkewMetrics(metrics),
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
                                                 Text(
-                                                    text = formatBlurVarianceLabel(result.blurVariance),
+                                                    text = formatBlurVarianceLabel(blurVariance),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                                Text(
                                                     text = formatExposureMetrics(result.exposureMetrics),
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
@@ -1674,15 +1677,6 @@ private fun formatBlurVarianceLabel(blurVariance: Double?): String {
     return "Blur (VarLap): $formatted"
 }
 
-private fun computeRectifiedBlurVariance(projectDir: File): Double? {
-    val rectifiedFile = File(projectDir, ProjectLayoutV1.RECTIFIED_IMAGE_PNG)
-    if (!rectifiedFile.exists()) return null
-    val bitmap = BitmapFactory.decodeFile(rectifiedFile.absolutePath) ?: return null
-    return try {
-        QualityMetricsV1.blurVarianceLaplacian(bitmap)
-    } finally {
-        bitmap.recycle()
-    }
 private fun formatExposureMetrics(metrics: ExposureMetricsV1): String {
     val meanY = "%.1f".format(Locale.US, metrics.meanY)
     val clipLow = "%.2f".format(Locale.US, metrics.clipLowPct)
