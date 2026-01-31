@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -130,6 +131,7 @@ import com.example.arweld.feature.drawingimport.preprocess.RectifiedSizeV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizePolicyV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineResultV1
 import java.io.File
+import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
