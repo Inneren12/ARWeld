@@ -120,4 +120,49 @@ class EditorReducerTest {
         assertEquals(EditorSelection.None, result.selection)
         assertEquals(emptyList<String>(), result.drawing.missingNodeReferences())
     }
+
+    @Test
+    fun `member tool first tap stores draft node`() {
+        val initial = EditorState(
+            tool = EditorTool.MEMBER,
+            drawing = Drawing2D(
+                nodes = listOf(Node2D(id = "N1", x = 0.0, y = 0.0)),
+                members = emptyList(),
+            ),
+            isLoading = false,
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.MemberNodeTapped("N1"))
+
+        assertEquals("N1", result.memberDraft.nodeAId)
+        assertEquals(0, result.drawing.members.size)
+        assertEquals(EditorSelection.None, result.selection)
+    }
+
+    @Test
+    fun `member tool second tap creates member with canonical endpoints`() {
+        val initial = EditorState(
+            tool = EditorTool.MEMBER,
+            drawing = Drawing2D(
+                nodes = listOf(
+                    Node2D(id = "N1", x = 0.0, y = 0.0),
+                    Node2D(id = "N2", x = 10.0, y = 0.0),
+                ),
+                members = emptyList(),
+            ),
+            memberDraft = MemberDraft(nodeAId = "N2"),
+            isLoading = false,
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.MemberNodeTapped("N1"))
+
+        assertEquals(1, result.drawing.members.size)
+        val member = result.drawing.members.first()
+        assertEquals("M000001", member.id)
+        assertEquals("N1", member.aNodeId)
+        assertEquals("N2", member.bNodeId)
+        assertEquals(2, result.drawing.meta?.nextMemberId)
+        assertEquals(EditorSelection.Member("M000001"), result.selection)
+        assertEquals(null, result.memberDraft.nodeAId)
+    }
 }

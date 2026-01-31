@@ -2,6 +2,7 @@ package com.example.arweld.feature.drawingeditor.viewmodel
 
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2DIdAllocator
+import com.example.arweld.core.drawing2d.editor.v1.Member2D
 import com.example.arweld.core.drawing2d.editor.v1.Node2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.core.drawing2d.editor.v1.canonicalize
@@ -18,6 +19,11 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
             ScaleDraft()
         },
         nodeEditDraft = NodeEditDraft(),
+        memberDraft = if (intent.tool == EditorTool.MEMBER) {
+            state.memberDraft
+        } else {
+            MemberDraft()
+        },
     )
     is EditorIntent.SelectEntity -> {
         val synced = syncNodeEditState(intent.selection, state.drawing)
@@ -54,6 +60,7 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         undoStack = emptyList(),
         redoStack = emptyList(),
         nodeEditDraft = NodeEditDraft(),
+        memberDraft = MemberDraft(),
     )
     EditorIntent.SaveRequested -> state.copy(
         isLoading = true,
@@ -239,6 +246,28 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
     is EditorIntent.NodeEditApplyFailed -> state.copy(
         nodeEditDraft = state.nodeEditDraft.copy(applyError = intent.message),
     )
+    is EditorIntent.MemberNodeTapped -> {
+        if (state.tool != EditorTool.MEMBER) {
+            state
+        } else if (state.memberDraft.nodeAId == null) {
+            state.copy(memberDraft = MemberDraft(nodeAId = intent.nodeId))
+        } else {
+            val allocation = Drawing2DIdAllocator.allocateMemberId(state.drawing)
+            val endpoints = canonicalizeMemberEndpoints(state.memberDraft.nodeAId, intent.nodeId)
+            val newMember = Member2D(
+                id = allocation.id,
+                aNodeId = endpoints.first,
+                bNodeId = endpoints.second,
+            )
+            val updatedDrawing = allocation.drawing
+                .copy(members = allocation.drawing.members + newMember)
+                .canonicalize()
+            state.copy(
+                selection = EditorSelection.Member(newMember.id),
+                memberDraft = MemberDraft(),
+            ).pushHistory(updatedDrawing)
+        }
+    }
     EditorIntent.UndoRequested -> state.applyHistoryUndo()
     EditorIntent.RedoRequested -> state.applyHistoryRedo()
 }
@@ -406,6 +435,14 @@ private fun recomputeScaleDraft(draft: ScaleDraft): ScaleDraft {
         pendingDistancePx = distance,
         pendingMmPerPx = parsedLength / distance,
     )
+}
+
+private fun canonicalizeMemberEndpoints(nodeAId: String, nodeBId: String): Pair<String, String> {
+    return if (nodeAId <= nodeBId) {
+        nodeAId to nodeBId
+    } else {
+        nodeBId to nodeAId
+    }
 }
 
 private data class SyncedNodeEditState(

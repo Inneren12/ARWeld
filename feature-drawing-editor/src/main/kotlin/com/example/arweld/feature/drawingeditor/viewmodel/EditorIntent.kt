@@ -68,6 +68,8 @@ sealed interface EditorIntent {
 
     data class NodeEditApplyFailed(val message: String) : EditorIntent
 
+    data class MemberNodeTapped(val nodeId: String) : EditorIntent
+
     data object UndoRequested : EditorIntent
 
     data object RedoRequested : EditorIntent

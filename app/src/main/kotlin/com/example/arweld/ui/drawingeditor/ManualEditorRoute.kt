@@ -26,6 +26,9 @@ fun ManualEditorRoute(
         onNodeTap = { point, tolerancePx ->
             viewModel.onIntent(EditorIntent.NodeTap(point, tolerancePx))
         },
+        onMemberNodeTap = { nodeId ->
+            viewModel.onIntent(EditorIntent.MemberNodeTapped(nodeId))
+        },
         onNodeDragStart = { nodeId, pointerWorld ->
             viewModel.onIntent(EditorIntent.NodeDragStart(nodeId, pointerWorld))
         },

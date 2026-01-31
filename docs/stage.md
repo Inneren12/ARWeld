@@ -1832,6 +1832,12 @@ data class ArScreenshotMetadata(
 - Apply validates locale-stable dot-decimal numbers (finite only), then commits a single undo snapshot.
 - Persistence occurs once per Apply; invalid input surfaces explicit field/apply errors with no mutation.
 - Added reducer + undo tests for draft updates, apply success/failure, and undo restoration.
+
+**S3-22 — Members tool (select node A → node B) ✅ DONE:**
+- Member tool taps nodes to create members with deterministic IDs and canonical endpoint ordering.
+- Draft highlights node A and shows a bottom-sheet hint while awaiting the second node.
+- Member creation is a single undoable snapshot and auto-saves via the editor repository.
+- Added reducer tests for draft selection, deterministic allocation, and canonical endpoint storage.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**

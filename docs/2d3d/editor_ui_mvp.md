@@ -10,6 +10,8 @@
 - **Scale (Stage 1):** Tap to pick calibration points.
 - **Node (Stage 1):** Tap empty space to add a node at the world-space tap location; tapping near
   an existing node selects it.
+- **Member (Stage 1):** Tap node **A** then node **B** to create a member (node-to-node only).
+  The bottom sheet shows a hint (“select the first/second node”) while the draft is active.
 
 ## Scale Draft Overlay (S3-13)
 - When the **Scale** tool is active, taps create Point **A** and Point **B** in world space.
