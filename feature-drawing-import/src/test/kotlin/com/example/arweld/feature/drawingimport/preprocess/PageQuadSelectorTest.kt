@@ -19,8 +19,8 @@ class PageQuadSelectorTest {
 
         val result = selector.select(listOf(small, large), frameWidth = 1000, frameHeight = 1000)
 
-        assertTrue(result is PageQuadSelectionResult.Success)
-        val candidate = (result as PageQuadSelectionResult.Success).candidate
+        assertTrue(result is PageDetectOutcomeV1.Success)
+        val candidate = (result as PageDetectOutcomeV1.Success).value
         assertEquals(large.area, candidate.contourArea, 0.0)
         assertEquals(4, candidate.points.size)
     }
@@ -46,9 +46,20 @@ class PageQuadSelectorTest {
 
         val result = selector.select(listOf(triangle), frameWidth = 1000, frameHeight = 1000)
 
-        assertTrue(result is PageQuadSelectionResult.Failure)
-        val failure = (result as PageQuadSelectionResult.Failure).failure
-        assertEquals(PageDetectFailureCode.NO_CONVEX_QUAD, failure.code)
+        assertTrue(result is PageDetectOutcomeV1.Failure)
+        val failure = (result as PageDetectOutcomeV1.Failure).failure
+        assertEquals(PageDetectFailureCodeV1.NO_CONVEX_QUAD, failure.code)
+    }
+
+    @Test
+    fun `select returns page not found when contours empty`() {
+        val selector = PageQuadSelector()
+
+        val result = selector.select(emptyList(), frameWidth = 1000, frameHeight = 1000)
+
+        assertTrue(result is PageDetectOutcomeV1.Failure)
+        val failure = (result as PageDetectOutcomeV1.Failure).failure
+        assertEquals(PageDetectFailureCodeV1.PAGE_NOT_FOUND, failure.code)
     }
 
     private fun contourForRect(x: Int, y: Int, width: Int, height: Int): ContourV1 {

@@ -47,14 +47,23 @@ class PageDetectCornerRefineInstrumentedTest {
         }
         bitmap.recycle()
 
-        val frame = PageDetectPreprocessor().preprocess(
+        val preprocessOutcome = PageDetectPreprocessor().preprocess(
             PageDetectInput(
                 rawImageFile = file,
                 maxSide = 200,
             ),
         )
-        val edges = PageDetectEdgeDetector().detect(frame)
-        val contours = PageDetectContourExtractor().extract(edges)
+        assertTrue(preprocessOutcome is PageDetectOutcomeV1.Success)
+        val frame = (preprocessOutcome as PageDetectOutcomeV1.Success).value
+
+        val edgesOutcome = PageDetectEdgeDetector().detect(frame)
+        assertTrue(edgesOutcome is PageDetectOutcomeV1.Success)
+        val edges = (edgesOutcome as PageDetectOutcomeV1.Success).value
+
+        val contoursOutcome = PageDetectContourExtractor().extract(edges)
+        assertTrue(contoursOutcome is PageDetectOutcomeV1.Success)
+        val contours = (contoursOutcome as PageDetectOutcomeV1.Success).value
+
         val quadResult = PageQuadSelector(
             PageQuadSelectionConfig(
                 minAreaFraction = 0.1,
@@ -62,18 +71,23 @@ class PageDetectCornerRefineInstrumentedTest {
                 maxAspectRatio = 4.0,
             ),
         ).select(contours, frame.width, frame.height)
-        assertTrue(quadResult is PageQuadSelectionResult.Success)
-        val candidate = (quadResult as PageQuadSelectionResult.Success).candidate
+        assertTrue(quadResult is PageDetectOutcomeV1.Success)
+        val candidate = (quadResult as PageDetectOutcomeV1.Success).value
         assertEquals(4, candidate.points.size)
 
-        val ordered = CornerOrderingV1.order(candidate.points)
-        val refine = CornerRefinerV1.refine(
+        val orderedOutcome = CornerOrderingV1.order(candidate.points)
+        assertTrue(orderedOutcome is PageDetectOutcomeV1.Success)
+        val ordered = (orderedOutcome as PageDetectOutcomeV1.Success).value
+
+        val refineOutcome = CornerRefinerV1.refine(
             frame,
             ordered,
             RefineParamsV1(windowRadiusPx = 6, maxIters = 6, epsilon = 0.25),
         )
+        assertTrue(refineOutcome is PageDetectOutcomeV1.Success)
+        val refine = (refineOutcome as PageDetectOutcomeV1.Success).value
         assertTrue(refine.deltasPx.all { it.isFinite() })
-        assertTrue(refine.status != RefineStatusV1.FAILED)
+        assertTrue(refine.status == RefineStatusV1.REFINED)
 
         val expected = ordered.toList()
         val refined = refine.corners.toList()

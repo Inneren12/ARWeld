@@ -19,10 +19,14 @@ class CornerRefinerV1Test {
         val first = CornerRefinerV1.refine(frame, ordered, params)
         val second = CornerRefinerV1.refine(frame, ordered, params)
 
-        assertEquals(first.status, second.status)
-        assertEquals(first.corners, second.corners)
-        assertEquals(first.deltasPx.size, second.deltasPx.size)
-        first.deltasPx.forEach { delta ->
+        assertTrue(first is PageDetectOutcomeV1.Success)
+        assertTrue(second is PageDetectOutcomeV1.Success)
+        val firstResult = (first as PageDetectOutcomeV1.Success).value
+        val secondResult = (second as PageDetectOutcomeV1.Success).value
+        assertEquals(firstResult.status, secondResult.status)
+        assertEquals(firstResult.corners, secondResult.corners)
+        assertEquals(firstResult.deltasPx.size, secondResult.deltasPx.size)
+        firstResult.deltasPx.forEach { delta ->
             assertTrue(delta.isFinite())
         }
     }

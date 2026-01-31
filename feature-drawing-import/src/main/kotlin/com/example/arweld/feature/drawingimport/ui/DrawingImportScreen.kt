@@ -71,17 +71,17 @@ import com.example.arweld.feature.drawingimport.quality.DrawingImportPipelineRes
 import com.example.arweld.feature.drawingimport.quality.OrderedCornersV1 as QualityOrderedCornersV1
 import com.example.arweld.feature.drawingimport.quality.QualityMetricsV1
 import com.example.arweld.feature.drawingimport.quality.SkewMetricsV1
-import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailure
-import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailureCode
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailureV1
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectStageV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFrame
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectInput
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectContourExtractor
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectEdgeDetector
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectPreprocessor
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadCandidate
-import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelectionResult
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelector
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectOutcomeV1
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailureCodeV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifiedSizeV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizeParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizePolicyV1
@@ -115,20 +115,21 @@ fun DrawingImportScreen(
     var hasLoggedCameraReady by remember { mutableStateOf(false) }
     var pageDetectInfo by remember { mutableStateOf<PageDetectFrameInfo?>(null) }
     var pageDetectFrame by remember { mutableStateOf<PageDetectFrame?>(null) }
-    var pageDetectError by remember { mutableStateOf<String?>(null) }
+    var preprocessFailure by remember { mutableStateOf<PageDetectFailureV1?>(null) }
     var isPreparingFrame by remember { mutableStateOf(false) }
     var contourInfo by remember { mutableStateOf<ContourDebugInfo?>(null) }
-    var contourError by remember { mutableStateOf<String?>(null) }
+    var contourFailure by remember { mutableStateOf<PageDetectFailureV1?>(null) }
     var isRunningContours by remember { mutableStateOf(false) }
     var contourCache by remember { mutableStateOf<List<ContourV1>>(emptyList()) }
-    var quadSelectionResult by remember { mutableStateOf<PageQuadSelectionResult?>(null) }
-    var quadSelectionError by remember { mutableStateOf<String?>(null) }
+    var quadSelectionOutcome by remember { mutableStateOf<PageDetectOutcomeV1<PageQuadCandidate>?>(null) }
+    var quadSelectionFailure by remember { mutableStateOf<PageDetectFailureV1?>(null) }
+    var orderFailure by remember { mutableStateOf<PageDetectFailureV1?>(null) }
     var isSelectingQuad by remember { mutableStateOf(false) }
     var isSavingOverlay by remember { mutableStateOf(false) }
     var rectifiedSizeOutcome by remember { mutableStateOf<PageDetectOutcomeV1<RectifiedSizeV1>?>(null) }
     var orderedCorners by remember { mutableStateOf<PreprocessOrderedCornersV1?>(null) }
-    var refineResult by remember { mutableStateOf<RefineResultV1?>(null) }
-    var refineError by remember { mutableStateOf<String?>(null) }
+    var refineOutcome by remember { mutableStateOf<PageDetectOutcomeV1<RefineResultV1>?>(null) }
+    var refineFailure by remember { mutableStateOf<PageDetectFailureV1?>(null) }
     var pipelineResult by remember { mutableStateOf<DrawingImportPipelineResultV1?>(null) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
@@ -522,7 +523,9 @@ fun DrawingImportScreen(
                                                             val overlayBitmap = CornerOverlayRendererV1().render(
                                                                 baseBitmap = baseBitmap,
                                                                 ordered = ordered,
-                                                                refined = refineResult?.corners,
+                                                                refined = (refineOutcome as? PageDetectOutcomeV1.Success)
+                                                                    ?.value
+                                                                    ?.corners,
                                                             )
                                                             val pngBytes = encodePng(overlayBitmap)
                                                             baseBitmap.recycle()
@@ -609,41 +612,51 @@ fun DrawingImportScreen(
                                                         }
                                                         pageDetectInfo = null
                                                         pageDetectFrame = null
-                                                        pageDetectError = null
+                                                        preprocessFailure = null
                                                         isPreparingFrame = true
                                                         contourInfo = null
-                                                        contourError = null
+                                                        contourFailure = null
                                                         isRunningContours = false
                                                         contourCache = emptyList()
-                                                        quadSelectionResult = null
-                                                        quadSelectionError = null
+                                                        quadSelectionOutcome = null
+                                                        quadSelectionFailure = null
+                                                        orderFailure = null
                                                         isSelectingQuad = false
                                                         rectifiedSizeOutcome = null
                                                         orderedCorners = null
-                                                        refineResult = null
-                                                        refineError = null
+                                                        refineOutcome = null
+                                                        refineFailure = null
                                                         pipelineResult = null
                                                         coroutineScope.launch(Dispatchers.Default) {
-                                                            runCatching {
-                                                                pageDetectPreprocessor.preprocess(
-                                                                    PageDetectInput(rawImageFile = rawFile),
-                                                                )
-                                                            }.onSuccess { frame ->
-                                                                withContext(Dispatchers.Main) {
-                                                                    pageDetectFrame = frame
-                                                                    pageDetectInfo = PageDetectFrameInfo(
-                                                                        width = frame.width,
-                                                                        height = frame.height,
-                                                                        downscaleFactor = frame.downscaleFactor,
-                                                                        rotationAppliedDeg = frame.rotationAppliedDeg,
-                                                                    )
-                                                                    isPreparingFrame = false
+                                                            val outcome = pageDetectPreprocessor.preprocess(
+                                                                PageDetectInput(rawImageFile = rawFile),
+                                                            )
+                                                            withContext(Dispatchers.Main) {
+                                                                when (outcome) {
+                                                                    is PageDetectOutcomeV1.Success -> {
+                                                                        val frame = outcome.value
+                                                                        pageDetectFrame = frame
+                                                                        pageDetectInfo = PageDetectFrameInfo(
+                                                                            width = frame.width,
+                                                                            height = frame.height,
+                                                                            downscaleFactor = frame.downscaleFactor,
+                                                                            rotationAppliedDeg = frame.rotationAppliedDeg,
+                                                                        )
+                                                                        preprocessFailure = null
+                                                                    }
+                                                                    is PageDetectOutcomeV1.Failure -> {
+                                                                        preprocessFailure = outcome.failure
+                                                                        logPageDetectFailure(
+                                                                            logger = diagnosticsLogger,
+                                                                            failure = outcome.failure,
+                                                                            projectId = activeProjectId,
+                                                                            onLogged = {
+                                                                                lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                            },
+                                                                        )
+                                                                    }
                                                                 }
-                                                            }.onFailure { error ->
-                                                                withContext(Dispatchers.Main) {
-                                                                    pageDetectError = error.message ?: "Failed to preprocess."
-                                                                    isPreparingFrame = false
-                                                                }
+                                                                isPreparingFrame = false
                                                             }
                                                         }
                                                     },
@@ -661,23 +674,64 @@ fun DrawingImportScreen(
                                                             return@Button
                                                         }
                                                         contourInfo = null
-                                                        contourError = null
-                                                        pageDetectError = null
+                                                        contourFailure = null
+                                                        preprocessFailure = null
                                                         isPreparingFrame = true
                                                         isRunningContours = true
-                                                        quadSelectionResult = null
-                                                        quadSelectionError = null
+                                                        quadSelectionOutcome = null
+                                                        quadSelectionFailure = null
+                                                        orderFailure = null
                                                         isSelectingQuad = false
                                                         rectifiedSizeOutcome = null
                                                         coroutineScope.launch(Dispatchers.Default) {
-                                                            runCatching {
-                                                                val frame = pageDetectFrame ?: pageDetectPreprocessor.preprocess(
-                                                                    PageDetectInput(rawImageFile = rawFile),
-                                                                )
-                                                                val edges = edgeDetector.detect(frame)
-                                                                val contours = contourExtractor.extract(edges)
-                                                                Triple(frame, contours, ContourStats.topByArea(contours, 3))
-                                                            }.onSuccess { (frame, contours, topContours) ->
+                                                            val frameOutcome = pageDetectFrame?.let {
+                                                                PageDetectOutcomeV1.Success(it)
+                                                            } ?: pageDetectPreprocessor.preprocess(
+                                                                PageDetectInput(rawImageFile = rawFile),
+                                                            )
+                                                            val frame = when (frameOutcome) {
+                                                                is PageDetectOutcomeV1.Success -> frameOutcome.value
+                                                                is PageDetectOutcomeV1.Failure -> {
+                                                                    withContext(Dispatchers.Main) {
+                                                                        preprocessFailure = frameOutcome.failure
+                                                                        logPageDetectFailure(
+                                                                            logger = diagnosticsLogger,
+                                                                            failure = frameOutcome.failure,
+                                                                            projectId = activeProjectId,
+                                                                            onLogged = {
+                                                                                lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                            },
+                                                                        )
+                                                                        isPreparingFrame = false
+                                                                        isRunningContours = false
+                                                                    }
+                                                                    return@launch
+                                                                }
+                                                            }
+                                                            val edgesOutcome = edgeDetector.detect(frame)
+                                                            val edgeMap = when (edgesOutcome) {
+                                                                is PageDetectOutcomeV1.Success -> edgesOutcome.value
+                                                                is PageDetectOutcomeV1.Failure -> {
+                                                                    withContext(Dispatchers.Main) {
+                                                                        contourFailure = edgesOutcome.failure
+                                                                        logPageDetectFailure(
+                                                                            logger = diagnosticsLogger,
+                                                                            failure = edgesOutcome.failure,
+                                                                            projectId = activeProjectId,
+                                                                            onLogged = {
+                                                                                lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                            },
+                                                                        )
+                                                                        isPreparingFrame = false
+                                                                        isRunningContours = false
+                                                                    }
+                                                                    return@launch
+                                                                }
+                                                            }
+                                                            val contoursOutcome = contourExtractor.extract(edgeMap)
+                                                            when (contoursOutcome) {
+                                                                is PageDetectOutcomeV1.Success -> {
+                                                                    val contours = contoursOutcome.value
                                                                 withContext(Dispatchers.Main) {
                                                                     pageDetectFrame = frame
                                                                     pageDetectInfo = PageDetectFrameInfo(
@@ -686,19 +740,31 @@ fun DrawingImportScreen(
                                                                         downscaleFactor = frame.downscaleFactor,
                                                                         rotationAppliedDeg = frame.rotationAppliedDeg,
                                                                     )
+                                                                    preprocessFailure = null
                                                                     contourInfo = ContourDebugInfo(
                                                                         totalContours = contours.size,
-                                                                        topContours = topContours,
+                                                                        topContours = ContourStats.topByArea(contours, 3),
                                                                     )
                                                                     contourCache = contours
+                                                                    contourFailure = null
                                                                     isPreparingFrame = false
                                                                     isRunningContours = false
                                                                 }
-                                                            }.onFailure { error ->
-                                                                withContext(Dispatchers.Main) {
-                                                                    contourError = error.message ?: "Failed to run edges+contours."
-                                                                    isPreparingFrame = false
-                                                                    isRunningContours = false
+                                                            }
+                                                                is PageDetectOutcomeV1.Failure -> {
+                                                                    withContext(Dispatchers.Main) {
+                                                                        contourFailure = contoursOutcome.failure
+                                                                        logPageDetectFailure(
+                                                                            logger = diagnosticsLogger,
+                                                                            failure = contoursOutcome.failure,
+                                                                            projectId = activeProjectId,
+                                                                            onLogged = {
+                                                                                lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                            },
+                                                                        )
+                                                                        isPreparingFrame = false
+                                                                        isRunningContours = false
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -716,105 +782,190 @@ fun DrawingImportScreen(
                                                             }
                                                             return@Button
                                                         }
-                                                        quadSelectionResult = null
-                                                        quadSelectionError = null
+                                                        quadSelectionOutcome = null
+                                                        quadSelectionFailure = null
+                                                        orderFailure = null
                                                         isPreparingFrame = true
                                                         isSelectingQuad = true
                                                         rectifiedSizeOutcome = null
                                                         pipelineResult = null
                                                         coroutineScope.launch(Dispatchers.Default) {
-                                                            runCatching {
-                                                                val frame = pageDetectFrame ?: pageDetectPreprocessor.preprocess(
-                                                                    PageDetectInput(rawImageFile = rawFile),
-                                                                )
-                                                                val contours = if (contourCache.isNotEmpty()) {
-                                                                    contourCache
-                                                                } else {
-                                                                    val edges = edgeDetector.detect(frame)
-                                                                    contourExtractor.extract(edges)
-                                                                }
-                                                                val result = quadSelector.select(contours, frame.width, frame.height)
-                                                                val sizeOutcome = when (result) {
-                                                                    is PageQuadSelectionResult.Success -> {
-                                                                        val orderedCorners = QualityOrderedCornersV1.fromPoints(
-                                                                            result.candidate.points,
+                                                            val frameOutcome = pageDetectFrame?.let {
+                                                                PageDetectOutcomeV1.Success(it)
+                                                            } ?: pageDetectPreprocessor.preprocess(
+                                                                PageDetectInput(rawImageFile = rawFile),
+                                                            )
+                                                            val frame = when (frameOutcome) {
+                                                                is PageDetectOutcomeV1.Success -> frameOutcome.value
+                                                                is PageDetectOutcomeV1.Failure -> {
+                                                                    withContext(Dispatchers.Main) {
+                                                                        preprocessFailure = frameOutcome.failure
+                                                                        logPageDetectFailure(
+                                                                            logger = diagnosticsLogger,
+                                                                            failure = frameOutcome.failure,
+                                                                            projectId = activeProjectId,
+                                                                            onLogged = {
+                                                                                lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                            },
                                                                         )
-                                                                        if (orderedCorners == null) {
-                                                                            PageDetectOutcomeV1.Failure(
-                                                                                PageDetectFailure(
-                                                                                    code = PageDetectFailureCode.DEGENERATE_QUAD,
-                                                                                    message = "Unable to order quad corners.",
-                                                                                ),
+                                                                        isPreparingFrame = false
+                                                                        isSelectingQuad = false
+                                                                    }
+                                                                    return@launch
+                                                                }
+                                                            }
+                                                            val contoursOutcome = if (contourCache.isNotEmpty()) {
+                                                                PageDetectOutcomeV1.Success(contourCache)
+                                                            } else {
+                                                                val edgesOutcome = edgeDetector.detect(frame)
+                                                                val edgeMap = when (edgesOutcome) {
+                                                                    is PageDetectOutcomeV1.Success -> edgesOutcome.value
+                                                                    is PageDetectOutcomeV1.Failure -> {
+                                                                        withContext(Dispatchers.Main) {
+                                                                            quadSelectionFailure = edgesOutcome.failure
+                                                                            logPageDetectFailure(
+                                                                                logger = diagnosticsLogger,
+                                                                                failure = edgesOutcome.failure,
+                                                                                projectId = activeProjectId,
+                                                                                onLogged = {
+                                                                                    lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                                },
                                                                             )
-                                                                        } else {
-                                                                            RectifySizePolicyV1.compute(
-                                                                                orderedCorners,
-                                                                                RectifySizeParamsV1(
-                                                                                    maxSide = 2048,
-                                                                                    minSide = 256,
-                                                                                    enforceEven = true,
-                                                                                ),
+                                                                            isPreparingFrame = false
+                                                                            isSelectingQuad = false
+                                                                        }
+                                                                        return@launch
+                                                                    }
+                                                                }
+                                                                contourExtractor.extract(edgeMap)
+                                                            }
+                                                            val contours = when (contoursOutcome) {
+                                                                is PageDetectOutcomeV1.Success -> contoursOutcome.value
+                                                                is PageDetectOutcomeV1.Failure -> {
+                                                                    withContext(Dispatchers.Main) {
+                                                                        quadSelectionFailure = contoursOutcome.failure
+                                                                        logPageDetectFailure(
+                                                                            logger = diagnosticsLogger,
+                                                                            failure = contoursOutcome.failure,
+                                                                            projectId = activeProjectId,
+                                                                            onLogged = {
+                                                                                lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                            },
+                                                                        )
+                                                                        isPreparingFrame = false
+                                                                        isSelectingQuad = false
+                                                                    }
+                                                                    return@launch
+                                                                }
+                                                            }
+                                                            val quadOutcome = quadSelector.select(contours, frame.width, frame.height)
+                                                            val sizeOutcome = when (quadOutcome) {
+                                                                is PageDetectOutcomeV1.Success -> {
+                                                                    val orderedCorners = QualityOrderedCornersV1.fromPoints(
+                                                                        quadOutcome.value.points,
+                                                                    )
+                                                                    if (orderedCorners == null) {
+                                                                        PageDetectOutcomeV1.Failure(
+                                                                            PageDetectFailureV1(
+                                                                                stage = PageDetectStageV1.ORDER,
+                                                                                code = PageDetectFailureCodeV1.ORDER_DEGENERATE,
+                                                                                debugMessage = "Unable to order quad corners.",
+                                                                            ),
+                                                                        )
+                                                                    } else {
+                                                                        RectifySizePolicyV1.compute(
+                                                                            orderedCorners,
+                                                                            RectifySizeParamsV1(
+                                                                                maxSide = 2048,
+                                                                                minSide = 256,
+                                                                                enforceEven = true,
+                                                                            ),
+                                                                        )
+                                                                    }
+                                                                }
+                                                                is PageDetectOutcomeV1.Failure -> null
+                                                            }
+                                                            val orderingOutcome = when (quadOutcome) {
+                                                                is PageDetectOutcomeV1.Success -> {
+                                                                    CornerOrderingV1.order(quadOutcome.value.points)
+                                                                }
+                                                                is PageDetectOutcomeV1.Failure -> null
+                                                            }
+                                                            withContext(Dispatchers.Main) {
+                                                                pageDetectFrame = frame
+                                                                pageDetectInfo = PageDetectFrameInfo(
+                                                                    width = frame.width,
+                                                                    height = frame.height,
+                                                                    downscaleFactor = frame.downscaleFactor,
+                                                                    rotationAppliedDeg = frame.rotationAppliedDeg,
+                                                                )
+                                                                preprocessFailure = null
+                                                                contourCache = contours
+                                                                contourInfo = contourInfo ?: ContourDebugInfo(
+                                                                    totalContours = contours.size,
+                                                                    topContours = ContourStats.topByArea(contours, 3),
+                                                                )
+                                                                quadSelectionOutcome = quadOutcome
+                                                                contourFailure = null
+                                                                rectifiedSizeOutcome = sizeOutcome
+                                                                pipelineResult = when (quadOutcome) {
+                                                                    is PageDetectOutcomeV1.Success -> {
+                                                                        val orderedCorners = QualityOrderedCornersV1.fromPoints(
+                                                                            quadOutcome.value.points,
+                                                                        )
+                                                                        orderedCorners?.let { corners ->
+                                                                            val metrics = QualityMetricsV1.skewFromQuad(
+                                                                                corners,
+                                                                                frame.width,
+                                                                                frame.height,
+                                                                            )
+                                                                            DrawingImportPipelineResultV1(
+                                                                                orderedCorners = corners,
+                                                                                refinedCorners = null,
+                                                                                imageWidth = frame.width,
+                                                                                imageHeight = frame.height,
+                                                                                skewMetrics = metrics,
                                                                             )
                                                                         }
                                                                     }
-                                                                    is PageQuadSelectionResult.Failure -> null
+                                                                    is PageDetectOutcomeV1.Failure -> null
                                                                 }
-                                                                QuadSelectionSnapshot(frame, contours, result, sizeOutcome)
-                                                            }.onSuccess { (frame, contours, result, sizeOutcome) ->
-                                                                withContext(Dispatchers.Main) {
-                                                                    pageDetectFrame = frame
-                                                                    pageDetectInfo = PageDetectFrameInfo(
-                                                                        width = frame.width,
-                                                                        height = frame.height,
-                                                                        downscaleFactor = frame.downscaleFactor,
-                                                                        rotationAppliedDeg = frame.rotationAppliedDeg,
-                                                                    )
-                                                                    contourCache = contours
-                                                                    contourInfo = contourInfo ?: ContourDebugInfo(
-                                                                        totalContours = contours.size,
-                                                                        topContours = ContourStats.topByArea(contours, 3),
-                                                                    )
-                                                                    quadSelectionResult = result
-                                                                    rectifiedSizeOutcome = sizeOutcome
-                                                                    pipelineResult = when (result) {
-                                                                        is PageQuadSelectionResult.Success -> {
-                                                                            val orderedCorners = QualityOrderedCornersV1.fromPoints(
-                                                                                result.candidate.points,
-                                                                            )
-                                                                            orderedCorners?.let { corners ->
-                                                                                val metrics = QualityMetricsV1.skewFromQuad(
-                                                                                    corners,
-                                                                                    frame.width,
-                                                                                    frame.height,
-                                                                                )
-                                                                                DrawingImportPipelineResultV1(
-                                                                                    orderedCorners = corners,
-                                                                                    refinedCorners = null,
-                                                                                    imageWidth = frame.width,
-                                                                                    imageHeight = frame.height,
-                                                                                    skewMetrics = metrics,
-                                                                                )
-                                                                            }
-                                                                        }
-                                                                        is PageQuadSelectionResult.Failure -> null
+                                                                isPreparingFrame = false
+                                                                isSelectingQuad = false
+                                                                orderedCorners = when (orderingOutcome) {
+                                                                    is PageDetectOutcomeV1.Success -> {
+                                                                        orderFailure = null
+                                                                        orderingOutcome.value
                                                                     }
-                                                                    isPreparingFrame = false
-                                                                    isSelectingQuad = false
-                                                                    orderedCorners = (result as? PageQuadSelectionResult.Success)
-                                                                        ?.candidate
-                                                                        ?.points
-                                                                        ?.let { points ->
-                                                                            runCatching { CornerOrderingV1.order(points) }.getOrNull()
-                                                                        }
-                                                                    refineResult = null
-                                                                    refineError = null
+                                                                    is PageDetectOutcomeV1.Failure -> {
+                                                                        orderFailure = orderingOutcome.failure
+                                                                        logPageDetectFailure(
+                                                                            logger = diagnosticsLogger,
+                                                                            failure = orderingOutcome.failure,
+                                                                            projectId = activeProjectId,
+                                                                            onLogged = {
+                                                                                lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                            },
+                                                                        )
+                                                                        null
+                                                                    }
+                                                                    null -> null
                                                                 }
-                                                            }.onFailure { error ->
-                                                                withContext(Dispatchers.Main) {
-                                                                    quadSelectionError = error.message ?: "Failed to select page quad."
-                                                                    isPreparingFrame = false
-                                                                    isSelectingQuad = false
-                                                                    rectifiedSizeOutcome = null
+                                                                refineOutcome = null
+                                                                refineFailure = null
+                                                                quadSelectionFailure = if (quadOutcome is PageDetectOutcomeV1.Failure) {
+                                                                    quadOutcome.failure.also { failure ->
+                                                                        logPageDetectFailure(
+                                                                            logger = diagnosticsLogger,
+                                                                            failure = failure,
+                                                                            projectId = activeProjectId,
+                                                                            onLogged = {
+                                                                                lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                } else {
+                                                                    null
                                                                 }
                                                             }
                                                         }
@@ -839,18 +990,26 @@ fun DrawingImportScreen(
                                                             }
                                                             return@Button
                                                         }
-                                                        refineError = null
+                                                        refineFailure = null
                                                         coroutineScope.launch(Dispatchers.Default) {
-                                                            runCatching {
-                                                                CornerRefinerV1.refine(frame, ordered, refineParams)
-                                                            }.onSuccess { result ->
-                                                                withContext(Dispatchers.Main) {
-                                                                    refineResult = result
-                                                                }
-                                                            }.onFailure { error ->
-                                                                withContext(Dispatchers.Main) {
-                                                                    refineResult = null
-                                                                    refineError = error.message ?: "Corner refinement failed."
+                                                            val refineResult = CornerRefinerV1.refine(frame, ordered, refineParams)
+                                                            withContext(Dispatchers.Main) {
+                                                                refineOutcome = refineResult
+                                                                when (refineResult) {
+                                                                    is PageDetectOutcomeV1.Success -> {
+                                                                        refineFailure = null
+                                                                    }
+                                                                    is PageDetectOutcomeV1.Failure -> {
+                                                                        refineFailure = refineResult.failure
+                                                                        logPageDetectFailure(
+                                                                            logger = diagnosticsLogger,
+                                                                            failure = refineResult.failure,
+                                                                            projectId = activeProjectId,
+                                                                            onLogged = {
+                                                                                lastEventName = DrawingImportEvent.ERROR.eventName
+                                                                            },
+                                                                        )
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -879,9 +1038,9 @@ fun DrawingImportScreen(
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
                                             }
-                                            pageDetectError?.let { message ->
+                                            preprocessFailure?.let { failure ->
                                                 Text(
-                                                    text = "Prep failed: $message",
+                                                    text = formatFailureLabel("Preprocess", failure),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.error,
                                                 )
@@ -898,24 +1057,24 @@ fun DrawingImportScreen(
                                                     )
                                                 }
                                             }
-                                            contourError?.let { message ->
+                                            contourFailure?.let { failure ->
                                                 Text(
-                                                    text = "Contour run failed: $message",
+                                                    text = formatFailureLabel("Edges/contours", failure),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.error,
                                                 )
                                             }
-                                            quadSelectionResult?.let { result ->
+                                            quadSelectionOutcome?.let { result ->
                                                 when (result) {
-                                                    is PageQuadSelectionResult.Success -> {
+                                                    is PageDetectOutcomeV1.Success -> {
                                                         Text(
-                                                            text = formatQuadLabel(result.candidate),
+                                                            text = formatQuadLabel(result.value),
                                                             style = MaterialTheme.typography.bodySmall,
                                                         )
                                                     }
-                                                    is PageQuadSelectionResult.Failure -> {
+                                                    is PageDetectOutcomeV1.Failure -> {
                                                         Text(
-                                                            text = formatFailureLabel(result.failure),
+                                                            text = formatFailureLabel("Quad select", result.failure),
                                                             style = MaterialTheme.typography.bodySmall,
                                                             color = MaterialTheme.colorScheme.error,
                                                         )
@@ -945,9 +1104,16 @@ fun DrawingImportScreen(
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
                                             }
-                                            quadSelectionError?.let { message ->
+                                            quadSelectionFailure?.let { failure ->
                                                 Text(
-                                                    text = "Quad selection failed: $message",
+                                                    text = formatFailureLabel("Quad selection", failure),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error,
+                                                )
+                                            }
+                                            orderFailure?.let { failure ->
+                                                Text(
+                                                    text = formatFailureLabel("Ordering", failure),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.error,
                                                 )
@@ -958,18 +1124,22 @@ fun DrawingImportScreen(
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
                                             }
-                                            refineResult?.let { result ->
-                                                Text(
-                                                    text = formatRefineLabel(result),
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                )
-                                            }
-                                            refineError?.let { message ->
-                                                Text(
-                                                    text = "Refine failed: $message",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.error,
-                                                )
+                                            refineOutcome?.let { result ->
+                                                when (result) {
+                                                    is PageDetectOutcomeV1.Success -> {
+                                                        Text(
+                                                            text = formatRefineLabel(result.value),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                        )
+                                                    }
+                                                    is PageDetectOutcomeV1.Failure -> {
+                                                        Text(
+                                                            text = formatFailureLabel("Refine", result.failure),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.error,
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -1014,19 +1184,20 @@ fun DrawingImportScreen(
                                         imageError = false
                                         pageDetectInfo = null
                                         pageDetectFrame = null
-                                        pageDetectError = null
+                                        preprocessFailure = null
                                         isPreparingFrame = false
                                         contourInfo = null
-                                        contourError = null
+                                        contourFailure = null
                                         isRunningContours = false
                                         contourCache = emptyList()
-                                        quadSelectionResult = null
-                                        quadSelectionError = null
+                                        quadSelectionOutcome = null
+                                        quadSelectionFailure = null
+                                        orderFailure = null
                                         isSelectingQuad = false
                                         rectifiedSizeOutcome = null
                                         orderedCorners = null
-                                        refineResult = null
-                                        refineError = null
+                                        refineOutcome = null
+                                        refineFailure = null
                                         pipelineResult = null
                                         screenState = DrawingImportUiState.Ready
                                     },
@@ -1064,16 +1235,20 @@ fun DrawingImportScreen(
                                         activeProjectId = captureProjectId
                                         pageDetectInfo = null
                                         pageDetectFrame = null
-                                        pageDetectError = null
+                                        preprocessFailure = null
                                         isPreparingFrame = false
                                         contourInfo = null
-                                        contourError = null
+                                        contourFailure = null
                                         isRunningContours = false
                                         contourCache = emptyList()
-                                        quadSelectionResult = null
-                                        quadSelectionError = null
+                                        quadSelectionOutcome = null
+                                        quadSelectionFailure = null
+                                        orderFailure = null
                                         isSelectingQuad = false
                                         rectifiedSizeOutcome = null
+                                        orderedCorners = null
+                                        refineOutcome = null
+                                        refineFailure = null
                                         logDiagnosticsEvent(
                                             logger = diagnosticsLogger,
                                             event = DrawingImportEvent.CAPTURE_START,
@@ -1197,19 +1372,20 @@ fun DrawingImportScreen(
                                     imageError = false
                                     pageDetectInfo = null
                                     pageDetectFrame = null
-                                    pageDetectError = null
+                                    preprocessFailure = null
                                     isPreparingFrame = false
                                     contourInfo = null
-                                    contourError = null
+                                    contourFailure = null
                                     isRunningContours = false
                                     contourCache = emptyList()
-                                    quadSelectionResult = null
-                                    quadSelectionError = null
+                                    quadSelectionOutcome = null
+                                    quadSelectionFailure = null
+                                    orderFailure = null
                                     isSelectingQuad = false
                                     isSavingOverlay = false
                                     orderedCorners = null
-                                    refineResult = null
-                                    refineError = null
+                                    refineOutcome = null
+                                    refineFailure = null
                                     screenState = DrawingImportUiState.Ready
                                 },
                                 colors = ButtonDefaults.buttonColors(
@@ -1253,13 +1429,6 @@ private data class PageDetectFrameInfo(
     val rotationAppliedDeg: Int,
 )
 
-private data class QuadSelectionSnapshot(
-    val frame: PageDetectFrame,
-    val contours: List<ContourV1>,
-    val result: PageQuadSelectionResult,
-    val sizeOutcome: PageDetectOutcomeV1<RectifiedSizeV1>?,
-)
-
 private data class ContourDebugInfo(
     val totalContours: Int,
     val topContours: List<ContourV1>,
@@ -1292,12 +1461,15 @@ private fun formatSkewMetrics(metrics: SkewMetricsV1): String {
         "Keystone W/H: $keystoneW/$keystoneH • Page fill: $pageFill • Status: ${metrics.status.name}"
 }
 
-private fun formatFailureLabel(failure: PageDetectFailure): String {
-    return "Quad selection: ${failure.code.name} • ${failure.message}"
+private fun formatFailureLabel(label: String, failure: PageDetectFailureV1): String {
+    val guidance = "Try retake with better lighting and keep the page flat."
+    val debugCode = "${failure.stage.name}:${failure.code.name}"
+    val debugMessage = failure.debugMessage?.let { " • detail=$it" } ?: ""
+    return "$label failed: stage=${failure.stage.name} • code=${failure.code.name} • $guidance • debug=$debugCode$debugMessage"
 }
 
-private fun formatRectifiedFailureLabel(failure: PageDetectFailure): String {
-    return "Rectified size: ${failure.code.name} • ${failure.message}"
+private fun formatRectifiedFailureLabel(failure: PageDetectFailureV1): String {
+    return formatFailureLabel("Rectified size", failure)
 }
 
 private fun formatOrderedCornersLabel(corners: PreprocessOrderedCornersV1): String {
@@ -1333,8 +1505,7 @@ private fun encodePng(bitmap: Bitmap): ByteArray {
 private fun formatRefineLabel(result: RefineResultV1): String {
     val deltas = result.deltasPx.joinToString(prefix = "[", postfix = "]") { it.formatDeltaPx() }
     val status = result.status.name
-    val failure = result.failureCode?.name?.let { " • $it" } ?: ""
-    return "Refine $status$failure • deltas=$deltas"
+    return "Refine $status • deltas=$deltas"
 }
 
 private fun Double.formatDeltaPx(): String = "%.2fpx".format(Locale.US, this)
@@ -1425,6 +1596,28 @@ private fun logDiagnosticsEvent(
         event = event,
         state = state,
         projectId = projectId,
+        extras = extras,
+    )
+    onLogged()
+}
+
+private fun logPageDetectFailure(
+    logger: DrawingImportEventLogger,
+    failure: PageDetectFailureV1,
+    projectId: String?,
+    onLogged: () -> Unit,
+) {
+    val extras = buildMap {
+        put("detectStage", failure.stage.name)
+        put("detectCode", failure.code.name)
+        failure.debugMessage?.let { put("debugMessage", it) }
+    }
+    logger.logEvent(
+        event = DrawingImportEvent.ERROR,
+        state = "page_detect_failure",
+        projectId = projectId,
+        errorCode = DrawingImportErrorCode.UNKNOWN,
+        message = "${failure.stage.name}:${failure.code.name}",
         extras = extras,
     )
     onLogged()

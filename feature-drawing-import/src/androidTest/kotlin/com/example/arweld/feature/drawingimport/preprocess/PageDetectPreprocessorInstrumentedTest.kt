@@ -23,12 +23,14 @@ class PageDetectPreprocessorInstrumentedTest {
         }
 
         val preprocessor = PageDetectPreprocessor()
-        val frame = preprocessor.preprocess(
+        val outcome = preprocessor.preprocess(
             PageDetectInput(
                 rawImageFile = tempFile,
                 maxSide = 64,
             ),
         )
+        assertTrue(outcome is PageDetectOutcomeV1.Success)
+        val frame = (outcome as PageDetectOutcomeV1.Success).value
 
         assertTrue(frame.width <= 64)
         assertTrue(frame.height <= 64)

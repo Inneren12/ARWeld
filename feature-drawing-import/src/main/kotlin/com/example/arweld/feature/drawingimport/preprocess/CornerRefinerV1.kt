@@ -29,7 +29,6 @@ data class RefineResultV1(
     val corners: OrderedCornersV1,
     val deltasPx: List<Double>,
     val status: RefineStatusV1,
-    val failureCode: PageDetectFailureCode?,
 )
 
 object CornerRefinerV1 {
@@ -37,65 +36,64 @@ object CornerRefinerV1 {
         frame: PageDetectFrame,
         ordered: OrderedCornersV1,
         params: RefineParamsV1,
-    ): RefineResultV1 {
+    ): PageDetectOutcomeV1<RefineResultV1> {
         if (params.windowRadiusPx <= 0 || params.maxIters <= 0 || params.epsilon <= 0.0) {
-            return RefineResultV1(
-                corners = ordered,
-                deltasPx = listOf(0.0, 0.0, 0.0, 0.0),
-                status = RefineStatusV1.SKIPPED,
-                failureCode = PageDetectFailureCode.INVALID_REFINE_PARAMS,
-            )
+            return failure("Invalid refine params.")
         }
         if (frame.width <= 1 || frame.height <= 1 || frame.gray.isEmpty()) {
-            return RefineResultV1(
-                corners = ordered,
-                deltasPx = listOf(0.0, 0.0, 0.0, 0.0),
-                status = RefineStatusV1.FAILED,
-                failureCode = PageDetectFailureCode.INVALID_FRAME,
-            )
+            return failure("Invalid frame.")
         }
         if (frame.gray.size != frame.width * frame.height) {
-            return RefineResultV1(
-                corners = ordered,
-                deltasPx = listOf(0.0, 0.0, 0.0, 0.0),
-                status = RefineStatusV1.FAILED,
-                failureCode = PageDetectFailureCode.INVALID_FRAME,
+            return failure("Invalid frame.")
+        }
+        return try {
+            val edgeDetector = PageDetectEdgeDetector()
+            val edgeOutcome = edgeDetector.detect(frame)
+            val edgeMap = when (edgeOutcome) {
+                is PageDetectOutcomeV1.Success -> edgeOutcome.value
+                is PageDetectOutcomeV1.Failure -> return failure(edgeOutcome.failure.debugMessage)
+            }
+            val corners = listOf(
+                ordered.topLeft,
+                ordered.topRight,
+                ordered.bottomRight,
+                ordered.bottomLeft,
             )
-        }
-        val edgeDetector = PageDetectEdgeDetector()
-        val edgeMap = edgeDetector.detect(frame)
-        val corners = listOf(
-            ordered.topLeft,
-            ordered.topRight,
-            ordered.bottomRight,
-            ordered.bottomLeft,
-        )
-        val refined = mutableListOf<CornerPointV1>()
-        val deltas = mutableListOf<Double>()
-        for (corner in corners) {
-            val refinedCorner = refineCorner(edgeMap, corner, params)
-            refined.add(refinedCorner)
-            deltas.add(distance(corner, refinedCorner))
-        }
-        if (refined.any { !it.isFinite() }) {
-            return RefineResultV1(
-                corners = ordered,
-                deltasPx = listOf(0.0, 0.0, 0.0, 0.0),
-                status = RefineStatusV1.FAILED,
-                failureCode = PageDetectFailureCode.REFINE_NON_FINITE,
+            val refined = mutableListOf<CornerPointV1>()
+            val deltas = mutableListOf<Double>()
+            for (corner in corners) {
+                val refinedCorner = refineCorner(edgeMap, corner, params)
+                refined.add(refinedCorner)
+                deltas.add(distance(corner, refinedCorner))
+            }
+            if (refined.any { !it.isFinite() }) {
+                return failure("Refined corners contain non-finite values.")
+            }
+            val resultCorners = OrderedCornersV1(
+                topLeft = refined[0].clamp(frame.width, frame.height),
+                topRight = refined[1].clamp(frame.width, frame.height),
+                bottomRight = refined[2].clamp(frame.width, frame.height),
+                bottomLeft = refined[3].clamp(frame.width, frame.height),
             )
+            PageDetectOutcomeV1.Success(
+                RefineResultV1(
+                    corners = resultCorners,
+                    deltasPx = deltas,
+                    status = RefineStatusV1.REFINED,
+                ),
+            )
+        } catch (error: Throwable) {
+            failure(error.message)
         }
-        val resultCorners = OrderedCornersV1(
-            topLeft = refined[0].clamp(frame.width, frame.height),
-            topRight = refined[1].clamp(frame.width, frame.height),
-            bottomRight = refined[2].clamp(frame.width, frame.height),
-            bottomLeft = refined[3].clamp(frame.width, frame.height),
-        )
-        return RefineResultV1(
-            corners = resultCorners,
-            deltasPx = deltas,
-            status = RefineStatusV1.REFINED,
-            failureCode = null,
+    }
+
+    private fun failure(message: String?): PageDetectOutcomeV1<RefineResultV1> {
+        return PageDetectOutcomeV1.Failure(
+            PageDetectFailureV1(
+                stage = PageDetectStageV1.REFINE,
+                code = PageDetectFailureCodeV1.REFINE_FAILED,
+                debugMessage = message,
+            )
         )
     }
 

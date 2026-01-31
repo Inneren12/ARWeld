@@ -36,11 +36,6 @@ data class OrderedCornersV1(
     }
 }
 
-sealed class PageDetectOutcomeV1<out T> {
-    data class Success<T>(val value: T) : PageDetectOutcomeV1<T>()
-    data class Failure(val failure: PageDetectFailure) : PageDetectOutcomeV1<Nothing>()
-}
-
 object RectifySizePolicyV1 {
     private const val MAX_ASPECT_RATIO = 4.0
     private const val MIN_DISTANCE_PX = 1.0
@@ -51,9 +46,10 @@ object RectifySizePolicyV1 {
     ): PageDetectOutcomeV1<RectifiedSizeV1> {
         if (params.maxSide <= 0 || params.minSide <= 0 || params.maxSide < params.minSide) {
             return PageDetectOutcomeV1.Failure(
-                PageDetectFailure(
-                    code = PageDetectFailureCode.INVALID_SIZE_PARAMS,
-                    message = "Invalid size bounds. maxSide must be >= minSide and > 0.",
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.ORDER,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = "Invalid size bounds. maxSide must be >= minSide and > 0.",
                 ),
             )
         }
@@ -67,18 +63,20 @@ object RectifySizePolicyV1 {
         )
         if (widthRaw <= MIN_DISTANCE_PX || heightRaw <= MIN_DISTANCE_PX) {
             return PageDetectOutcomeV1.Failure(
-                PageDetectFailure(
-                    code = PageDetectFailureCode.DEGENERATE_QUAD,
-                    message = "Degenerate quad: width/height too small.",
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.ORDER,
+                    code = PageDetectFailureCodeV1.ORDER_DEGENERATE,
+                    debugMessage = "Degenerate quad: width/height too small.",
                 ),
             )
         }
         val aspectRatio = max(widthRaw, heightRaw) / min(widthRaw, heightRaw)
         if (!aspectRatio.isFinite() || aspectRatio > MAX_ASPECT_RATIO) {
             return PageDetectOutcomeV1.Failure(
-                PageDetectFailure(
-                    code = PageDetectFailureCode.EXTREME_ASPECT_RATIO,
-                    message = "Aspect ratio exceeds ${MAX_ASPECT_RATIO}:1.",
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.ORDER,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = "Aspect ratio exceeds ${MAX_ASPECT_RATIO}:1.",
                 ),
             )
         }
@@ -93,9 +91,10 @@ object RectifySizePolicyV1 {
         }
         if (maxSideRaw * scale > params.maxSide + 1e-6) {
             return PageDetectOutcomeV1.Failure(
-                PageDetectFailure(
-                    code = PageDetectFailureCode.SIZE_CONSTRAINTS,
-                    message = "Size constraints cannot be satisfied with aspect ratio preserved.",
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.ORDER,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = "Size constraints cannot be satisfied with aspect ratio preserved.",
                 ),
             )
         }
@@ -106,16 +105,18 @@ object RectifySizePolicyV1 {
         if (params.enforceEven) {
             roundedWidth = enforceEvenWithinBounds(roundedWidth, params)
                 ?: return PageDetectOutcomeV1.Failure(
-                    PageDetectFailure(
-                        code = PageDetectFailureCode.SIZE_CONSTRAINTS,
-                        message = "Unable to satisfy even-size constraint for width.",
+                    PageDetectFailureV1(
+                        stage = PageDetectStageV1.ORDER,
+                        code = PageDetectFailureCodeV1.UNKNOWN,
+                        debugMessage = "Unable to satisfy even-size constraint for width.",
                     ),
                 )
             roundedHeight = enforceEvenWithinBounds(roundedHeight, params)
                 ?: return PageDetectOutcomeV1.Failure(
-                    PageDetectFailure(
-                        code = PageDetectFailureCode.SIZE_CONSTRAINTS,
-                        message = "Unable to satisfy even-size constraint for height.",
+                    PageDetectFailureV1(
+                        stage = PageDetectStageV1.ORDER,
+                        code = PageDetectFailureCodeV1.UNKNOWN,
+                        debugMessage = "Unable to satisfy even-size constraint for height.",
                     ),
                 )
         }
@@ -123,9 +124,10 @@ object RectifySizePolicyV1 {
             roundedWidth > params.maxSide || roundedHeight > params.maxSide
         ) {
             return PageDetectOutcomeV1.Failure(
-                PageDetectFailure(
-                    code = PageDetectFailureCode.SIZE_CONSTRAINTS,
-                    message = "Rounded size violates min/max constraints.",
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.ORDER,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = "Rounded size violates min/max constraints.",
                 ),
             )
         }

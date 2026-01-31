@@ -119,7 +119,7 @@ class RectifySizePolicyV1Test {
 
         assertTrue(result is PageDetectOutcomeV1.Failure)
         val failure = (result as PageDetectOutcomeV1.Failure).failure
-        assertEquals(PageDetectFailureCode.DEGENERATE_QUAD, failure.code)
+        assertEquals(PageDetectFailureCodeV1.ORDER_DEGENERATE, failure.code)
     }
 
     @Test
@@ -136,6 +136,6 @@ class RectifySizePolicyV1Test {
 
         assertTrue(result is PageDetectOutcomeV1.Failure)
         val failure = (result as PageDetectOutcomeV1.Failure).failure
-        assertEquals(PageDetectFailureCode.EXTREME_ASPECT_RATIO, failure.code)
+        assertEquals(PageDetectFailureCodeV1.UNKNOWN, failure.code)
     }
 }
