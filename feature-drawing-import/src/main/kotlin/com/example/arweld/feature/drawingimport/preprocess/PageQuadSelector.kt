@@ -20,6 +20,10 @@ enum class PageDetectFailureCode {
     PAGE_NOT_FOUND,
     NO_CONVEX_QUAD,
     QUAD_TOO_SMALL,
+    DEGENERATE_QUAD,
+    EXTREME_ASPECT_RATIO,
+    SIZE_CONSTRAINTS,
+    INVALID_SIZE_PARAMS,
 }
 
 data class PageDetectFailure(

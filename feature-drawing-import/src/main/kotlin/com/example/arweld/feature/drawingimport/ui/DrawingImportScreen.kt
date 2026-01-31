@@ -61,6 +61,7 @@ import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLo
 import com.example.arweld.feature.drawingimport.preprocess.ContourStats
 import com.example.arweld.feature.drawingimport.preprocess.ContourV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailure
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailureCode
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFrame
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectInput
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectContourExtractor
@@ -69,6 +70,11 @@ import com.example.arweld.feature.drawingimport.preprocess.PageDetectPreprocesso
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadCandidate
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelectionResult
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelector
+import com.example.arweld.feature.drawingimport.preprocess.OrderedCornersV1
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectOutcomeV1
+import com.example.arweld.feature.drawingimport.preprocess.RectifiedSizeV1
+import com.example.arweld.feature.drawingimport.preprocess.RectifySizeParamsV1
+import com.example.arweld.feature.drawingimport.preprocess.RectifySizePolicyV1
 import java.io.File
 import java.util.Locale
 import java.util.UUID
@@ -106,6 +112,7 @@ fun DrawingImportScreen(
     var quadSelectionResult by remember { mutableStateOf<PageQuadSelectionResult?>(null) }
     var quadSelectionError by remember { mutableStateOf<String?>(null) }
     var isSelectingQuad by remember { mutableStateOf(false) }
+    var rectifiedSizeOutcome by remember { mutableStateOf<PageDetectOutcomeV1<RectifiedSizeV1>?>(null) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
@@ -484,6 +491,7 @@ fun DrawingImportScreen(
                                                         quadSelectionResult = null
                                                         quadSelectionError = null
                                                         isSelectingQuad = false
+                                                        rectifiedSizeOutcome = null
                                                         coroutineScope.launch(Dispatchers.Default) {
                                                             runCatching {
                                                                 pageDetectPreprocessor.preprocess(
@@ -529,6 +537,7 @@ fun DrawingImportScreen(
                                                         quadSelectionResult = null
                                                         quadSelectionError = null
                                                         isSelectingQuad = false
+                                                        rectifiedSizeOutcome = null
                                                         coroutineScope.launch(Dispatchers.Default) {
                                                             runCatching {
                                                                 val frame = pageDetectFrame ?: pageDetectPreprocessor.preprocess(
@@ -580,6 +589,7 @@ fun DrawingImportScreen(
                                                         quadSelectionError = null
                                                         isPreparingFrame = true
                                                         isSelectingQuad = true
+                                                        rectifiedSizeOutcome = null
                                                         coroutineScope.launch(Dispatchers.Default) {
                                                             runCatching {
                                                                 val frame = pageDetectFrame ?: pageDetectPreprocessor.preprocess(
@@ -592,8 +602,31 @@ fun DrawingImportScreen(
                                                                     contourExtractor.extract(edges)
                                                                 }
                                                                 val result = quadSelector.select(contours, frame.width, frame.height)
-                                                                Triple(frame, contours, result)
-                                                            }.onSuccess { (frame, contours, result) ->
+                                                                val sizeOutcome = when (result) {
+                                                                    is PageQuadSelectionResult.Success -> {
+                                                                        val orderedCorners = OrderedCornersV1.fromPoints(result.candidate.points)
+                                                                        if (orderedCorners == null) {
+                                                                            PageDetectOutcomeV1.Failure(
+                                                                                PageDetectFailure(
+                                                                                    code = PageDetectFailureCode.DEGENERATE_QUAD,
+                                                                                    message = "Unable to order quad corners.",
+                                                                                ),
+                                                                            )
+                                                                        } else {
+                                                                            RectifySizePolicyV1.compute(
+                                                                                orderedCorners,
+                                                                                RectifySizeParamsV1(
+                                                                                    maxSide = 2048,
+                                                                                    minSide = 256,
+                                                                                    enforceEven = true,
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                    }
+                                                                    is PageQuadSelectionResult.Failure -> null
+                                                                }
+                                                                QuadSelectionSnapshot(frame, contours, result, sizeOutcome)
+                                                            }.onSuccess { (frame, contours, result, sizeOutcome) ->
                                                                 withContext(Dispatchers.Main) {
                                                                     pageDetectFrame = frame
                                                                     pageDetectInfo = PageDetectFrameInfo(
@@ -608,6 +641,7 @@ fun DrawingImportScreen(
                                                                         topContours = ContourStats.topByArea(contours, 3),
                                                                     )
                                                                     quadSelectionResult = result
+                                                                    rectifiedSizeOutcome = sizeOutcome
                                                                     isPreparingFrame = false
                                                                     isSelectingQuad = false
                                                                 }
@@ -616,6 +650,7 @@ fun DrawingImportScreen(
                                                                     quadSelectionError = error.message ?: "Failed to select page quad."
                                                                     isPreparingFrame = false
                                                                     isSelectingQuad = false
+                                                                    rectifiedSizeOutcome = null
                                                                 }
                                                             }
                                                         }
@@ -687,6 +722,23 @@ fun DrawingImportScreen(
                                                     }
                                                 }
                                             }
+                                            rectifiedSizeOutcome?.let { outcome ->
+                                                when (outcome) {
+                                                    is PageDetectOutcomeV1.Success -> {
+                                                        Text(
+                                                            text = formatRectifiedSizeLabel(outcome.value),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                        )
+                                                    }
+                                                    is PageDetectOutcomeV1.Failure -> {
+                                                        Text(
+                                                            text = formatRectifiedFailureLabel(outcome.failure),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.error,
+                                                        )
+                                                    }
+                                                }
+                                            }
                                             quadSelectionError?.let { message ->
                                                 Text(
                                                     text = "Quad selection failed: $message",
@@ -746,6 +798,7 @@ fun DrawingImportScreen(
                                         quadSelectionResult = null
                                         quadSelectionError = null
                                         isSelectingQuad = false
+                                        rectifiedSizeOutcome = null
                                         screenState = DrawingImportUiState.Ready
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -791,6 +844,7 @@ fun DrawingImportScreen(
                                         quadSelectionResult = null
                                         quadSelectionError = null
                                         isSelectingQuad = false
+                                        rectifiedSizeOutcome = null
                                         logDiagnosticsEvent(
                                             logger = diagnosticsLogger,
                                             event = DrawingImportEvent.CAPTURE_START,
@@ -966,6 +1020,13 @@ private data class PageDetectFrameInfo(
     val rotationAppliedDeg: Int,
 )
 
+private data class QuadSelectionSnapshot(
+    val frame: PageDetectFrame,
+    val contours: List<ContourV1>,
+    val result: PageQuadSelectionResult,
+    val sizeOutcome: PageDetectOutcomeV1<RectifiedSizeV1>?,
+)
+
 private data class ContourDebugInfo(
     val totalContours: Int,
     val topContours: List<ContourV1>,
@@ -984,8 +1045,16 @@ private fun formatQuadLabel(candidate: PageQuadCandidate): String {
     return "Quad area=$area • score=$score • points=$points"
 }
 
+private fun formatRectifiedSizeLabel(size: RectifiedSizeV1): String {
+    return "Rectified size=${size.width}x${size.height}"
+}
+
 private fun formatFailureLabel(failure: PageDetectFailure): String {
     return "Quad selection: ${failure.code.name} • ${failure.message}"
+}
+
+private fun formatRectifiedFailureLabel(failure: PageDetectFailure): String {
+    return "Rectified size: ${failure.code.name} • ${failure.message}"
 }
 
 private sealed interface CameraPermissionState {
