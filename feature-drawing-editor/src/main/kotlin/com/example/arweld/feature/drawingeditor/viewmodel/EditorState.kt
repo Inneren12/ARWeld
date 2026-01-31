@@ -25,6 +25,12 @@ data class ViewTransform(
     val offsetY: Float = 0f,
 )
 
+data class NodeDragState(
+    val nodeId: String,
+    val startWorldPos: Point2D,
+    val startPointerWorld: Point2D,
+)
+
 /**
  * Underlay image state for the canvas renderer.
  */
@@ -61,6 +67,7 @@ data class EditorState(
     val viewTransform: ViewTransform = ViewTransform(),
     /** Underlay image state (if workspace has an underlay configured). */
     val underlayState: UnderlayState = UnderlayState.None,
+    val nodeDragState: NodeDragState? = null,
     val scaleDraft: ScaleDraft = ScaleDraft(),
     val undoStack: List<Drawing2D> = emptyList(),
     val redoStack: List<Drawing2D> = emptyList(),

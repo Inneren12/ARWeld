@@ -25,6 +25,18 @@ fun ManualEditorRoute(
         onNodeTap = { point, tolerancePx ->
             viewModel.onIntent(EditorIntent.NodeTap(point, tolerancePx))
         },
+        onNodeDragStart = { nodeId, pointerWorld ->
+            viewModel.onIntent(EditorIntent.NodeDragStart(nodeId, pointerWorld))
+        },
+        onNodeDragMove = { pointerWorld ->
+            viewModel.onIntent(EditorIntent.NodeDragMove(pointerWorld))
+        },
+        onNodeDragEnd = { pointerWorld ->
+            viewModel.onIntent(EditorIntent.NodeDragEnd(pointerWorld))
+        },
+        onNodeDragCancel = {
+            viewModel.onIntent(EditorIntent.NodeDragCancel)
+        },
         onSelectEntity = { selection -> viewModel.onIntent(EditorIntent.SelectEntity(selection)) },
         onClearSelection = { viewModel.onIntent(EditorIntent.ClearSelection) },
         onTransformGesture = { panX, panY, zoomFactor, focalX, focalY ->

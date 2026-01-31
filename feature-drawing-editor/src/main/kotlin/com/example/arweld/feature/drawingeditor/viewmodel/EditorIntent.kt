@@ -48,6 +48,14 @@ sealed interface EditorIntent {
 
     data class NodeTap(val worldPoint: Point2D, val tolerancePx: Float) : EditorIntent
 
+    data class NodeDragStart(val nodeId: String, val startPointerWorld: Point2D) : EditorIntent
+
+    data class NodeDragMove(val pointerWorld: Point2D) : EditorIntent
+
+    data class NodeDragEnd(val pointerWorld: Point2D) : EditorIntent
+
+    data object NodeDragCancel : EditorIntent
+
     data object UndoRequested : EditorIntent
 
     data object RedoRequested : EditorIntent

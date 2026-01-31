@@ -1808,6 +1808,12 @@ data class ArScreenshotMetadata(
 - Added deterministic math/validation tests for mmPerPx, non-positive length, and tiny distances.
 - Added reducer/ViewModel regression coverage for apply flow, error states, undo/redo, and redo invalidation.
 - Added persistence coverage for scale save/load and stable JSON output.
+
+**S3-18 — Nodes tool drag-move ✅ COMPLETED:**
+- Added node drag state and reducer intents for drag start/move/end/cancel.
+- Drag updates node position live using `startWorldPos + (pointerWorld - startPointerWorld)` to avoid drift.
+- Commit policy: one undo snapshot + persistence only on drag end.
+- Tests cover deterministic drag math and commit-on-end behavior.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**

@@ -3,6 +3,7 @@ package com.example.arweld.feature.drawingeditor.viewmodel
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2DIdAllocator
 import com.example.arweld.core.drawing2d.editor.v1.Node2D
+import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.core.drawing2d.editor.v1.canonicalize
 import com.example.arweld.feature.drawingeditor.hittest.hitTestNode
 
@@ -10,6 +11,7 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
     is EditorIntent.ToolChanged -> state.copy(
         tool = intent.tool,
         selection = EditorSelection.None,
+        nodeDragState = null,
         scaleDraft = if (intent.tool == EditorTool.SCALE) {
             state.scaleDraft
         } else {
@@ -17,7 +19,7 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         },
     )
     is EditorIntent.SelectEntity -> state.copy(selection = intent.selection)
-    EditorIntent.ClearSelection -> state.copy(selection = EditorSelection.None)
+    EditorIntent.ClearSelection -> state.copy(selection = EditorSelection.None, nodeDragState = null)
     is EditorIntent.ViewTransformGesture -> state.copy(
         viewTransform = applyViewTransformGesture(
             transform = state.viewTransform,
@@ -37,6 +39,7 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         drawing = intent.drawing,
         lastError = null,
         dirtyFlag = false,
+        nodeDragState = null,
         undoStack = emptyList(),
         redoStack = emptyList(),
     )
@@ -48,6 +51,7 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         isLoading = false,
         lastError = null,
         dirtyFlag = false,
+        nodeDragState = null,
     )
     is EditorIntent.Error -> state.copy(
         isLoading = false,
@@ -88,6 +92,8 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
     is EditorIntent.NodeTap -> {
         if (state.tool != EditorTool.NODE) {
             state
+        } else if (state.nodeDragState != null) {
+            state
         } else {
             val hitId = hitTestNode(
                 worldTap = intent.worldPoint,
@@ -112,6 +118,62 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
             }
         }
     }
+    }
+    is EditorIntent.NodeDragStart -> {
+        if (state.tool != EditorTool.NODE || state.nodeDragState != null) {
+            state
+        } else {
+            val node = state.drawing.nodes.firstOrNull { it.id == intent.nodeId } ?: return state
+            state.copy(
+                selection = EditorSelection.Node(node.id),
+                nodeDragState = NodeDragState(
+                    nodeId = node.id,
+                    startWorldPos = Point2D(node.x, node.y),
+                    startPointerWorld = intent.startPointerWorld,
+                ),
+            )
+        }
+    }
+    is EditorIntent.NodeDragMove -> {
+        val drag = state.nodeDragState ?: return state
+        val updatedPos = applyNodeDrag(drag, intent.pointerWorld)
+        val updatedDrawing = updateNodePosition(state.drawing, drag.nodeId, updatedPos)
+        if (updatedDrawing == state.drawing) {
+            state
+        } else {
+            state.copy(
+                drawing = updatedDrawing,
+                selection = EditorSelection.Node(drag.nodeId),
+            )
+        }
+    }
+    is EditorIntent.NodeDragEnd -> {
+        val drag = state.nodeDragState ?: return state
+        val updatedPos = applyNodeDrag(drag, intent.pointerWorld)
+        val updatedDrawing = updateNodePosition(state.drawing, drag.nodeId, updatedPos)
+        val previousDrawing = updateNodePosition(state.drawing, drag.nodeId, drag.startWorldPos)
+        if (updatedPos == drag.startWorldPos) {
+            state.copy(
+                drawing = previousDrawing,
+                nodeDragState = null,
+                selection = EditorSelection.Node(drag.nodeId),
+            )
+        } else {
+            state.copy(
+                nodeDragState = null,
+                selection = EditorSelection.Node(drag.nodeId),
+            ).pushHistoryFrom(previousDrawing, updatedDrawing)
+        }
+    }
+    EditorIntent.NodeDragCancel -> {
+        val drag = state.nodeDragState ?: return state
+        val restoredDrawing = updateNodePosition(state.drawing, drag.nodeId, drag.startWorldPos)
+        state.copy(
+            drawing = restoredDrawing,
+            nodeDragState = null,
+            selection = EditorSelection.Node(drag.nodeId),
+        )
+    }
     EditorIntent.UndoRequested -> state.applyHistoryUndo()
     EditorIntent.RedoRequested -> state.applyHistoryRedo()
 }
@@ -121,6 +183,18 @@ private const val SCALE_DISTANCE_EPSILON = 1e-6
 private fun EditorState.pushHistory(newDrawing: Drawing2D): EditorState {
     val history = EditorHistory(undoStack = undoStack, redoStack = redoStack)
     val updated = EditorHistoryManager.push(history, drawing)
+    return copy(
+        drawing = newDrawing,
+        undoStack = updated.undoStack,
+        redoStack = updated.redoStack,
+        dirtyFlag = false,
+        lastError = null,
+    )
+}
+
+private fun EditorState.pushHistoryFrom(previousDrawing: Drawing2D, newDrawing: Drawing2D): EditorState {
+    val history = EditorHistory(undoStack = undoStack, redoStack = redoStack)
+    val updated = EditorHistoryManager.push(history, previousDrawing)
     return copy(
         drawing = newDrawing,
         undoStack = updated.undoStack,
@@ -150,6 +224,39 @@ private fun EditorState.applyHistoryRedo(): EditorState {
         redoStack = updated.history.redoStack,
         dirtyFlag = false,
     )
+}
+
+private fun applyNodeDrag(
+    drag: NodeDragState,
+    pointerWorld: Point2D,
+): Point2D {
+    val deltaX = pointerWorld.x - drag.startPointerWorld.x
+    val deltaY = pointerWorld.y - drag.startPointerWorld.y
+    return Point2D(
+        x = drag.startWorldPos.x + deltaX,
+        y = drag.startWorldPos.y + deltaY,
+    )
+}
+
+private fun updateNodePosition(
+    drawing: Drawing2D,
+    nodeId: String,
+    worldPos: Point2D,
+): Drawing2D {
+    var updated = false
+    val nodes = drawing.nodes.map { node ->
+        if (node.id == nodeId) {
+            updated = true
+            node.copy(x = worldPos.x, y = worldPos.y)
+        } else {
+            node
+        }
+    }
+    return if (updated) {
+        drawing.copy(nodes = nodes)
+    } else {
+        drawing
+    }
 }
 
 private fun recomputeScaleDraft(draft: ScaleDraft): ScaleDraft {

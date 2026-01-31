@@ -142,4 +142,33 @@ class ManualEditorViewModelTest {
         assertEquals(1, savedDrawing?.nodes?.size)
         assertEquals("N000001", savedDrawing?.nodes?.first()?.id)
     }
+
+    @Test
+    fun `node drag persists only on drag end`() = runTest {
+        var saveCount = 0
+        val repository = object : Drawing2DRepository {
+            override suspend fun getCurrentDrawing(): Drawing2D = Drawing2D(
+                nodes = listOf(Node2D(id = "N1", x = 1.0, y = 2.0)),
+                members = emptyList(),
+            )
+
+            override suspend fun saveCurrentDrawing(drawing: Drawing2D) {
+                saveCount += 1
+            }
+        }
+        val logger = EditorDiagnosticsLogger(fakeRecorder)
+        val viewModel = ManualEditorViewModel(repository, logger)
+
+        advanceUntilIdle()
+        viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.NODE))
+        viewModel.onIntent(EditorIntent.NodeDragStart("N1", Point2D(x = 2.0, y = 3.0)))
+        viewModel.onIntent(EditorIntent.NodeDragMove(Point2D(x = 4.0, y = 6.0)))
+
+        advanceUntilIdle()
+        assertEquals(0, saveCount)
+
+        viewModel.onIntent(EditorIntent.NodeDragEnd(Point2D(x = 4.0, y = 6.0)))
+        advanceUntilIdle()
+        assertEquals(1, saveCount)
+    }
 }

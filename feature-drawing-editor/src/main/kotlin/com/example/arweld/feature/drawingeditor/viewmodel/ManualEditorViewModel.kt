@@ -36,6 +36,10 @@ class ManualEditorViewModel @Inject constructor(
             EditorIntent.UndoRequested -> applyUndo()
             EditorIntent.RedoRequested -> applyRedo()
             is EditorIntent.NodeTap -> handleNodeTap(intent)
+            is EditorIntent.NodeDragStart -> reduce(intent)
+            is EditorIntent.NodeDragMove -> reduce(intent)
+            is EditorIntent.NodeDragEnd -> handleNodeDragEnd(intent)
+            EditorIntent.NodeDragCancel -> reduce(intent)
             is EditorIntent.ToolChanged -> {
                 val previousTool = mutableUiState.value.tool
                 reduce(intent)
@@ -170,6 +174,33 @@ class ManualEditorViewModel @Inject constructor(
                             nodeId = nodeId,
                             x = intent.worldPoint.x,
                             y = intent.worldPoint.y,
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    reduce(EditorIntent.Error(error.message ?: "Failed to save drawing."))
+                }
+        }
+    }
+
+    private fun handleNodeDragEnd(intent: EditorIntent.NodeDragEnd) {
+        viewModelScope.launch {
+            val previous = mutableUiState.value
+            val dragState = previous.nodeDragState ?: return@launch
+            val updated = reduceAndReturn(intent) ?: return@launch
+            if (updated.drawing == previous.drawing) {
+                return@launch
+            }
+            runCatching { drawing2DRepository.saveCurrentDrawing(updated.drawing) }
+                .onSuccess {
+                    val node = updated.drawing.nodes.firstOrNull { it.id == dragState.nodeId }
+                    if (node != null) {
+                        editorDiagnosticsLogger.logNodeMoved(
+                            nodeId = dragState.nodeId,
+                            fromX = dragState.startWorldPos.x,
+                            fromY = dragState.startWorldPos.y,
+                            toX = node.x,
+                            toY = node.y,
                         )
                     }
                 }
