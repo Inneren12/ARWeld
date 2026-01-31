@@ -41,6 +41,7 @@ class ManualEditorViewModel @Inject constructor(
             is EditorIntent.NodeDragEnd -> handleNodeDragEnd(intent)
             EditorIntent.NodeDragCancel -> reduce(intent)
             is EditorIntent.NodeDeleteRequested -> handleNodeDelete(intent)
+            is EditorIntent.MemberDeleteRequested -> handleMemberDelete(intent)
             is EditorIntent.NodeEditApplyRequested -> handleNodeEditApply(intent)
             is EditorIntent.MemberNodeTapped -> handleMemberNodeTap(intent)
             is EditorIntent.ToolChanged -> {
@@ -232,6 +233,13 @@ class ManualEditorViewModel @Inject constructor(
     }
 
     private fun handleNodeDelete(intent: EditorIntent.NodeDeleteRequested) {
+        viewModelScope.launch {
+            val updated = reduceAndReturn(intent) ?: return@launch
+            persistUpdatedDrawing(updated)
+        }
+    }
+
+    private fun handleMemberDelete(intent: EditorIntent.MemberDeleteRequested) {
         viewModelScope.launch {
             val updated = reduceAndReturn(intent) ?: return@launch
             persistUpdatedDrawing(updated)

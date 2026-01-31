@@ -9,6 +9,18 @@ always anchored to existing nodes (no free-floating endpoints).
 2. Tap a node to select **A** (draft starts).
 3. Tap a second node to select **B** and create the member.
 
+## Selection (S3-24)
+- In **Select** mode, tapping a member line selects it.
+- When a member is selected, the bottom sheet shows:
+  - Member ID
+  - Endpoint node IDs (A/B)
+  - **Delete member** action
+
+## Delete Member (S3-24)
+- The delete action removes only the member; nodes are unchanged.
+- Deletion clears the selection.
+- The change is persisted immediately and pushed as a single undo snapshot (Undo restores the member).
+
 ## Invalid Member Attempts
 - **Same node (A == B):** blocked with an explicit error message.
 - **Duplicate member:** blocked with an explicit error message when a member already exists between

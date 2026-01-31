@@ -88,6 +88,31 @@ class EditorReducerUndoRedoTest {
     }
 
     @Test
+    fun `member delete can undo and redo`() {
+        val baseDrawing = Drawing2D(
+            nodes = listOf(
+                Node2D(id = "N1", x = 0.0, y = 0.0),
+                Node2D(id = "N2", x = 5.0, y = 0.0),
+                Node2D(id = "N3", x = 10.0, y = 0.0),
+            ),
+            members = listOf(
+                Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2"),
+                Member2D(id = "M2", aNodeId = "N2", bNodeId = "N3"),
+            ),
+        )
+        val initialState = EditorState(drawing = baseDrawing)
+
+        val deleted = reduceEditorState(initialState, EditorIntent.MemberDeleteRequested("M2"))
+        assertEquals(listOf("M1"), deleted.drawing.members.map { it.id })
+
+        val undone = reduceEditorState(deleted, EditorIntent.UndoRequested)
+        assertEquals(baseDrawing, undone.drawing)
+
+        val redone = reduceEditorState(undone, EditorIntent.RedoRequested)
+        assertEquals(listOf("M1"), redone.drawing.members.map { it.id })
+    }
+
+    @Test
     fun `node edit apply can undo to previous coordinates`() {
         val baseDrawing = Drawing2D(
             nodes = listOf(Node2D(id = "N1", x = 1.0, y = 2.0)),

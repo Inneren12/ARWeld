@@ -122,6 +122,31 @@ class EditorReducerTest {
     }
 
     @Test
+    fun `member delete removes member and clears selection`() {
+        val drawing = Drawing2D(
+            nodes = listOf(
+                Node2D(id = "N1", x = 0.0, y = 0.0),
+                Node2D(id = "N2", x = 10.0, y = 0.0),
+                Node2D(id = "N3", x = 20.0, y = 0.0),
+            ),
+            members = listOf(
+                Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2"),
+                Member2D(id = "M2", aNodeId = "N2", bNodeId = "N3"),
+            ),
+        )
+        val initial = EditorState(
+            drawing = drawing,
+            selection = EditorSelection.Member("M1"),
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.MemberDeleteRequested("M1"))
+
+        assertEquals(listOf("M2"), result.drawing.members.map { it.id })
+        assertEquals(listOf("N1", "N2", "N3"), result.drawing.nodes.map { it.id })
+        assertEquals(EditorSelection.None, result.selection)
+    }
+
+    @Test
     fun `member tool first tap stores draft node`() {
         val initial = EditorState(
             tool = EditorTool.MEMBER,

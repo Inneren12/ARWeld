@@ -23,6 +23,7 @@ fun ManualEditorRoute(
         onUndo = { viewModel.onIntent(EditorIntent.UndoRequested) },
         onRedo = { viewModel.onIntent(EditorIntent.RedoRequested) },
         onNodeDelete = { nodeId -> viewModel.onIntent(EditorIntent.NodeDeleteRequested(nodeId)) },
+        onMemberDelete = { memberId -> viewModel.onIntent(EditorIntent.MemberDeleteRequested(memberId)) },
         onNodeTap = { point, tolerancePx ->
             viewModel.onIntent(EditorIntent.NodeTap(point, tolerancePx))
         },

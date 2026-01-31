@@ -56,6 +56,7 @@ import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
+import com.example.arweld.core.drawing2d.editor.v1.Member2D
 import com.example.arweld.core.drawing2d.editor.v1.Node2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.core.drawing2d.editor.v1.missingNodeReferences
@@ -123,6 +124,7 @@ fun ManualEditorScreen(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onNodeDelete: (String) -> Unit,
+    onMemberDelete: (String) -> Unit,
     onNodeTap: (Point2D, Float) -> Unit,
     onMemberNodeTap: (String) -> Unit,
     onNodeDragStart: (String, Point2D) -> Unit,
@@ -174,12 +176,17 @@ fun ManualEditorScreen(
             val selectedNode = selectedNodeId?.let { id ->
                 uiState.drawing.nodes.firstOrNull { it.id == id }
             }
+            val selectedMemberId = (uiState.selection as? EditorSelection.Member)?.id
+            val selectedMember = selectedMemberId?.let { id ->
+                uiState.drawing.members.firstOrNull { it.id == id }
+            }
             BottomSheetContent(
                 selectedTool = uiState.tool,
                 summaryText = buildSummaryText(uiState.drawing),
                 scaleDraft = uiState.scaleDraft,
                 memberDraft = uiState.memberDraft,
                 selectedNode = selectedNode,
+                selectedMember = selectedMember,
                 nodeEditDraft = uiState.nodeEditDraft,
                 undoEnabled = uiState.undoStack.isNotEmpty(),
                 redoEnabled = uiState.redoStack.isNotEmpty(),
@@ -188,6 +195,7 @@ fun ManualEditorScreen(
                 onUndo = onUndo,
                 onRedo = onRedo,
                 onDeleteNode = onNodeDelete,
+                onDeleteMember = onMemberDelete,
                 onNodeEditXChanged = onNodeEditXChanged,
                 onNodeEditYChanged = onNodeEditYChanged,
                 onNodeEditApply = onNodeEditApply,
@@ -538,6 +546,7 @@ private fun BottomSheetContent(
     scaleDraft: ScaleDraft,
     memberDraft: MemberDraft,
     selectedNode: Node2D?,
+    selectedMember: Member2D?,
     nodeEditDraft: NodeEditDraft,
     undoEnabled: Boolean,
     redoEnabled: Boolean,
@@ -546,6 +555,7 @@ private fun BottomSheetContent(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onDeleteNode: (String) -> Unit,
+    onDeleteMember: (String) -> Unit,
     onNodeEditXChanged: (String) -> Unit,
     onNodeEditYChanged: (String) -> Unit,
     onNodeEditApply: (String) -> Unit,
@@ -669,6 +679,31 @@ private fun BottomSheetContent(
                     ),
                 ) {
                     Text(text = "Delete node")
+                }
+            }
+
+            if (selectedMember != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Selected member: ${selectedMember.id}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Endpoints: ${selectedMember.aNodeId} • ${selectedMember.bNodeId}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { onDeleteMember(selectedMember.id) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                ) {
+                    Text(text = "Delete member")
                 }
             }
 

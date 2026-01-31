@@ -70,6 +70,8 @@ sealed interface EditorIntent {
 
     data class MemberNodeTapped(val nodeId: String) : EditorIntent
 
+    data class MemberDeleteRequested(val memberId: String) : EditorIntent
+
     data object UndoRequested : EditorIntent
 
     data object RedoRequested : EditorIntent
