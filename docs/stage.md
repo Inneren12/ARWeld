@@ -1849,6 +1849,12 @@ data class ArScreenshotMetadata(
 - Bottom sheet shows selected member ID + endpoints with a Delete member action.
 - Delete removes only the member, clears selection, persists immediately, and pushes a single undo snapshot.
 - Added reducer + undo/redo tests covering member deletion and restoration.
+
+**S3-25 — Member panel endpoints + length + profile placeholder ✅ DONE:**
+- Bottom sheet now shows member endpoint coordinates, length in drawing units, and profile placeholder.
+- Length in mm appears when a valid scale calibration exists; missing scale shows an explicit CTA.
+- Member endpoint resolution handles missing node references with explicit “unresolved endpoints” messaging.
+- Added pure helper tests covering length math, scale conversion, and unresolved endpoints.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**

@@ -68,6 +68,7 @@ import com.example.arweld.feature.drawingeditor.viewmodel.EditorSelection
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorState
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorTool
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorErrorCode
+import com.example.arweld.feature.drawingeditor.viewmodel.MemberEndpointResolution
 import com.example.arweld.feature.drawingeditor.viewmodel.MemberDraft
 import com.example.arweld.feature.drawingeditor.viewmodel.Point2
 import com.example.arweld.feature.drawingeditor.viewmodel.NodeEditDraft
@@ -76,11 +77,16 @@ import com.example.arweld.feature.drawingeditor.viewmodel.ScaleStatus
 import com.example.arweld.feature.drawingeditor.viewmodel.ScaleStatusDisplay
 import com.example.arweld.feature.drawingeditor.viewmodel.UnderlayState
 import com.example.arweld.feature.drawingeditor.viewmodel.ViewTransform
+import com.example.arweld.feature.drawingeditor.viewmodel.computeLengthMm
+import com.example.arweld.feature.drawingeditor.viewmodel.computeLengthPx
 import com.example.arweld.feature.drawingeditor.viewmodel.deriveScaleStatus
+import com.example.arweld.feature.drawingeditor.viewmodel.formatMemberLengthMm
+import com.example.arweld.feature.drawingeditor.viewmodel.formatMemberLengthPx
 import com.example.arweld.feature.drawingeditor.viewmodel.formatNodeCoordinate
 import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleLengthMm
 import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleMmPerPx
 import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleValue
+import com.example.arweld.feature.drawingeditor.viewmodel.resolveMemberEndpoints
 import com.example.arweld.feature.drawingeditor.viewmodel.worldToScreen
 import java.util.Locale
 
@@ -142,6 +148,7 @@ fun ManualEditorScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val errorCode = uiState.lastErrorCode
     val errorSequence = uiState.lastErrorSequence
+    val scaleStatus = deriveScaleStatus(uiState.drawing.scale)
     LaunchedEffect(errorCode, errorSequence) {
         if (errorCode != null) {
             snackbarHostState.showSnackbar(memberErrorMessage(errorCode))
@@ -159,7 +166,6 @@ fun ManualEditorScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
-                val scaleStatus = deriveScaleStatus(uiState.drawing.scale)
                 ScaleStatusIndicator(
                     scaleStatus = scaleStatus,
                     onSetScale = { onToolSelected(EditorTool.SCALE) },
@@ -187,6 +193,8 @@ fun ManualEditorScreen(
                 memberDraft = uiState.memberDraft,
                 selectedNode = selectedNode,
                 selectedMember = selectedMember,
+                drawing = uiState.drawing,
+                scaleStatus = scaleStatus,
                 nodeEditDraft = uiState.nodeEditDraft,
                 undoEnabled = uiState.undoStack.isNotEmpty(),
                 redoEnabled = uiState.redoStack.isNotEmpty(),
@@ -199,6 +207,7 @@ fun ManualEditorScreen(
                 onNodeEditXChanged = onNodeEditXChanged,
                 onNodeEditYChanged = onNodeEditYChanged,
                 onNodeEditApply = onNodeEditApply,
+                onSetScale = { onToolSelected(EditorTool.SCALE) },
             )
         },
         modifier = modifier,
@@ -547,6 +556,8 @@ private fun BottomSheetContent(
     memberDraft: MemberDraft,
     selectedNode: Node2D?,
     selectedMember: Member2D?,
+    drawing: Drawing2D,
+    scaleStatus: ScaleStatusDisplay,
     nodeEditDraft: NodeEditDraft,
     undoEnabled: Boolean,
     redoEnabled: Boolean,
@@ -559,6 +570,7 @@ private fun BottomSheetContent(
     onNodeEditXChanged: (String) -> Unit,
     onNodeEditYChanged: (String) -> Unit,
     onNodeEditApply: (String) -> Unit,
+    onSetScale: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -695,6 +707,91 @@ private fun BottomSheetContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                val profileLabel = selectedMember.profileRef?.takeIf { it.isNotBlank() } ?: "—"
+                Text(
+                    text = "Profile: $profileLabel",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                when (val endpointResolution = resolveMemberEndpoints(drawing, selectedMember.id)) {
+                    is MemberEndpointResolution.Resolved -> {
+                        Text(
+                            text = "A ${endpointResolution.nodeA.id}: X ${formatNodeCoordinate(endpointResolution.nodeA.x)} • " +
+                                "Y ${formatNodeCoordinate(endpointResolution.nodeA.y)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "B ${endpointResolution.nodeB.id}: X ${formatNodeCoordinate(endpointResolution.nodeB.x)} • " +
+                                "Y ${formatNodeCoordinate(endpointResolution.nodeB.y)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        val lengthPx = computeLengthPx(endpointResolution.nodeA, endpointResolution.nodeB)
+                        Text(
+                            text = "Length: ${formatMemberLengthPx(lengthPx)} px",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (scaleStatus.status == ScaleStatus.Set && scaleStatus.mmPerPx != null) {
+                            val lengthMm = computeLengthMm(lengthPx, scaleStatus.mmPerPx)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Length: ${formatMemberLengthMm(lengthMm)} mm",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else if (scaleStatus.status == ScaleStatus.Missing) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Set scale to get mm length.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            TextButton(onClick = onSetScale) {
+                                Text(text = "Set scale")
+                            }
+                        } else if (scaleStatus.status == ScaleStatus.Invalid) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Scale invalid. Reset to enable mm length.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    is MemberEndpointResolution.MissingNodes -> {
+                        val missingText = endpointResolution.missingNodeIds.joinToString()
+                        Text(
+                            text = "Endpoints: unresolved (missing node IDs: $missingText)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Length: unresolved (missing endpoints)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    is MemberEndpointResolution.MissingMember -> {
+                        Text(
+                            text = "Endpoints: unresolved (member not found)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Length: unresolved (missing member)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = { onDeleteMember(selectedMember.id) },
