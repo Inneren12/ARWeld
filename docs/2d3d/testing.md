@@ -61,6 +61,20 @@ Node delete behavior is covered with reducer tests:
 ./gradlew :feature-drawing-editor:test --tests "*EditorReducerTest" --tests "*EditorReducerUndoRedoTest"
 ```
 
+## Node Edit Tests
+
+Node coordinate editing is covered with reducer + undo tests:
+
+- **Reducer:** draft input validation, apply updates node coordinates, and apply failures surface errors.
+- **Undo/Redo:** apply then undo restores the previous coordinates.
+
+### How to Run
+
+```bash
+# Node edit reducer + undo coverage
+./gradlew :feature-drawing-editor:test --tests "*NodeEditReducerTest" --tests "*EditorReducerUndoRedoTest"
+```
+
 ## Smoke Tests
 
 The smoke test suite (`Drawing2DEditorSmokeTest`) provides minimal coverage to catch basic wiring regressions in the 2D3D editor foundations without requiring full UI.
@@ -125,6 +139,7 @@ Note: Workspace path convention tests are in `core-domain/Project2D3DWorkspaceTe
 | `Project2D3DWorkspaceTest.kt` | `core-domain` | Workspace path and segment tests |
 | `ManualEditorViewModelTest.kt` | `feature-drawing-editor` | ViewModel state management tests |
 | `NodeDragReducerTest.kt` | `feature-drawing-editor` | Node drag reducer tests (deterministic move + history) |
+| `NodeEditReducerTest.kt` | `feature-drawing-editor` | Node edit reducer tests (draft + apply + error) |
 | `EditorDiagnosticsLoggerTest.kt` | `feature-drawing-editor` | Diagnostics event emission tests |
 
 ## Adding New Tests

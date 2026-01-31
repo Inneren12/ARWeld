@@ -58,6 +58,11 @@ layout for toolbar, canvas, and bottom sheet sections.
 - Placeholder panel for context details
 - Echoes current tool and the same `Drawing2D` summary
 - The Scale tool panel continues to show the measured distance + derived `mm/px` preview using the same deterministic formatting rules.
+- When a node is selected:
+  - Show node ID and current **world** coordinates (X/Y).
+  - Provide **X** and **Y** text inputs with explicit validation errors.
+  - Include an **Apply** button to commit the coordinate change as a single undo step.
+  - Keep the **Delete node** action visible below the edit controls.
 
 ## Data Wiring
 - `ManualEditorViewModel` loads the current `Drawing2D` via `Drawing2DRepository`.

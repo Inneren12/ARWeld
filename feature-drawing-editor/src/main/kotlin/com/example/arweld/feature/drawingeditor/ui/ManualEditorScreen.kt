@@ -53,6 +53,7 @@ import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
+import com.example.arweld.core.drawing2d.editor.v1.Node2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.core.drawing2d.editor.v1.missingNodeReferences
 import com.example.arweld.feature.drawingeditor.hittest.hitTestNode
@@ -63,12 +64,14 @@ import com.example.arweld.feature.drawingeditor.viewmodel.EditorSelection
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorState
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorTool
 import com.example.arweld.feature.drawingeditor.viewmodel.Point2
+import com.example.arweld.feature.drawingeditor.viewmodel.NodeEditDraft
 import com.example.arweld.feature.drawingeditor.viewmodel.ScaleDraft
 import com.example.arweld.feature.drawingeditor.viewmodel.ScaleStatus
 import com.example.arweld.feature.drawingeditor.viewmodel.ScaleStatusDisplay
 import com.example.arweld.feature.drawingeditor.viewmodel.UnderlayState
 import com.example.arweld.feature.drawingeditor.viewmodel.ViewTransform
 import com.example.arweld.feature.drawingeditor.viewmodel.deriveScaleStatus
+import com.example.arweld.feature.drawingeditor.viewmodel.formatNodeCoordinate
 import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleLengthMm
 import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleMmPerPx
 import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleValue
@@ -122,6 +125,9 @@ fun ManualEditorScreen(
     onNodeDragCancel: () -> Unit,
     onSelectEntity: (EditorSelection) -> Unit,
     onClearSelection: () -> Unit,
+    onNodeEditXChanged: (String) -> Unit,
+    onNodeEditYChanged: (String) -> Unit,
+    onNodeEditApply: (String) -> Unit,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -148,11 +154,16 @@ fun ManualEditorScreen(
             }
         },
         bottomBar = {
+            val selectedNodeId = (uiState.selection as? EditorSelection.Node)?.id
+            val selectedNode = selectedNodeId?.let { id ->
+                uiState.drawing.nodes.firstOrNull { it.id == id }
+            }
             BottomSheetContent(
                 selectedTool = uiState.tool,
                 summaryText = buildSummaryText(uiState.drawing),
                 scaleDraft = uiState.scaleDraft,
-                selectedNodeId = (uiState.selection as? EditorSelection.Node)?.id,
+                selectedNode = selectedNode,
+                nodeEditDraft = uiState.nodeEditDraft,
                 undoEnabled = uiState.undoStack.isNotEmpty(),
                 redoEnabled = uiState.redoStack.isNotEmpty(),
                 onScaleLengthChanged = onScaleLengthChanged,
@@ -160,6 +171,9 @@ fun ManualEditorScreen(
                 onUndo = onUndo,
                 onRedo = onRedo,
                 onDeleteNode = onNodeDelete,
+                onNodeEditXChanged = onNodeEditXChanged,
+                onNodeEditYChanged = onNodeEditYChanged,
+                onNodeEditApply = onNodeEditApply,
             )
         },
         modifier = modifier,
@@ -462,7 +476,8 @@ private fun BottomSheetContent(
     selectedTool: EditorTool,
     summaryText: String,
     scaleDraft: ScaleDraft,
-    selectedNodeId: String?,
+    selectedNode: Node2D?,
+    nodeEditDraft: NodeEditDraft,
     undoEnabled: Boolean,
     redoEnabled: Boolean,
     onScaleLengthChanged: (String) -> Unit,
@@ -470,6 +485,9 @@ private fun BottomSheetContent(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onDeleteNode: (String) -> Unit,
+    onNodeEditXChanged: (String) -> Unit,
+    onNodeEditYChanged: (String) -> Unit,
+    onNodeEditApply: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -493,16 +511,83 @@ private fun BottomSheetContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            if (selectedNodeId != null) {
+            if (selectedNode != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Selected node: $selectedNodeId",
+                    text = "Selected node: ${selectedNode.id}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Current (world): X ${formatNodeCoordinate(selectedNode.x)} • " +
+                        "Y ${formatNodeCoordinate(selectedNode.y)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Edit coordinates (world)",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = nodeEditDraft.xText,
+                    onValueChange = onNodeEditXChanged,
+                    label = { Text("X") },
+                    singleLine = true,
+                    isError = nodeEditDraft.xError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (nodeEditDraft.xError != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = nodeEditDraft.xError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = nodeEditDraft.yText,
+                    onValueChange = onNodeEditYChanged,
+                    label = { Text("Y") },
+                    singleLine = true,
+                    isError = nodeEditDraft.yError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (nodeEditDraft.yError != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = nodeEditDraft.yError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (nodeEditDraft.applyError != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = nodeEditDraft.applyError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Button(
-                    onClick = { onDeleteNode(selectedNodeId) },
+                    onClick = { onNodeEditApply(selectedNode.id) },
+                    enabled = nodeEditDraft.xText.isNotBlank() &&
+                        nodeEditDraft.yText.isNotBlank() &&
+                        nodeEditDraft.xError == null &&
+                        nodeEditDraft.yError == null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(text = "Apply coordinates")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { onDeleteNode(selectedNode.id) },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError,

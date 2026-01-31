@@ -86,4 +86,25 @@ class EditorReducerUndoRedoTest {
         assertEquals(listOf("N1"), redone.drawing.nodes.map { it.id })
         assertEquals(emptyList(), redone.drawing.members)
     }
+
+    @Test
+    fun `node edit apply can undo to previous coordinates`() {
+        val baseDrawing = Drawing2D(
+            nodes = listOf(Node2D(id = "N1", x = 1.0, y = 2.0)),
+            members = emptyList(),
+        )
+        val updatedDrawing = baseDrawing.copy(
+            nodes = listOf(Node2D(id = "N1", x = -3.5, y = 8.0)),
+        )
+        val initialState = reduceEditorState(
+            EditorState(drawing = baseDrawing, selection = EditorSelection.None),
+            EditorIntent.SelectEntity(EditorSelection.Node("N1"))
+        )
+
+        val applied = reduceEditorState(initialState, EditorIntent.NodeEditApplied(updatedDrawing, "N1"))
+        val undone = reduceEditorState(applied, EditorIntent.UndoRequested)
+
+        assertEquals(1.0, undone.drawing.nodes.first().x, 0.0)
+        assertEquals(2.0, undone.drawing.nodes.first().y, 0.0)
+    }
 }
