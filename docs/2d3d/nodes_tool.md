@@ -42,3 +42,11 @@ newWorld = startWorldPos + deltaWorld
   applies the mutation (via the ViewModel effect).
 - This keeps `drawing2d.json` consistent with the UI state and aligns with existing scale/undo
   persistence behavior.
+
+## Delete node (MVP)
+- When a node is selected, the bottom sheet shows a **Delete node** action.
+- Deleting a node **cascades**: all members connected to that node (`aNodeId` or `bNodeId`) are
+  removed in the same mutation to prevent dangling references.
+- Selection is cleared after deletion.
+- The delete action is undoable as a single step (one Drawing2D snapshot).
+- Persistence follows the same policy as other discrete mutations: save once per delete.

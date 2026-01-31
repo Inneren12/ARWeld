@@ -174,6 +174,17 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
             selection = EditorSelection.Node(drag.nodeId),
         )
     }
+    is EditorIntent.NodeDeleteRequested -> {
+        val updatedDrawing = deleteNodeAndMembers(state.drawing, intent.nodeId)
+        if (updatedDrawing == state.drawing) {
+            state
+        } else {
+            state.copy(
+                selection = EditorSelection.None,
+                nodeDragState = null,
+            ).pushHistory(updatedDrawing)
+        }
+    }
     EditorIntent.UndoRequested -> state.applyHistoryUndo()
     EditorIntent.RedoRequested -> state.applyHistoryRedo()
 }
@@ -257,6 +268,20 @@ private fun updateNodePosition(
     } else {
         drawing
     }
+}
+
+private fun deleteNodeAndMembers(
+    drawing: Drawing2D,
+    nodeId: String,
+): Drawing2D {
+    if (drawing.nodes.none { it.id == nodeId }) {
+        return drawing
+    }
+    val remainingNodes = drawing.nodes.filterNot { it.id == nodeId }
+    val remainingMembers = drawing.members.filterNot { member ->
+        member.aNodeId == nodeId || member.bNodeId == nodeId
+    }
+    return drawing.copy(nodes = remainingNodes, members = remainingMembers).canonicalize()
 }
 
 private fun recomputeScaleDraft(draft: ScaleDraft): ScaleDraft {

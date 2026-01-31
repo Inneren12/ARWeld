@@ -117,6 +117,7 @@ fun ManualEditorScreen(
     onScaleReset: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onNodeDelete: (String) -> Unit,
     onNodeTap: (Point2D, Float) -> Unit,
     onNodeDragStart: (String, Point2D) -> Unit,
     onNodeDragMove: (Point2D) -> Unit,
@@ -154,12 +155,14 @@ fun ManualEditorScreen(
                 selectedTool = uiState.tool,
                 summaryText = buildSummaryText(uiState.drawing),
                 scaleDraft = uiState.scaleDraft,
+                selectedNodeId = (uiState.selection as? EditorSelection.Node)?.id,
                 undoEnabled = uiState.undoStack.isNotEmpty(),
                 redoEnabled = uiState.redoStack.isNotEmpty(),
                 onScaleLengthChanged = onScaleLengthChanged,
                 onScaleApply = onScaleApply,
                 onUndo = onUndo,
                 onRedo = onRedo,
+                onDeleteNode = onNodeDelete,
             )
         },
         modifier = modifier,
@@ -458,12 +461,14 @@ private fun BottomSheetContent(
     selectedTool: EditorTool,
     summaryText: String,
     scaleDraft: ScaleDraft,
+    selectedNodeId: String?,
     undoEnabled: Boolean,
     redoEnabled: Boolean,
     onScaleLengthChanged: (String) -> Unit,
     onScaleApply: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onDeleteNode: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -486,6 +491,25 @@ private fun BottomSheetContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            if (selectedNodeId != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Selected node: $selectedNodeId",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { onDeleteNode(selectedNodeId) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                ) {
+                    Text(text = "Delete node")
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

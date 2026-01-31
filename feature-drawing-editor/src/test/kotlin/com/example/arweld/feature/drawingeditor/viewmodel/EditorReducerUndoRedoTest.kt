@@ -1,6 +1,8 @@
 package com.example.arweld.feature.drawingeditor.viewmodel
 
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
+import com.example.arweld.core.drawing2d.editor.v1.Member2D
+import com.example.arweld.core.drawing2d.editor.v1.Node2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.core.drawing2d.editor.v1.ScaleInfo
 import kotlin.test.assertEquals
@@ -60,5 +62,28 @@ class EditorReducerUndoRedoTest {
         assertEquals(secondScale, reapplied.drawing)
         assertEquals(0, reapplied.redoStack.size)
         assertEquals(2, reapplied.undoStack.size)
+    }
+
+    @Test
+    fun `node delete can undo and redo`() {
+        val baseDrawing = Drawing2D(
+            nodes = listOf(
+                Node2D(id = "N1", x = 0.0, y = 0.0),
+                Node2D(id = "N2", x = 5.0, y = 0.0),
+            ),
+            members = listOf(Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2")),
+        )
+        val initialState = EditorState(drawing = baseDrawing)
+
+        val deleted = reduceEditorState(initialState, EditorIntent.NodeDeleteRequested("N2"))
+        assertEquals(listOf("N1"), deleted.drawing.nodes.map { it.id })
+        assertEquals(emptyList(), deleted.drawing.members)
+
+        val undone = reduceEditorState(deleted, EditorIntent.UndoRequested)
+        assertEquals(baseDrawing, undone.drawing)
+
+        val redone = reduceEditorState(undone, EditorIntent.RedoRequested)
+        assertEquals(listOf("N1"), redone.drawing.nodes.map { it.id })
+        assertEquals(emptyList(), redone.drawing.members)
     }
 }

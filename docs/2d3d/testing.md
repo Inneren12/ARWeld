@@ -47,6 +47,20 @@ Node drag behavior is covered with reducer and ViewModel tests:
 ./gradlew :feature-drawing-editor:test --tests "*NodeDragReducerTest" --tests "*ManualEditorViewModelTest"
 ```
 
+## Node Delete Tests
+
+Node delete behavior is covered with reducer tests:
+
+- **Reducer:** deletes the node and cascades removal of connected members without leaving dangling references.
+- **Undo/Redo:** delete can be undone and redone as a single snapshot.
+
+### How to Run
+
+```bash
+# Node delete reducer + undo/redo coverage
+./gradlew :feature-drawing-editor:test --tests "*EditorReducerTest" --tests "*EditorReducerUndoRedoTest"
+```
+
 ## Smoke Tests
 
 The smoke test suite (`Drawing2DEditorSmokeTest`) provides minimal coverage to catch basic wiring regressions in the 2D3D editor foundations without requiring full UI.

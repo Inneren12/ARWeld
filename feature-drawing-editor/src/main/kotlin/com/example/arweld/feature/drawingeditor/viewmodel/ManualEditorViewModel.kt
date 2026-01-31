@@ -40,6 +40,7 @@ class ManualEditorViewModel @Inject constructor(
             is EditorIntent.NodeDragMove -> reduce(intent)
             is EditorIntent.NodeDragEnd -> handleNodeDragEnd(intent)
             EditorIntent.NodeDragCancel -> reduce(intent)
+            is EditorIntent.NodeDeleteRequested -> handleNodeDelete(intent)
             is EditorIntent.ToolChanged -> {
                 val previousTool = mutableUiState.value.tool
                 reduce(intent)
@@ -207,6 +208,13 @@ class ManualEditorViewModel @Inject constructor(
                 .onFailure { error ->
                     reduce(EditorIntent.Error(error.message ?: "Failed to save drawing."))
                 }
+        }
+    }
+
+    private fun handleNodeDelete(intent: EditorIntent.NodeDeleteRequested) {
+        viewModelScope.launch {
+            val updated = reduceAndReturn(intent) ?: return@launch
+            persistUpdatedDrawing(updated)
         }
     }
 

@@ -4,6 +4,7 @@ import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Member2D
 import com.example.arweld.core.drawing2d.editor.v1.Node2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
+import com.example.arweld.core.drawing2d.editor.v1.missingNodeReferences
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -91,5 +92,32 @@ class EditorReducerTest {
 
         assertEquals(1, result.drawing.nodes.size)
         assertEquals(EditorSelection.Node("N000005"), result.selection)
+    }
+
+    @Test
+    fun `node delete removes node and connected members`() {
+        val drawing = Drawing2D(
+            nodes = listOf(
+                Node2D(id = "N1", x = 0.0, y = 0.0),
+                Node2D(id = "N2", x = 10.0, y = 0.0),
+                Node2D(id = "N3", x = 20.0, y = 0.0),
+            ),
+            members = listOf(
+                Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2"),
+                Member2D(id = "M2", aNodeId = "N2", bNodeId = "N3"),
+                Member2D(id = "M3", aNodeId = "N1", bNodeId = "N3"),
+            ),
+        )
+        val initial = EditorState(
+            drawing = drawing,
+            selection = EditorSelection.Node("N2"),
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.NodeDeleteRequested("N2"))
+
+        assertEquals(listOf("N1", "N3"), result.drawing.nodes.map { it.id })
+        assertEquals(listOf("M3"), result.drawing.members.map { it.id })
+        assertEquals(EditorSelection.None, result.selection)
+        assertEquals(emptyList<String>(), result.drawing.missingNodeReferences())
     }
 }

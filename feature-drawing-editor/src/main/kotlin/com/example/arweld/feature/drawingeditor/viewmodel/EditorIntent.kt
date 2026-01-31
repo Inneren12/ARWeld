@@ -56,6 +56,8 @@ sealed interface EditorIntent {
 
     data object NodeDragCancel : EditorIntent
 
+    data class NodeDeleteRequested(val nodeId: String) : EditorIntent
+
     data object UndoRequested : EditorIntent
 
     data object RedoRequested : EditorIntent
