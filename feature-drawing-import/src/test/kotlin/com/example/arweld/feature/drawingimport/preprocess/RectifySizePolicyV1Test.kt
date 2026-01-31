@@ -16,7 +16,7 @@ class RectifySizePolicyV1Test {
             bottomRight = CornerPointV1(200.0, 100.0),
             bottomLeft = CornerPointV1(0.0, 100.0),
         )
-        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false)
+        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false, maxPixels = 10_000_000)
 
         val result = RectifySizePolicyV1.compute(corners, params)
 
@@ -34,7 +34,7 @@ class RectifySizePolicyV1Test {
             bottomRight = CornerPointV1(110.0, 60.0),
             bottomLeft = CornerPointV1(-10.0, 50.0),
         )
-        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false)
+        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false, maxPixels = 10_000_000)
 
         val result = RectifySizePolicyV1.compute(corners, params)
 
@@ -58,7 +58,7 @@ class RectifySizePolicyV1Test {
             bottomRight = CornerPointV1(4000.0, 2000.0),
             bottomLeft = CornerPointV1(0.0, 2000.0),
         )
-        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false)
+        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false, maxPixels = 10_000_000)
 
         val result = RectifySizePolicyV1.compute(corners, params)
 
@@ -76,7 +76,7 @@ class RectifySizePolicyV1Test {
             bottomRight = CornerPointV1(100.0, 50.0),
             bottomLeft = CornerPointV1(0.0, 50.0),
         )
-        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 200, enforceEven = false)
+        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 200, enforceEven = false, maxPixels = 10_000_000)
 
         val result = RectifySizePolicyV1.compute(corners, params)
 
@@ -94,7 +94,7 @@ class RectifySizePolicyV1Test {
             bottomRight = CornerPointV1(101.0, 51.0),
             bottomLeft = CornerPointV1(0.0, 51.0),
         )
-        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = true)
+        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = true, maxPixels = 10_000_000)
 
         val result = RectifySizePolicyV1.compute(corners, params)
 
@@ -113,7 +113,7 @@ class RectifySizePolicyV1Test {
             bottomRight = point,
             bottomLeft = point,
         )
-        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false)
+        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false, maxPixels = 10_000_000)
 
         val result = RectifySizePolicyV1.compute(corners, params)
 
@@ -130,12 +130,29 @@ class RectifySizePolicyV1Test {
             bottomRight = CornerPointV1(500.0, 50.0),
             bottomLeft = CornerPointV1(0.0, 50.0),
         )
-        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false)
+        val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false, maxPixels = 10_000_000)
 
         val result = RectifySizePolicyV1.compute(corners, params)
 
         assertTrue(result is PageDetectOutcomeV1.Failure)
         val failure = (result as PageDetectOutcomeV1.Failure).failure
         assertEquals(PageDetectFailureCodeV1.UNKNOWN, failure.code)
+    }
+
+    @Test
+    fun `compute fails when rectified pixel count exceeds maxPixels`() {
+        val corners = OrderedCornersV1(
+            topLeft = CornerPointV1(0.0, 0.0),
+            topRight = CornerPointV1(5000.0, 0.0),
+            bottomRight = CornerPointV1(5000.0, 4000.0),
+            bottomLeft = CornerPointV1(0.0, 4000.0),
+        )
+        val params = RectifySizeParamsV1(maxSide = 5000, minSide = 1, enforceEven = false, maxPixels = 8_000_000)
+
+        val result = RectifySizePolicyV1.compute(corners, params)
+
+        assertTrue(result is PageDetectOutcomeV1.Failure)
+        val failure = (result as PageDetectOutcomeV1.Failure).failure
+        assertEquals(PageDetectFailureCodeV1.RECTIFIED_TOO_LARGE, failure.code)
     }
 }

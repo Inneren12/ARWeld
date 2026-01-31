@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.Paint
-import androidx.exifinterface.media.ExifInterface
+import android.os.SystemClock
 import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactEntryV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
@@ -35,10 +35,12 @@ import com.example.arweld.feature.drawingimport.preprocess.PageDetectStageV1
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadCandidate
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelector
 import com.example.arweld.feature.drawingimport.preprocess.RectifiedSizeV1
+import com.example.arweld.feature.drawingimport.preprocess.DrawingImportGuardrailsV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizeParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizePolicyV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineResultV1
+import com.example.arweld.feature.drawingimport.preprocess.SafeBitmapDecodeV1
 import com.example.arweld.feature.drawingimport.quality.QualityMetricsV1
 import com.example.arweld.feature.drawingimport.quality.RectifiedQualityMetricsV1
 import com.example.arweld.feature.drawingimport.ui.DrawingImportSession
@@ -55,7 +57,10 @@ class DrawingImportPipelineV1(
     private val stageListener: (PageDetectStageV1) -> Unit = {},
     private val cancellationContext: CoroutineContext? = null,
 ) {
+    private var pipelineStartMs: Long = 0L
+
     fun run(session: DrawingImportSession): PageDetectOutcomeV1<PipelineResultV1> {
+        pipelineStartMs = SystemClock.elapsedRealtime()
         logEvent(DrawingImportEvent.PIPELINE_START, session.projectId)
         val rawFile = session.rawImageFileOrNull()
             ?: return failure(PageDetectStageV1.LOAD_UPRIGHT, PageDetectFailureCodeV1.DECODE_FAILED, "Missing raw image.")
@@ -67,6 +72,20 @@ class DrawingImportPipelineV1(
             is PageDetectOutcomeV1.Success -> uprightOutcome.value
             is PageDetectOutcomeV1.Failure -> return uprightOutcome
         }
+        logEvent(
+            DrawingImportEvent.DECODE_INFO,
+            session.projectId,
+            mapOf(
+                "originalWidth" to upright.originalWidth.toString(),
+                "originalHeight" to upright.originalHeight.toString(),
+                "decodedWidth" to upright.decodedWidth.toString(),
+                "decodedHeight" to upright.decodedHeight.toString(),
+                "sampleSize" to upright.sampleSize.toString(),
+                "rotationAppliedDeg" to upright.rotationAppliedDeg.toString(),
+                "maxDecodePixels" to upright.maxDecodePixels.toString(),
+                "maxDecodeSide" to upright.maxDecodeSide.toString(),
+            ),
+        )
 
         val frameOutcome = runStage(PageDetectStageV1.PREPROCESS, session.projectId) {
             stages.preprocess(upright, params)
@@ -148,6 +167,16 @@ class DrawingImportPipelineV1(
                 return sizeOutcome
             }
         }
+        logEvent(
+            DrawingImportEvent.RECTIFIED_SIZE_INFO,
+            session.projectId,
+            mapOf(
+                "rectifiedWidth" to rectifiedSize.width.toString(),
+                "rectifiedHeight" to rectifiedSize.height.toString(),
+                "maxRectifiedPixels" to params.maxRectifiedPixels.toString(),
+                "maxRectifiedSide" to params.maxRectifiedSide.toString(),
+            ),
+        )
 
         val rectifiedOutcome = runStage(PageDetectStageV1.RECTIFY, session.projectId) {
             stages.rectifyBitmap(upright.bitmap, refinedFull ?: orderedFull, rectifiedSize)
@@ -203,6 +232,7 @@ class DrawingImportPipelineV1(
         block: () -> PageDetectOutcomeV1<T>,
     ): PageDetectOutcomeV1<T> {
         cancellationContext?.ensureActive()
+        checkTimeBudget(stage, projectId)?.let { return it }
         stageListener(stage)
         logEvent(DrawingImportEvent.STAGE_START, projectId, mapOf("stage" to stage.name))
         val outcome = try {
@@ -259,6 +289,37 @@ class DrawingImportPipelineV1(
             projectId = projectId,
             extras = extras,
         )
+    }
+
+    private fun <T> checkTimeBudget(
+        stage: PageDetectStageV1,
+        projectId: String?,
+    ): PageDetectOutcomeV1<T>? {
+        val maxMs = params.pipelineMaxMs ?: return null
+        val elapsedMs = SystemClock.elapsedRealtime() - pipelineStartMs
+        if (elapsedMs <= maxMs) return null
+        logEvent(
+            DrawingImportEvent.TIME_BUDGET_EXCEEDED,
+            projectId,
+            mapOf(
+                "stage" to stage.name,
+                "elapsedMs" to elapsedMs.toString(),
+                "maxMs" to maxMs.toString(),
+                "enforced" to params.enforceTimeBudget.toString(),
+            ),
+        )
+        return if (params.enforceTimeBudget) {
+            @Suppress("UNCHECKED_CAST")
+            PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = stage,
+                    code = PageDetectFailureCodeV1.TIME_BUDGET_EXCEEDED,
+                    debugMessage = "Pipeline exceeded ${maxMs}ms (elapsed ${elapsedMs}ms).",
+                ),
+            ) as PageDetectOutcomeV1<T>
+        } else {
+            null
+        }
     }
 
     private fun computeRectifiedMetrics(
@@ -344,6 +405,12 @@ data class DrawingImportPipelineParamsV1(
     val maxSide: Int = 2048,
     val minSide: Int = 256,
     val enforceEven: Boolean = true,
+    val maxDecodePixels: Int = DrawingImportGuardrailsV1.MAX_DECODE_PIXELS,
+    val maxDecodeSide: Int = DrawingImportGuardrailsV1.MAX_DECODE_SIDE,
+    val maxRectifiedPixels: Int = DrawingImportGuardrailsV1.MAX_RECTIFIED_PIXELS,
+    val maxRectifiedSide: Int = DrawingImportGuardrailsV1.MAX_RECTIFIED_SIDE,
+    val pipelineMaxMs: Long? = DrawingImportGuardrailsV1.PIPELINE_MAX_MS,
+    val enforceTimeBudget: Boolean = false,
     val edgeLowThreshold: Int = 60,
     val edgeHighThreshold: Int = 180,
     val refineParams: RefineParamsV1 = RefineParamsV1(
@@ -356,6 +423,13 @@ data class DrawingImportPipelineParamsV1(
 data class UprightBitmapV1(
     val bitmap: Bitmap,
     val rotationAppliedDeg: Int,
+    val originalWidth: Int,
+    val originalHeight: Int,
+    val decodedWidth: Int,
+    val decodedHeight: Int,
+    val sampleSize: Int,
+    val maxDecodePixels: Int,
+    val maxDecodeSide: Int,
 ) {
     fun recycle() {
         if (!bitmap.isRecycled) {
@@ -401,41 +475,26 @@ interface DrawingImportPipelineStagesV1 {
         private val artifactWriter: RectifiedArtifactWriterV1 = RectifiedArtifactWriterV1(),
     ) : DrawingImportPipelineStagesV1 {
         override fun loadUpright(rawFile: File): PageDetectOutcomeV1<UprightBitmapV1> {
-            val options = android.graphics.BitmapFactory.Options().apply {
-                inPreferredConfig = Bitmap.Config.ARGB_8888
-            }
-            val decoded = try {
-                android.graphics.BitmapFactory.decodeFile(rawFile.absolutePath, options)
-            } catch (error: Throwable) {
-                return failure(PageDetectStageV1.LOAD_UPRIGHT, PageDetectFailureCodeV1.DECODE_FAILED, error.message)
-            } ?: return failure(
-                PageDetectStageV1.LOAD_UPRIGHT,
-                PageDetectFailureCodeV1.DECODE_FAILED,
-                "Unable to decode image: $rawFile",
+            val decodeOutcome = SafeBitmapDecodeV1.decodeUprightWithInfo(
+                rawFile = rawFile,
+                maxPixels = params.maxDecodePixels,
+                maxSide = params.maxDecodeSide,
             )
-            val exifOrientation = try {
-                ExifInterface(rawFile).getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_UNDEFINED,
-                )
-            } catch (error: Throwable) {
-                decoded.recycle()
-                return failure(PageDetectStageV1.LOAD_UPRIGHT, PageDetectFailureCodeV1.EXIF_FAILED, error.message)
-            }
-            val transform = exifTransform(exifOrientation)
-            val rotated = try {
-                applyTransform(decoded, transform)
-            } catch (error: Throwable) {
-                decoded.recycle()
-                return failure(PageDetectStageV1.LOAD_UPRIGHT, PageDetectFailureCodeV1.UNKNOWN, error.message)
-            }
-            if (rotated !== decoded) {
-                decoded.recycle()
+            val decodeResult = when (decodeOutcome) {
+                is PageDetectOutcomeV1.Success -> decodeOutcome.value
+                is PageDetectOutcomeV1.Failure -> return decodeOutcome
             }
             return PageDetectOutcomeV1.Success(
                 UprightBitmapV1(
-                    bitmap = rotated,
-                    rotationAppliedDeg = transform.rotationDeg,
+                    bitmap = decodeResult.bitmap,
+                    rotationAppliedDeg = decodeResult.info.rotationAppliedDeg,
+                    originalWidth = decodeResult.info.originalWidth,
+                    originalHeight = decodeResult.info.originalHeight,
+                    decodedWidth = decodeResult.info.decodedWidth,
+                    decodedHeight = decodeResult.info.decodedHeight,
+                    sampleSize = decodeResult.info.sampleSize,
+                    maxDecodePixels = decodeResult.info.maxPixels,
+                    maxDecodeSide = decodeResult.info.maxSide,
                 ),
             )
         }
@@ -465,8 +524,8 @@ interface DrawingImportPipelineStagesV1 {
                 width = scaled.width,
                 height = scaled.height,
                 gray = gray,
-                originalWidth = upright.bitmap.width,
-                originalHeight = upright.bitmap.height,
+                originalWidth = upright.originalWidth,
+                originalHeight = upright.originalHeight,
                 downscaleFactor = target.downscaleFactor,
                 rotationAppliedDeg = upright.rotationAppliedDeg,
             )
@@ -514,9 +573,10 @@ interface DrawingImportPipelineStagesV1 {
             return RectifySizePolicyV1.compute(
                 corners,
                 RectifySizeParamsV1(
-                    maxSide = params.maxSide,
+                    maxSide = params.maxRectifiedSide,
                     minSide = params.minSide,
                     enforceEven = params.enforceEven,
+                    maxPixels = params.maxRectifiedPixels,
                 ),
             )
         }
@@ -628,43 +688,10 @@ interface DrawingImportPipelineStagesV1 {
             return gray
         }
 
-        private fun applyTransform(source: Bitmap, transform: ExifTransform): Bitmap {
-            if (transform.rotationDeg == 0 && !transform.flipHorizontal) {
-                return source
-            }
-            val matrix = Matrix().apply {
-                if (transform.rotationDeg != 0) {
-                    postRotate(transform.rotationDeg.toFloat())
-                }
-                if (transform.flipHorizontal) {
-                    postScale(-1f, 1f)
-                }
-            }
-            return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
-        }
-
-        private fun exifTransform(orientation: Int): ExifTransform {
-            return when (orientation) {
-                ExifInterface.ORIENTATION_ROTATE_90 -> ExifTransform(rotationDeg = 90, flipHorizontal = false)
-                ExifInterface.ORIENTATION_ROTATE_180 -> ExifTransform(rotationDeg = 180, flipHorizontal = false)
-                ExifInterface.ORIENTATION_ROTATE_270 -> ExifTransform(rotationDeg = 270, flipHorizontal = false)
-                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> ExifTransform(rotationDeg = 0, flipHorizontal = true)
-                ExifInterface.ORIENTATION_FLIP_VERTICAL -> ExifTransform(rotationDeg = 180, flipHorizontal = true)
-                ExifInterface.ORIENTATION_TRANSPOSE -> ExifTransform(rotationDeg = 90, flipHorizontal = true)
-                ExifInterface.ORIENTATION_TRANSVERSE -> ExifTransform(rotationDeg = 270, flipHorizontal = true)
-                else -> ExifTransform(rotationDeg = 0, flipHorizontal = false)
-            }
-        }
-
         private data class TargetSize(
             val width: Int,
             val height: Int,
             val downscaleFactor: Double,
-        )
-
-        private data class ExifTransform(
-            val rotationDeg: Int,
-            val flipHorizontal: Boolean,
         )
     }
 }
