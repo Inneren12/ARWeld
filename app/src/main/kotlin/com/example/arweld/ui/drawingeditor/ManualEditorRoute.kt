@@ -22,6 +22,9 @@ fun ManualEditorRoute(
         onScaleReset = { viewModel.onIntent(EditorIntent.ScaleResetRequested) },
         onUndo = { viewModel.onIntent(EditorIntent.UndoRequested) },
         onRedo = { viewModel.onIntent(EditorIntent.RedoRequested) },
+        onNodeTap = { point, tolerancePx ->
+            viewModel.onIntent(EditorIntent.NodeTap(point, tolerancePx))
+        },
         onSelectEntity = { selection -> viewModel.onIntent(EditorIntent.SelectEntity(selection)) },
         onClearSelection = { viewModel.onIntent(EditorIntent.ClearSelection) },
         onTransformGesture = { panX, panY, zoomFactor, focalX, focalY ->

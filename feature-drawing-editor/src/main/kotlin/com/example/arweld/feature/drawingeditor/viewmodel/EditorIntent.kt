@@ -46,6 +46,8 @@ sealed interface EditorIntent {
 
     data class DrawingMutationApplied(val drawing: Drawing2D) : EditorIntent
 
+    data class NodeTap(val worldPoint: Point2D, val tolerancePx: Float) : EditorIntent
+
     data object UndoRequested : EditorIntent
 
     data object RedoRequested : EditorIntent

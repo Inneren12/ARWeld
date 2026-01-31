@@ -8,6 +8,7 @@ import com.example.arweld.core.domain.drawing2d.Drawing2DRepository
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Member2D
 import com.example.arweld.core.drawing2d.editor.v1.Node2D
+import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.feature.drawingeditor.diagnostics.EditorDiagnosticsLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -80,6 +81,8 @@ class ManualEditorViewModelTest {
     fun `editor opened event is logged on init`() = runTest {
         val repository = object : Drawing2DRepository {
             override suspend fun getCurrentDrawing(): Drawing2D = Drawing2D(nodes = emptyList(), members = emptyList())
+
+            override suspend fun saveCurrentDrawing(drawing: Drawing2D) = Unit
         }
         val logger = EditorDiagnosticsLogger(fakeRecorder)
         ManualEditorViewModel(repository, logger)
@@ -96,6 +99,8 @@ class ManualEditorViewModelTest {
     fun `tool changed event is logged with tool names`() = runTest {
         val repository = object : Drawing2DRepository {
             override suspend fun getCurrentDrawing(): Drawing2D = Drawing2D(nodes = emptyList(), members = emptyList())
+
+            override suspend fun saveCurrentDrawing(drawing: Drawing2D) = Unit
         }
         val logger = EditorDiagnosticsLogger(fakeRecorder)
         val viewModel = ManualEditorViewModel(repository, logger)
@@ -109,5 +114,32 @@ class ManualEditorViewModelTest {
         assertEquals("editor_tool_changed", toolChangedEvent?.first)
         assertEquals("NODE", toolChangedEvent?.second?.get("tool"))
         assertEquals("SELECT", toolChangedEvent?.second?.get("previousTool"))
+    }
+
+    @Test
+    fun `node tap persists drawing when node is added`() = runTest {
+        var saveCount = 0
+        var savedDrawing: Drawing2D? = null
+        val repository = object : Drawing2DRepository {
+            override suspend fun getCurrentDrawing(): Drawing2D = Drawing2D(nodes = emptyList(), members = emptyList())
+
+            override suspend fun saveCurrentDrawing(drawing: Drawing2D) {
+                saveCount += 1
+                savedDrawing = drawing
+            }
+        }
+        val logger = EditorDiagnosticsLogger(fakeRecorder)
+        val viewModel = ManualEditorViewModel(repository, logger)
+
+        advanceUntilIdle()
+
+        viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.NODE))
+        viewModel.onIntent(EditorIntent.NodeTap(Point2D(x = 4.0, y = 5.0), tolerancePx = 16f))
+
+        advanceUntilIdle()
+
+        assertEquals(1, saveCount)
+        assertEquals(1, savedDrawing?.nodes?.size)
+        assertEquals("N000001", savedDrawing?.nodes?.first()?.id)
     }
 }

@@ -35,6 +35,7 @@ class ManualEditorViewModel @Inject constructor(
             EditorIntent.ScaleResetRequested -> resetScale()
             EditorIntent.UndoRequested -> applyUndo()
             EditorIntent.RedoRequested -> applyRedo()
+            is EditorIntent.NodeTap -> handleNodeTap(intent)
             is EditorIntent.ToolChanged -> {
                 val previousTool = mutableUiState.value.tool
                 reduce(intent)
@@ -150,6 +151,31 @@ class ManualEditorViewModel @Inject constructor(
             if (updated != null) {
                 persistUpdatedDrawing(updated)
             }
+        }
+    }
+
+    private fun handleNodeTap(intent: EditorIntent.NodeTap) {
+        viewModelScope.launch {
+            val previous = mutableUiState.value
+            val updated = reduceAndReturn(intent) ?: return@launch
+            val nodeAdded = updated.drawing.nodes.size > previous.drawing.nodes.size
+            if (!nodeAdded) {
+                return@launch
+            }
+            runCatching { drawing2DRepository.saveCurrentDrawing(updated.drawing) }
+                .onSuccess {
+                    val nodeId = (updated.selection as? EditorSelection.Node)?.id
+                    if (nodeId != null) {
+                        editorDiagnosticsLogger.logNodeAdded(
+                            nodeId = nodeId,
+                            x = intent.worldPoint.x,
+                            y = intent.worldPoint.y,
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    reduce(EditorIntent.Error(error.message ?: "Failed to save drawing."))
+                }
         }
     }
 
