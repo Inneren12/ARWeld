@@ -524,13 +524,13 @@ Barcode/QR code scanning with CameraX preview surface exposed to Compose. The sc
 **Status:** 🚧 Scaffold (S2-PR01)
 
 **Description:**
-Drawing import feature stub for future 2D capture/import workflows. Provides a minimal Compose screen that will eventually host
-capture and rectify flows for drawings.
+Drawing import feature for 2D capture/import workflows, including the page-detect pipeline v1 and artifact staging/finalization.
 
 **Key Responsibilities:**
 - Entry screen for drawing import
 - Capture raw drawings and persist artifacts for later steps
 - Emit structured diagnostics events for drawing import transitions
+- Centralize tunable pipeline parameters (page detect + rectify + quality gate)
 
 **Dependencies:**
 - `core:domain` (diagnostics logging)
@@ -538,9 +538,15 @@ capture and rectify flows for drawings.
 
 **Key Files:**
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/ui/DrawingImportScreen.kt`
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/pipeline/DrawingImportPipelineV1.kt`
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectParamsV1.kt`
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/RectifySizePolicyV1.kt`
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/artifacts/ProjectFolderManagerV1.kt`
 
 **Notes:**
 - Emits stable diagnostics events for permission, camera, capture, and reset flows
+- Artifacts are staged under `<filesDir>/artifacts/.staging/<projectId>` and finalized to `<filesDir>/artifacts/projects/<projectId>`
+- Pipeline spec: `docs/drawing/IMPORT_PIPELINE_V1.md`
 
 ---
 

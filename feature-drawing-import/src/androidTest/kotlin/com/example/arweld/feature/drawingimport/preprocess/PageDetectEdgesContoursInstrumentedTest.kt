@@ -25,13 +25,13 @@ class PageDetectEdgesContoursInstrumentedTest {
         val preprocessOutcome = preprocessor.preprocess(
             PageDetectInput(
                 rawImageFile = tempFile,
-                maxSide = 256,
+                params = PageDetectParamsV1(maxSide = 256),
             ),
         )
         assertTrue(preprocessOutcome is PageDetectOutcomeV1.Success)
         val frame = (preprocessOutcome as PageDetectOutcomeV1.Success).value
 
-        val edgeDetector = PageDetectEdgeDetector()
+        val edgeDetector = PageDetectEdgeDetector(PageDetectParamsV1(maxSide = 256))
         val edgeOutcome = edgeDetector.detect(frame)
         assertTrue(edgeOutcome is PageDetectOutcomeV1.Success)
         val edgeMap = (edgeOutcome as PageDetectOutcomeV1.Success).value

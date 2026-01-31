@@ -10,11 +10,14 @@ data class RectifiedSizeV1(
     val height: Int,
 )
 
-data class RectifySizeParamsV1(
-    val maxSide: Int,
-    val minSide: Int,
-    val enforceEven: Boolean,
-    val maxPixels: Int,
+/**
+ * Tunable parameters for rectified size policy (v1).
+ */
+data class RectifyParamsV1(
+    val maxSide: Int = DrawingImportGuardrailsV1.MAX_RECTIFIED_SIDE,
+    val minSide: Int = 256,
+    val enforceEven: Boolean = true,
+    val maxPixels: Int = DrawingImportGuardrailsV1.MAX_RECTIFIED_PIXELS,
 )
 
 object RectifySizePolicyV1 {
@@ -23,7 +26,7 @@ object RectifySizePolicyV1 {
 
     fun compute(
         corners: OrderedCornersV1,
-        params: RectifySizeParamsV1,
+        params: RectifyParamsV1,
     ): PageDetectOutcomeV1<RectifiedSizeV1> {
         // maxSide is a hard cap: sizes larger than this are deterministically downscaled.
         if (params.maxSide <= 0 || params.minSide <= 0 || params.maxSide < params.minSide || params.maxPixels <= 0) {
@@ -125,7 +128,7 @@ object RectifySizePolicyV1 {
         return PageDetectOutcomeV1.Success(RectifiedSizeV1(width = roundedWidth, height = roundedHeight))
     }
 
-    private fun enforceEvenWithinBounds(value: Int, params: RectifySizeParamsV1): Int? {
+    private fun enforceEvenWithinBounds(value: Int, params: RectifyParamsV1): Int? {
         if (value % 2 == 0) return value
         val up = value + 1
         val down = value - 1

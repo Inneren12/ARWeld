@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -103,10 +104,7 @@ import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelector
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectOutcomeV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailureCodeV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifiedSizeV1
-import com.example.arweld.feature.drawingimport.preprocess.DrawingImportGuardrailsV1
-import com.example.arweld.feature.drawingimport.preprocess.RectifySizeParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizePolicyV1
-import com.example.arweld.feature.drawingimport.preprocess.RefineParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineResultV1
 import java.io.File
 import java.util.Locale
@@ -167,17 +165,15 @@ fun DrawingImportScreen(
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
+    val pipelineParams = remember { DrawingImportPipelineParamsV1() }
+    val pageDetectParams = remember { pipelineParams.pageDetectParams }
+    val rectifyParams = remember { pipelineParams.rectifyParams }
     val pageDetectPreprocessor = remember { PageDetectPreprocessor() }
-    val edgeDetector = remember { PageDetectEdgeDetector() }
+    val edgeDetector = remember(pageDetectParams) { PageDetectEdgeDetector(pageDetectParams) }
     val contourExtractor = remember { PageDetectContourExtractor() }
     val quadSelector = remember { PageQuadSelector() }
-    val refineParams = remember {
-        RefineParamsV1(
-            windowRadiusPx = 6,
-            maxIters = 6,
-            epsilon = 0.25,
-        )
-    }
+    var showDebugPanel by rememberSaveable { mutableStateOf(false) }
+    val isDebugPanelVisible = BuildConfig.DEBUG && showDebugPanel
     var uiState by remember {
         mutableStateOf(
             permissionStateOverride ?: if (
@@ -744,7 +740,7 @@ fun DrawingImportScreen(
                                                     processState = DrawingImportProcessState.Running(PageDetectStageV1.LOAD_UPRIGHT)
                                                     pipelineJob = coroutineScope.launch(Dispatchers.Default) {
                                                         val pipeline = DrawingImportPipelineV1(
-                                                            params = DrawingImportPipelineParamsV1(),
+                                                            params = pipelineParams,
                                                             eventLogger = diagnosticsLogger,
                                                             stageListener = { stage ->
                                                                 coroutineScope.launch {
@@ -796,7 +792,7 @@ fun DrawingImportScreen(
                                             }
                                         }
                                     }
-                                    if (BuildConfig.DEBUG) {
+                                    if (isDebugPanelVisible) {
                                         Spacer(modifier = Modifier.height(16.dp))
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -932,7 +928,7 @@ fun DrawingImportScreen(
                                                         pipelineResult = null
                                                         coroutineScope.launch(Dispatchers.Default) {
                                                             val outcome = pageDetectPreprocessor.preprocess(
-                                                                PageDetectInput(rawImageFile = rawFile),
+                                                                PageDetectInput(rawImageFile = rawFile, params = pageDetectParams),
                                                             )
                                                             withContext(Dispatchers.Main) {
                                                                 when (outcome) {
@@ -990,7 +986,7 @@ fun DrawingImportScreen(
                                                             val frameOutcome = pageDetectFrame?.let {
                                                                 PageDetectOutcomeV1.Success(it)
                                                             } ?: pageDetectPreprocessor.preprocess(
-                                                                PageDetectInput(rawImageFile = rawFile),
+                                                                PageDetectInput(rawImageFile = rawFile, params = pageDetectParams),
                                                             )
                                                             val frame = when (frameOutcome) {
                                                                 is PageDetectOutcomeV1.Success -> frameOutcome.value
@@ -1096,7 +1092,7 @@ fun DrawingImportScreen(
                                                             val frameOutcome = pageDetectFrame?.let {
                                                                 PageDetectOutcomeV1.Success(it)
                                                             } ?: pageDetectPreprocessor.preprocess(
-                                                                PageDetectInput(rawImageFile = rawFile),
+                                                                PageDetectInput(rawImageFile = rawFile, params = pageDetectParams),
                                                             )
                                                             val frame = when (frameOutcome) {
                                                                 is PageDetectOutcomeV1.Success -> frameOutcome.value
@@ -1168,12 +1164,7 @@ fun DrawingImportScreen(
                                                                         is PageDetectOutcomeV1.Success -> {
                                                                             RectifySizePolicyV1.compute(
                                                                                 orderedOutcome.value,
-                                                                                RectifySizeParamsV1(
-                                                                                    maxSide = DrawingImportGuardrailsV1.MAX_RECTIFIED_SIDE,
-                                                                                    minSide = 256,
-                                                                                    enforceEven = true,
-                                                                                    maxPixels = DrawingImportGuardrailsV1.MAX_RECTIFIED_PIXELS,
-                                                                                ),
+                                                                                rectifyParams,
                                                                             )
                                                                         }
                                                                         is PageDetectOutcomeV1.Failure -> {
@@ -1316,7 +1307,11 @@ fun DrawingImportScreen(
                                                         }
                                                         refineFailure = null
                                                         coroutineScope.launch(Dispatchers.Default) {
-                                                            val refineResult = CornerRefinerV1.refine(frame, ordered, refineParams)
+                                                            val refineResult = CornerRefinerV1.refine(
+                                                                frame,
+                                                                ordered,
+                                                                pageDetectParams.refineParams,
+                                                            )
                                                             withContext(Dispatchers.Main) {
                                                                 refineOutcome = refineResult
                                                                 when (refineResult) {
@@ -1499,6 +1494,23 @@ fun DrawingImportScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     if (BuildConfig.DEBUG) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = "Debug panel",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Switch(
+                                checked = showDebugPanel,
+                                onCheckedChange = { showDebugPanel = it },
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    if (isDebugPanelVisible) {
                         DebugDetailsCard(
                             lastEventName = lastEventName,
                             lastErrorCode = lastErrorCode,

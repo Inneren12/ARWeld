@@ -7,8 +7,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 class PageDetectEdgeDetector(
-    private val lowThreshold: Int = 60,
-    private val highThreshold: Int = 180,
+    private val params: PageDetectParamsV1 = PageDetectParamsV1(),
 ) {
     /**
      * Deterministic edge detector:
@@ -171,10 +170,10 @@ class PageDetectEdgeDetector(
         var stackSize = 0
         for (i in 0 until size) {
             val value = suppressed[i]
-            if (value >= highThreshold) {
+            if (value >= params.edgeHighThreshold) {
                 state[i] = 2
                 stack[stackSize++] = i
-            } else if (value >= lowThreshold) {
+            } else if (value >= params.edgeLowThreshold) {
                 state[i] = 1
             }
         }
