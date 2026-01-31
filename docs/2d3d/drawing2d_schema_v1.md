@@ -38,7 +38,7 @@ Drawing2D v1 (manual editor) is a minimal, stable JSON schema for authoring 2D n
 | --- | --- | --- | --- |
 | `pointA` | `Point2D` | ✅ | First calibration point in editor space. |
 | `pointB` | `Point2D` | ✅ | Second calibration point in editor space. |
-| `realLengthMm` | number | ✅ | Real-world distance between points in millimeters. |
+| `realLengthMm` | number | ✅ | Real-world distance between points in millimeters. `mmPerPx` is derived at runtime as `realLengthMm / distance(pointA, pointB)` to avoid drift. |
 
 ## Point2D
 | Field | Type | Required | Notes |

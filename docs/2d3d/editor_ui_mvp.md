@@ -16,6 +16,14 @@
 
 ---
 
+## Scale Input (S3-14)
+- When points **A** and **B** are set, the bottom sheet shows **“Enter real length (mm)”** and an **Apply** button.
+- The UI shows the measured distance in drawing units and the derived `mmPerPx` preview when input is valid.
+- Applying the scale persists immediately to `drawing2d.json` and is undoable.
+
+## Undo/Redo (S3-14)
+- Undo/Redo controls are available in the bottom sheet for scale edits.
+- Undo restores the previous `Drawing2D` snapshot; Redo reapplies it.
 # Manual Editor UI MVP (2D3D)
 
 ## Purpose

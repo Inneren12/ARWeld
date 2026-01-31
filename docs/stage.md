@@ -1788,6 +1788,11 @@ data class ArScreenshotMetadata(
 - Unit tests: `DrawingRenderHelpersTest` covers endpoint resolution and missing node handling.
 - Documentation: Updated `docs/2d3d/editor_ui_mvp.md` with render layer details.
 
+**S3-14 — Scale tool (enter length + apply + persist + undo/redo) ✅ COMPLETED:**
+- Bottom sheet shows a real-length (mm) input once A/B are selected.
+- Valid input computes `mmPerPx = realLengthMm / distance(A, B)` and previews it.
+- Apply persists `Drawing2D.scale` via `Drawing2DRepository.saveCurrentDrawing()` with explicit validation errors.
+- Undo/redo restores scale set/unset deterministically.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**

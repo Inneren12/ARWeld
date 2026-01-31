@@ -2,6 +2,7 @@ package com.example.arweld.feature.drawingeditor.viewmodel
 
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import java.io.File
+import com.example.arweld.core.drawing2d.editor.v1.Point2D
 
 enum class EditorTool {
     SELECT,
@@ -40,6 +41,15 @@ sealed interface UnderlayState {
     /** Underlay file is configured but doesn't exist or failed to load. */
     data class Missing(val path: String) : UnderlayState
 }
+data class ScaleDraft(
+    val pointA: Point2D? = null,
+    val pointB: Point2D? = null,
+    val inputText: String = "",
+    val inputError: String? = null,
+    val applyError: String? = null,
+    val pendingDistancePx: Double? = null,
+    val pendingMmPerPx: Double? = null,
+)
 
 data class EditorState(
     val tool: EditorTool = EditorTool.SELECT,
@@ -51,4 +61,7 @@ data class EditorState(
     val viewTransform: ViewTransform = ViewTransform(),
     /** Underlay image state (if workspace has an underlay configured). */
     val underlayState: UnderlayState = UnderlayState.None,
+    val scaleDraft: ScaleDraft = ScaleDraft(),
+    val undoStack: List<Drawing2D> = emptyList(),
+    val redoStack: List<Drawing2D> = emptyList(),
 )
