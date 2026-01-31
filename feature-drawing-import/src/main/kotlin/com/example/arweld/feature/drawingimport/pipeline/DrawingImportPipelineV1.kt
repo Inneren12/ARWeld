@@ -8,11 +8,12 @@ import android.os.SystemClock
 import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactEntryV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
-import com.example.arweld.core.drawing2d.artifacts.v1.CaptureCornersV1
 import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetaV1
-import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetricsV1
-import com.example.arweld.core.drawing2d.artifacts.v1.CornerQuadV1
-import com.example.arweld.core.drawing2d.artifacts.v1.RectifiedCaptureV1
+import com.example.arweld.core.drawing2d.artifacts.v1.ExposureMetricsV1 as ExposureBlockV1
+import com.example.arweld.core.drawing2d.artifacts.v1.ImageInfoV1
+import com.example.arweld.core.drawing2d.artifacts.v1.MetricsBlockV1
+import com.example.arweld.core.drawing2d.artifacts.v1.QualityGateBlockV1
+import com.example.arweld.core.drawing2d.artifacts.v1.SkewMetricsV1 as SkewBlockV1
 import com.example.arweld.core.drawing2d.v1.PointV1
 import com.example.arweld.feature.drawingimport.artifacts.CaptureMetaWriterV1
 import com.example.arweld.feature.drawingimport.artifacts.RectifiedArtifactWriterV1
@@ -41,8 +42,12 @@ import com.example.arweld.feature.drawingimport.preprocess.RectifySizePolicyV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineResultV1
 import com.example.arweld.feature.drawingimport.preprocess.SafeBitmapDecodeV1
+import com.example.arweld.feature.drawingimport.quality.ExposureMetricsV1
+import com.example.arweld.feature.drawingimport.quality.QualityGateResultV1
+import com.example.arweld.feature.drawingimport.quality.QualityGateV1
 import com.example.arweld.feature.drawingimport.quality.QualityMetricsV1
 import com.example.arweld.feature.drawingimport.quality.RectifiedQualityMetricsV1
+import com.example.arweld.feature.drawingimport.quality.SkewMetricsV1
 import com.example.arweld.feature.drawingimport.ui.DrawingImportSession
 import com.example.arweld.feature.drawingimport.ui.RectifiedImageInfo
 import java.io.File
@@ -152,6 +157,7 @@ class DrawingImportPipelineV1(
                 null
             }
         }
+        val downscaledCorners = refinedFrame ?: orderedFrame
 
         val scaleX = upright.bitmap.width.toDouble() / frame.width.toDouble()
         val scaleY = upright.bitmap.height.toDouble() / frame.height.toDouble()
@@ -181,7 +187,7 @@ class DrawingImportPipelineV1(
         val rectifiedOutcome = runStage(PageDetectStageV1.RECTIFY, session.projectId) {
             stages.rectifyBitmap(upright.bitmap, refinedFull ?: orderedFull, rectifiedSize)
         }
-        val rectifiedBitmap = when (rectifiedOutcome) {
+        val rectifiedResult = when (rectifiedOutcome) {
             is PageDetectOutcomeV1.Success -> rectifiedOutcome.value
             is PageDetectOutcomeV1.Failure -> {
                 upright.recycle()
@@ -190,13 +196,25 @@ class DrawingImportPipelineV1(
         }
 
         cancellationContext?.ensureActive()
-        val rectifiedMetrics = computeRectifiedMetrics(rectifiedBitmap, session.projectId)
+        val rectifiedMetrics = computeRectifiedMetrics(rectifiedResult.bitmap, session.projectId)
         cancellationContext?.ensureActive()
 
+        val exposureMetrics = computeExposureMetrics(frame)
+        val skewMetrics = QualityMetricsV1.skewFromQuad(
+            downscaledCorners.toQualityOrderedCorners(),
+            frame.width,
+            frame.height,
+        )
+        val qualityGate = QualityGateV1.evaluate(
+            blurVariance = rectifiedMetrics.blurVariance,
+            exposure = exposureMetrics,
+            skew = skewMetrics,
+        )
+
         val saveOutcome = runStage(PageDetectStageV1.SAVE, session.projectId) {
-            stages.saveArtifacts(session, rectifiedBitmap, rectifiedSize)
+            stages.saveArtifacts(session, rectifiedResult.bitmap, rectifiedSize)
         }
-        rectifiedBitmap.recycle()
+        rectifiedResult.bitmap.recycle()
         upright.recycle()
         val updatedSession = when (saveOutcome) {
             is PageDetectOutcomeV1.Success -> saveOutcome.value
@@ -204,10 +222,17 @@ class DrawingImportPipelineV1(
         }
         val captureMetaOutcome = writeCaptureMeta(
             session = updatedSession,
+            upright = upright,
+            frame = frame,
             orderedCorners = orderedFull,
             refinedCorners = refinedFull,
+            downscaledCorners = downscaledCorners,
+            homography = rectifiedResult.homography,
             rectifiedSize = rectifiedSize,
             rectifiedMetrics = rectifiedMetrics,
+            exposureMetrics = exposureMetrics,
+            skewMetrics = skewMetrics,
+            qualityGate = qualityGate,
         )
         val sessionWithMeta = when (captureMetaOutcome) {
             is PageDetectOutcomeV1.Success -> captureMetaOutcome.value
@@ -354,23 +379,58 @@ class DrawingImportPipelineV1(
 
     private fun writeCaptureMeta(
         session: DrawingImportSession,
+        upright: UprightBitmapV1,
+        frame: PageDetectFrame,
         orderedCorners: OrderedCornersV1,
         refinedCorners: OrderedCornersV1?,
+        downscaledCorners: OrderedCornersV1,
+        homography: List<Double>,
         rectifiedSize: RectifiedSizeV1,
         rectifiedMetrics: RectifiedQualityMetricsV1,
+        exposureMetrics: ExposureMetricsV1,
+        skewMetrics: SkewMetricsV1,
+        qualityGate: QualityGateResultV1,
     ): PageDetectOutcomeV1<DrawingImportSession> {
         return try {
             val captureMeta = CaptureMetaV1(
-                corners = CaptureCornersV1(
-                    ordered = orderedCorners.toCornerQuadV1(),
-                    refined = refinedCorners?.toCornerQuadV1(),
+                projectId = session.projectId,
+                raw = ImageInfoV1(
+                    widthPx = upright.originalWidth,
+                    heightPx = upright.originalHeight,
+                    rotationAppliedDeg = 0,
                 ),
-                rectified = RectifiedCaptureV1(
+                upright = ImageInfoV1(
+                    widthPx = upright.decodedWidth,
+                    heightPx = upright.decodedHeight,
+                    rotationAppliedDeg = upright.rotationAppliedDeg,
+                ),
+                downscaleFactor = frame.downscaleFactor,
+                cornersDownscaledPx = downscaledCorners.toPointList(),
+                cornersUprightPx = (refinedCorners ?: orderedCorners).toPointList(),
+                homographyH = homography,
+                rectified = ImageInfoV1(
                     widthPx = rectifiedSize.width,
                     heightPx = rectifiedSize.height,
+                    rotationAppliedDeg = 0,
                 ),
-                metrics = CaptureMetricsV1(
-                    blurVariance = rectifiedMetrics.blurVariance,
+                metrics = MetricsBlockV1(
+                    blurVar = rectifiedMetrics.blurVariance,
+                    exposure = ExposureBlockV1(
+                        meanY = exposureMetrics.meanY,
+                        clipLowPct = exposureMetrics.clipLowPct,
+                        clipHighPct = exposureMetrics.clipHighPct,
+                    ),
+                    skew = SkewBlockV1(
+                        angleMaxAbsDeg = skewMetrics.angleMaxAbsDeg,
+                        angleMeanAbsDeg = skewMetrics.angleMeanAbsDeg,
+                        keystoneWidthRatio = skewMetrics.keystoneWidthRatio,
+                        keystoneHeightRatio = skewMetrics.keystoneHeightRatio,
+                        pageFillRatio = skewMetrics.pageFillRatio,
+                    ),
+                ),
+                quality = QualityGateBlockV1(
+                    decision = qualityGate.decision.name,
+                    reasons = qualityGate.reasons.map { it.name },
                 ),
             )
             val store = FileArtifactStoreV1(session.projectDir)
@@ -460,7 +520,7 @@ interface DrawingImportPipelineStagesV1 {
         upright: Bitmap,
         corners: OrderedCornersV1,
         size: RectifiedSizeV1,
-    ): PageDetectOutcomeV1<Bitmap>
+    ): PageDetectOutcomeV1<RectifiedResultV1>
 
     fun saveArtifacts(
         session: DrawingImportSession,
@@ -585,7 +645,7 @@ interface DrawingImportPipelineStagesV1 {
             upright: Bitmap,
             corners: OrderedCornersV1,
             size: RectifiedSizeV1,
-        ): PageDetectOutcomeV1<Bitmap> {
+        ): PageDetectOutcomeV1<RectifiedResultV1> {
             if (size.width <= 0 || size.height <= 0) {
                 return failure(PageDetectStageV1.RECTIFY, PageDetectFailureCodeV1.UNKNOWN, "Invalid rectified size")
             }
@@ -612,7 +672,10 @@ interface DrawingImportPipelineStagesV1 {
                 isFilterBitmap = true
             }
             canvas.drawBitmap(upright, matrix, paint)
-            return PageDetectOutcomeV1.Success(output)
+            val values = FloatArray(9)
+            matrix.getValues(values)
+            val homography = values.map { it.toDouble() }
+            return PageDetectOutcomeV1.Success(RectifiedResultV1(bitmap = output, homography = homography))
         }
 
         override fun saveArtifacts(
@@ -717,14 +780,46 @@ private fun OrderedCornersV1.scale(scaleX: Double, scaleY: Double): OrderedCorne
     )
 }
 
-private fun OrderedCornersV1.toCornerQuadV1(): CornerQuadV1 {
-    return CornerQuadV1(
-        topLeft = PointV1(topLeft.x, topLeft.y),
-        topRight = PointV1(topRight.x, topRight.y),
-        bottomRight = PointV1(bottomRight.x, bottomRight.y),
-        bottomLeft = PointV1(bottomLeft.x, bottomLeft.y),
+private fun OrderedCornersV1.toPointList(): List<PointV1> {
+    return listOf(
+        PointV1(topLeft.x, topLeft.y),
+        PointV1(topRight.x, topRight.y),
+        PointV1(bottomRight.x, bottomRight.y),
+        PointV1(bottomLeft.x, bottomLeft.y),
     )
 }
+
+private fun OrderedCornersV1.toQualityOrderedCorners(): com.example.arweld.feature.drawingimport.quality.OrderedCornersV1 {
+    return com.example.arweld.feature.drawingimport.quality.OrderedCornersV1(
+        topLeft = com.example.arweld.feature.drawingimport.quality.CornerPointV1(topLeft.x, topLeft.y),
+        topRight = com.example.arweld.feature.drawingimport.quality.CornerPointV1(topRight.x, topRight.y),
+        bottomRight = com.example.arweld.feature.drawingimport.quality.CornerPointV1(bottomRight.x, bottomRight.y),
+        bottomLeft = com.example.arweld.feature.drawingimport.quality.CornerPointV1(bottomLeft.x, bottomLeft.y),
+    )
+}
+
+private fun computeExposureMetrics(frame: PageDetectFrame): ExposureMetricsV1 {
+    val expectedSize = frame.width * frame.height
+    require(frame.gray.size == expectedSize) {
+        "Frame gray data mismatch: expected $expectedSize bytes, got ${frame.gray.size}."
+    }
+    val pixels = IntArray(expectedSize)
+    for (i in 0 until expectedSize) {
+        val gray = frame.gray[i].toInt() and 0xFF
+        pixels[i] = 0xFF000000.toInt() or (gray shl 16) or (gray shl 8) or gray
+    }
+    val bitmap = Bitmap.createBitmap(pixels, frame.width, frame.height, Bitmap.Config.ARGB_8888)
+    return try {
+        QualityMetricsV1.exposure(bitmap)
+    } finally {
+        bitmap.recycle()
+    }
+}
+
+data class RectifiedResultV1(
+    val bitmap: Bitmap,
+    val homography: List<Double>,
+)
 
 private fun DrawingImportSession.rawImageFileOrNull(): File? {
     val entry = artifacts.firstOrNull { it.kind == ArtifactKindV1.RAW_IMAGE } ?: return null

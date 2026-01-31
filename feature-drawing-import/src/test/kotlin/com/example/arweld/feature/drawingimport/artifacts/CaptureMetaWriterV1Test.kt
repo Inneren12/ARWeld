@@ -3,11 +3,12 @@ package com.example.arweld.feature.drawingimport.artifacts
 import com.example.arweld.core.drawing2d.Drawing2DJson
 import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
 import com.example.arweld.core.drawing2d.artifacts.layout.v1.ProjectLayoutV1
-import com.example.arweld.core.drawing2d.artifacts.v1.CaptureCornersV1
 import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetaV1
-import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetricsV1
-import com.example.arweld.core.drawing2d.artifacts.v1.CornerQuadV1
-import com.example.arweld.core.drawing2d.artifacts.v1.RectifiedCaptureV1
+import com.example.arweld.core.drawing2d.artifacts.v1.ExposureMetricsV1
+import com.example.arweld.core.drawing2d.artifacts.v1.ImageInfoV1
+import com.example.arweld.core.drawing2d.artifacts.v1.MetricsBlockV1
+import com.example.arweld.core.drawing2d.artifacts.v1.QualityGateBlockV1
+import com.example.arweld.core.drawing2d.artifacts.v1.SkewMetricsV1
 import com.example.arweld.core.drawing2d.crypto.Sha256V1
 import com.example.arweld.core.drawing2d.v1.PointV1
 import com.example.arweld.feature.drawingimport.ui.DrawingImportSession
@@ -37,16 +38,40 @@ class CaptureMetaWriterV1Test {
             artifacts = emptyList(),
         )
         val captureMeta = CaptureMetaV1(
-            corners = CaptureCornersV1(
-                ordered = CornerQuadV1(
-                    topLeft = PointV1(0.0, 0.0),
-                    topRight = PointV1(100.0, 0.0),
-                    bottomRight = PointV1(100.0, 200.0),
-                    bottomLeft = PointV1(0.0, 200.0),
+            projectId = "project-123",
+            raw = ImageInfoV1(widthPx = 4032, heightPx = 3024, rotationAppliedDeg = 0),
+            upright = ImageInfoV1(widthPx = 3024, heightPx = 4032, rotationAppliedDeg = 90),
+            downscaleFactor = 2.0,
+            cornersDownscaledPx = listOf(
+                PointV1(0.0, 0.0),
+                PointV1(100.0, 0.0),
+                PointV1(100.0, 200.0),
+                PointV1(0.0, 200.0),
+            ),
+            cornersUprightPx = listOf(
+                PointV1(0.0, 0.0),
+                PointV1(200.0, 0.0),
+                PointV1(200.0, 400.0),
+                PointV1(0.0, 400.0),
+            ),
+            homographyH = listOf(
+                1.0, 0.0, 2.0,
+                0.0, 1.0, 3.0,
+                0.0, 0.0, 1.0,
+            ),
+            rectified = ImageInfoV1(widthPx = 1024, heightPx = 768, rotationAppliedDeg = 0),
+            metrics = MetricsBlockV1(
+                blurVar = 42.0,
+                exposure = ExposureMetricsV1(meanY = 128.0, clipLowPct = 1.0, clipHighPct = 0.5),
+                skew = SkewMetricsV1(
+                    angleMaxAbsDeg = 3.0,
+                    angleMeanAbsDeg = 1.5,
+                    keystoneWidthRatio = 1.1,
+                    keystoneHeightRatio = 1.05,
+                    pageFillRatio = 0.8,
                 ),
             ),
-            rectified = RectifiedCaptureV1(widthPx = 1024, heightPx = 768),
-            metrics = CaptureMetricsV1(blurVariance = 42.0),
+            quality = QualityGateBlockV1(decision = "PASS", reasons = emptyList()),
         )
 
         val updated = CaptureMetaWriterV1().write(

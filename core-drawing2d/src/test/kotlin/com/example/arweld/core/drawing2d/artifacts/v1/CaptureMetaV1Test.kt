@@ -10,32 +10,42 @@ class CaptureMetaV1Test {
     @Test
     fun `capture meta round trips through Drawing2DJson`() {
         val meta = CaptureMetaV1(
-            corners = CaptureCornersV1(
-                ordered = CornerQuadV1(
-                    topLeft = PointV1(0.0, 0.0),
-                    topRight = PointV1(100.0, 0.0),
-                    bottomRight = PointV1(100.0, 200.0),
-                    bottomLeft = PointV1(0.0, 200.0),
-                ),
-                refined = CornerQuadV1(
-                    topLeft = PointV1(1.0, 1.0),
-                    topRight = PointV1(99.0, 2.0),
-                    bottomRight = PointV1(98.0, 198.0),
-                    bottomLeft = PointV1(2.0, 199.0),
+            projectId = "project-123",
+            raw = ImageInfoV1(widthPx = 4032, heightPx = 3024, rotationAppliedDeg = 0),
+            upright = ImageInfoV1(widthPx = 3024, heightPx = 4032, rotationAppliedDeg = 90),
+            downscaleFactor = 2.0,
+            cornersDownscaledPx = listOf(
+                PointV1(0.0, 0.0),
+                PointV1(100.0, 0.0),
+                PointV1(100.0, 200.0),
+                PointV1(0.0, 200.0),
+            ),
+            cornersUprightPx = listOf(
+                PointV1(0.0, 0.0),
+                PointV1(200.0, 0.0),
+                PointV1(200.0, 400.0),
+                PointV1(0.0, 400.0),
+            ),
+            homographyH = listOf(
+                1.0, 0.0, 2.0,
+                0.0, 1.0, 3.0,
+                0.0, 0.0, 1.0,
+            ),
+            rectified = ImageInfoV1(widthPx = 1024, heightPx = 768, rotationAppliedDeg = 0),
+            metrics = MetricsBlockV1(
+                blurVar = 1234.5,
+                exposure = ExposureMetricsV1(meanY = 128.0, clipLowPct = 1.2, clipHighPct = 0.8),
+                skew = SkewMetricsV1(
+                    angleMaxAbsDeg = 2.3,
+                    angleMeanAbsDeg = 1.2,
+                    keystoneWidthRatio = 1.04,
+                    keystoneHeightRatio = 1.02,
+                    pageFillRatio = 0.9,
                 ),
             ),
-            rectified = RectifiedCaptureV1(widthPx = 1024, heightPx = 768),
-            metrics = CaptureMetricsV1(blurVariance = 1234.5),
-            homography = HomographyV1(
-                m00 = 1.0,
-                m01 = 0.0,
-                m02 = 2.0,
-                m10 = 0.0,
-                m11 = 1.0,
-                m12 = 3.0,
-                m20 = 0.0,
-                m21 = 0.0,
-                m22 = 1.0,
+            quality = QualityGateBlockV1(
+                decision = "PASS",
+                reasons = emptyList(),
             ),
         )
 

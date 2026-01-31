@@ -6,46 +6,50 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CaptureMetaV1(
     val schemaVersion: Int = 1,
-    val homography: HomographyV1? = null,
-    val corners: CaptureCornersV1? = null,
-    val rectified: RectifiedCaptureV1? = null,
-    val metrics: CaptureMetricsV1? = null,
+    val projectId: String,
+    val raw: ImageInfoV1,
+    val upright: ImageInfoV1,
+    val downscaleFactor: Double,
+    val cornersDownscaledPx: List<PointV1>,
+    val cornersUprightPx: List<PointV1>,
+    val homographyH: List<Double>,
+    val rectified: ImageInfoV1,
+    val metrics: MetricsBlockV1,
+    val quality: QualityGateBlockV1,
 )
 
 @Serializable
-data class CaptureCornersV1(
-    val ordered: CornerQuadV1,
-    val refined: CornerQuadV1? = null,
-)
-
-@Serializable
-data class CornerQuadV1(
-    val topLeft: PointV1,
-    val topRight: PointV1,
-    val bottomRight: PointV1,
-    val bottomLeft: PointV1,
-)
-
-@Serializable
-data class RectifiedCaptureV1(
+data class ImageInfoV1(
     val widthPx: Int,
     val heightPx: Int,
+    val rotationAppliedDeg: Int,
 )
 
 @Serializable
-data class CaptureMetricsV1(
-    val blurVariance: Double? = null,
+data class MetricsBlockV1(
+    val blurVar: Double? = null,
+    val exposure: ExposureMetricsV1,
+    val skew: SkewMetricsV1,
 )
 
 @Serializable
-data class HomographyV1(
-    val m00: Double,
-    val m01: Double,
-    val m02: Double,
-    val m10: Double,
-    val m11: Double,
-    val m12: Double,
-    val m20: Double,
-    val m21: Double,
-    val m22: Double,
+data class ExposureMetricsV1(
+    val meanY: Double,
+    val clipLowPct: Double,
+    val clipHighPct: Double,
+)
+
+@Serializable
+data class SkewMetricsV1(
+    val angleMaxAbsDeg: Double,
+    val angleMeanAbsDeg: Double,
+    val keystoneWidthRatio: Double,
+    val keystoneHeightRatio: Double,
+    val pageFillRatio: Double,
+)
+
+@Serializable
+data class QualityGateBlockV1(
+    val decision: String,
+    val reasons: List<String>,
 )
