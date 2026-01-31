@@ -9,8 +9,8 @@
 ## Selection rules
 - If the tap is within the node hit-test tolerance of an existing node, the editor selects that
   node and **does not create a new one**.
-- Node hit testing uses the same screen-space tolerance defined in the selection rules, converted
-  to world units using `viewTransform.scale`.
+- Node hit testing uses the same screen-space tolerance defined in the selection rules
+  (`EditorUiConstants.NODE_HIT_RADIUS_DP`), converted to world units using `viewTransform.scale`.
 
 ## Drag to move (NODE tool)
 - Dragging starts when the pointer goes down on an existing node while the **NODE** tool is active.
