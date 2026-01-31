@@ -26,6 +26,7 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 dependencies {
+    implementation(project(":core-drawing2d"))
     implementation(project(":core-structural"))
 
     // Kotlinx

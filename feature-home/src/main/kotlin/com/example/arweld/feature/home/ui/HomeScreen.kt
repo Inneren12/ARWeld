@@ -37,6 +37,7 @@ fun HomeScreen(
     onNavigateToExportCenter: () -> Unit = {},
     onNavigateToOfflineQueue: () -> Unit = {},
     onNavigateToDrawingImport: () -> Unit = {},
+    onNavigateToManualEditor: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -71,6 +72,7 @@ fun HomeScreen(
                     onNavigateToExportCenter = onNavigateToExportCenter,
                     onNavigateToOfflineQueue = onNavigateToOfflineQueue,
                     onNavigateToDrawingImport = onNavigateToDrawingImport,
+                    onNavigateToManualEditor = onNavigateToManualEditor,
                     onLogout = { viewModel.logout() }
                 )
             }
@@ -104,6 +106,7 @@ private fun HomeContent(
     onNavigateToExportCenter: () -> Unit,
     onNavigateToOfflineQueue: () -> Unit,
     onNavigateToDrawingImport: () -> Unit,
+    onNavigateToManualEditor: () -> Unit,
     onLogout: () -> Unit
 ) {
     Column(
@@ -245,6 +248,13 @@ private fun HomeContent(
             modifier = Modifier.fillMaxWidth(0.7f)
         ) {
             Text("Drawing Import")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onNavigateToManualEditor,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("Manual Editor")
         }
         Spacer(modifier = Modifier.height(24.dp))
         Button(

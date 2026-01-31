@@ -45,4 +45,5 @@ include(":feature-supervisor")
 include(":feature-assembler")
 include(":feature-qc")
 include(":feature-drawing-import")
+include(":feature-drawing-editor")
  

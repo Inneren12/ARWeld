@@ -29,6 +29,7 @@ import com.example.arweld.core.data.repository.WorkItemRepository
 import com.example.arweld.core.data.repository.WorkItemRepositoryImpl
 import com.example.arweld.core.data.sync.SyncQueueRepositoryImpl
 import com.example.arweld.core.domain.auth.AuthRepository
+import com.example.arweld.core.domain.drawing2d.Drawing2DRepository
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.evidence.EvidenceRepository
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
