@@ -60,11 +60,15 @@ import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLogger
 import com.example.arweld.feature.drawingimport.preprocess.ContourStats
 import com.example.arweld.feature.drawingimport.preprocess.ContourV1
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailure
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFrame
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectInput
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectContourExtractor
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectEdgeDetector
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectPreprocessor
+import com.example.arweld.feature.drawingimport.preprocess.PageQuadCandidate
+import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelectionResult
+import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelector
 import java.io.File
 import java.util.Locale
 import java.util.UUID
@@ -98,12 +102,17 @@ fun DrawingImportScreen(
     var contourInfo by remember { mutableStateOf<ContourDebugInfo?>(null) }
     var contourError by remember { mutableStateOf<String?>(null) }
     var isRunningContours by remember { mutableStateOf(false) }
+    var contourCache by remember { mutableStateOf<List<ContourV1>>(emptyList()) }
+    var quadSelectionResult by remember { mutableStateOf<PageQuadSelectionResult?>(null) }
+    var quadSelectionError by remember { mutableStateOf<String?>(null) }
+    var isSelectingQuad by remember { mutableStateOf(false) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
     val pageDetectPreprocessor = remember { PageDetectPreprocessor() }
     val edgeDetector = remember { PageDetectEdgeDetector() }
     val contourExtractor = remember { PageDetectContourExtractor() }
+    val quadSelector = remember { PageQuadSelector() }
     var uiState by remember {
         mutableStateOf<CameraPermissionState>(
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -471,6 +480,10 @@ fun DrawingImportScreen(
                                                         contourInfo = null
                                                         contourError = null
                                                         isRunningContours = false
+                                                        contourCache = emptyList()
+                                                        quadSelectionResult = null
+                                                        quadSelectionError = null
+                                                        isSelectingQuad = false
                                                         coroutineScope.launch(Dispatchers.Default) {
                                                             runCatching {
                                                                 pageDetectPreprocessor.preprocess(
@@ -513,6 +526,9 @@ fun DrawingImportScreen(
                                                         pageDetectError = null
                                                         isPreparingFrame = true
                                                         isRunningContours = true
+                                                        quadSelectionResult = null
+                                                        quadSelectionError = null
+                                                        isSelectingQuad = false
                                                         coroutineScope.launch(Dispatchers.Default) {
                                                             runCatching {
                                                                 val frame = pageDetectFrame ?: pageDetectPreprocessor.preprocess(
@@ -534,6 +550,7 @@ fun DrawingImportScreen(
                                                                         totalContours = contours.size,
                                                                         topContours = topContours,
                                                                     )
+                                                                    contourCache = contours
                                                                     isPreparingFrame = false
                                                                     isRunningContours = false
                                                                 }
@@ -549,11 +566,70 @@ fun DrawingImportScreen(
                                                 ) {
                                                     Text(text = "Run edges+contours")
                                                 }
+                                                Button(
+                                                    onClick = {
+                                                        if (rawFile == null) {
+                                                            coroutineScope.launch {
+                                                                snackbarHostState.showSnackbar(
+                                                                    "Raw image missing; recapture first.",
+                                                                )
+                                                            }
+                                                            return@Button
+                                                        }
+                                                        quadSelectionResult = null
+                                                        quadSelectionError = null
+                                                        isPreparingFrame = true
+                                                        isSelectingQuad = true
+                                                        coroutineScope.launch(Dispatchers.Default) {
+                                                            runCatching {
+                                                                val frame = pageDetectFrame ?: pageDetectPreprocessor.preprocess(
+                                                                    PageDetectInput(rawImageFile = rawFile),
+                                                                )
+                                                                val contours = if (contourCache.isNotEmpty()) {
+                                                                    contourCache
+                                                                } else {
+                                                                    val edges = edgeDetector.detect(frame)
+                                                                    contourExtractor.extract(edges)
+                                                                }
+                                                                val result = quadSelector.select(contours, frame.width, frame.height)
+                                                                Triple(frame, contours, result)
+                                                            }.onSuccess { (frame, contours, result) ->
+                                                                withContext(Dispatchers.Main) {
+                                                                    pageDetectFrame = frame
+                                                                    pageDetectInfo = PageDetectFrameInfo(
+                                                                        width = frame.width,
+                                                                        height = frame.height,
+                                                                        downscaleFactor = frame.downscaleFactor,
+                                                                        rotationAppliedDeg = frame.rotationAppliedDeg,
+                                                                    )
+                                                                    contourCache = contours
+                                                                    contourInfo = contourInfo ?: ContourDebugInfo(
+                                                                        totalContours = contours.size,
+                                                                        topContours = ContourStats.topByArea(contours, 3),
+                                                                    )
+                                                                    quadSelectionResult = result
+                                                                    isPreparingFrame = false
+                                                                    isSelectingQuad = false
+                                                                }
+                                                            }.onFailure { error ->
+                                                                withContext(Dispatchers.Main) {
+                                                                    quadSelectionError = error.message ?: "Failed to select page quad."
+                                                                    isPreparingFrame = false
+                                                                    isSelectingQuad = false
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                ) {
+                                                    Text(text = "Select page quad")
+                                                }
                                             }
                                             if (isPreparingFrame) {
                                                 Text(
                                                     text = if (isRunningContours) {
                                                         "Running edges+contours..."
+                                                    } else if (isSelectingQuad) {
+                                                        "Selecting page quad..."
                                                     } else {
                                                         "Preparing frame..."
                                                     },
@@ -590,6 +666,30 @@ fun DrawingImportScreen(
                                             contourError?.let { message ->
                                                 Text(
                                                     text = "Contour run failed: $message",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error,
+                                                )
+                                            }
+                                            quadSelectionResult?.let { result ->
+                                                when (result) {
+                                                    is PageQuadSelectionResult.Success -> {
+                                                        Text(
+                                                            text = formatQuadLabel(result.candidate),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                        )
+                                                    }
+                                                    is PageQuadSelectionResult.Failure -> {
+                                                        Text(
+                                                            text = formatFailureLabel(result.failure),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.error,
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            quadSelectionError?.let { message ->
+                                                Text(
+                                                    text = "Quad selection failed: $message",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.error,
                                                 )
@@ -642,6 +742,10 @@ fun DrawingImportScreen(
                                         contourInfo = null
                                         contourError = null
                                         isRunningContours = false
+                                        contourCache = emptyList()
+                                        quadSelectionResult = null
+                                        quadSelectionError = null
+                                        isSelectingQuad = false
                                         screenState = DrawingImportUiState.Ready
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -683,6 +787,10 @@ fun DrawingImportScreen(
                                         contourInfo = null
                                         contourError = null
                                         isRunningContours = false
+                                        contourCache = emptyList()
+                                        quadSelectionResult = null
+                                        quadSelectionError = null
+                                        isSelectingQuad = false
                                         logDiagnosticsEvent(
                                             logger = diagnosticsLogger,
                                             event = DrawingImportEvent.CAPTURE_START,
@@ -811,6 +919,10 @@ fun DrawingImportScreen(
                                     contourInfo = null
                                     contourError = null
                                     isRunningContours = false
+                                    contourCache = emptyList()
+                                    quadSelectionResult = null
+                                    quadSelectionError = null
+                                    isSelectingQuad = false
                                     screenState = DrawingImportUiState.Ready
                                 },
                                 colors = ButtonDefaults.buttonColors(
@@ -863,6 +975,17 @@ private fun formatContourLabel(index: Int, contour: ContourV1): String {
     val area = "%.1f".format(Locale.US, contour.area)
     val bbox = "x=${contour.bbox.x}, y=${contour.bbox.y}, w=${contour.bbox.width}, h=${contour.bbox.height}"
     return "#${index + 1} area=$area • bbox=($bbox)"
+}
+
+private fun formatQuadLabel(candidate: PageQuadCandidate): String {
+    val area = "%.1f".format(Locale.US, candidate.contourArea)
+    val score = "%.2f".format(Locale.US, candidate.score)
+    val points = candidate.points.joinToString(prefix = "[", postfix = "]") { "(${it.x},${it.y})" }
+    return "Quad area=$area • score=$score • points=$points"
+}
+
+private fun formatFailureLabel(failure: PageDetectFailure): String {
+    return "Quad selection: ${failure.code.name} • ${failure.message}"
 }
 
 private sealed interface CameraPermissionState {
