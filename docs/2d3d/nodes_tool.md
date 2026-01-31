@@ -50,3 +50,15 @@ newWorld = startWorldPos + deltaWorld
 - Selection is cleared after deletion.
 - The delete action is undoable as a single step (one Drawing2D snapshot).
 - Persistence follows the same policy as other discrete mutations: save once per delete.
+
+## Edit coordinates (S3-21)
+- When a node is selected, the bottom sheet shows its **world/drawing-space coordinates** and
+  editable **X/Y** fields.
+- The inputs are draft-only; the node is not mutated until **Apply** is pressed.
+- Apply updates the node coordinates as a single undoable snapshot and persists once.
+- Validation rules (locale-stable):
+  - **Dot decimal only** (e.g., `12`, `-3.5`, `0.125`).
+  - Optional leading **minus** for negative coordinates.
+  - No commas, no exponent notation, no blank values.
+  - Parsed values must be finite (no NaN/Infinity).
+- Invalid inputs surface explicit field errors and block Apply without mutating the drawing.

@@ -58,6 +58,16 @@ sealed interface EditorIntent {
 
     data class NodeDeleteRequested(val nodeId: String) : EditorIntent
 
+    data class NodeEditXChanged(val text: String) : EditorIntent
+
+    data class NodeEditYChanged(val text: String) : EditorIntent
+
+    data class NodeEditApplyRequested(val nodeId: String) : EditorIntent
+
+    data class NodeEditApplied(val drawing: Drawing2D, val nodeId: String) : EditorIntent
+
+    data class NodeEditApplyFailed(val message: String) : EditorIntent
+
     data object UndoRequested : EditorIntent
 
     data object RedoRequested : EditorIntent

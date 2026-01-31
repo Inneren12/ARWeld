@@ -40,6 +40,9 @@ fun ManualEditorRoute(
         },
         onSelectEntity = { selection -> viewModel.onIntent(EditorIntent.SelectEntity(selection)) },
         onClearSelection = { viewModel.onIntent(EditorIntent.ClearSelection) },
+        onNodeEditXChanged = { text -> viewModel.onIntent(EditorIntent.NodeEditXChanged(text)) },
+        onNodeEditYChanged = { text -> viewModel.onIntent(EditorIntent.NodeEditYChanged(text)) },
+        onNodeEditApply = { nodeId -> viewModel.onIntent(EditorIntent.NodeEditApplyRequested(nodeId)) },
         onTransformGesture = { panX, panY, zoomFactor, focalX, focalY ->
             viewModel.onIntent(
                 EditorIntent.ViewTransformGesture(

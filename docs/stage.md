@@ -1826,6 +1826,12 @@ data class ArScreenshotMetadata(
 - Hit-testing uses a screen-space tolerance derived from dp and density, then mapped to world space via `viewTransform.scale`.
 - Node drag start and selection now share the same tolerance logic to avoid zoom-dependent discrepancies.
 - Added tests to keep tie-break behavior deterministic and validate zoom-independent tolerance behavior.
+
+**S3-21 — Node edit panel (coords + validation + undo) ✅ DONE:**
+- Bottom sheet shows selected node ID, current world coordinates, and editable X/Y draft inputs.
+- Apply validates locale-stable dot-decimal numbers (finite only), then commits a single undo snapshot.
+- Persistence occurs once per Apply; invalid input surfaces explicit field/apply errors with no mutation.
+- Added reducer + undo tests for draft updates, apply success/failure, and undo restoration.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**

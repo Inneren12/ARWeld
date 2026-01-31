@@ -57,6 +57,15 @@ data class ScaleDraft(
     val pendingMmPerPx: Double? = null,
 )
 
+data class NodeEditDraft(
+    val nodeId: String? = null,
+    val xText: String = "",
+    val yText: String = "",
+    val xError: String? = null,
+    val yError: String? = null,
+    val applyError: String? = null,
+)
+
 data class EditorState(
     val tool: EditorTool = EditorTool.SELECT,
     val selection: EditorSelection = EditorSelection.None,
@@ -69,6 +78,7 @@ data class EditorState(
     val underlayState: UnderlayState = UnderlayState.None,
     val nodeDragState: NodeDragState? = null,
     val scaleDraft: ScaleDraft = ScaleDraft(),
+    val nodeEditDraft: NodeEditDraft = NodeEditDraft(),
     val undoStack: List<Drawing2D> = emptyList(),
     val redoStack: List<Drawing2D> = emptyList(),
 )

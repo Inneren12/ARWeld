@@ -17,9 +17,20 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         } else {
             ScaleDraft()
         },
+        nodeEditDraft = NodeEditDraft(),
     )
-    is EditorIntent.SelectEntity -> state.copy(selection = intent.selection)
-    EditorIntent.ClearSelection -> state.copy(selection = EditorSelection.None, nodeDragState = null)
+    is EditorIntent.SelectEntity -> {
+        val synced = syncNodeEditState(intent.selection, state.drawing)
+        state.copy(
+            selection = synced.selection,
+            nodeEditDraft = synced.draft,
+        )
+    }
+    EditorIntent.ClearSelection -> state.copy(
+        selection = EditorSelection.None,
+        nodeDragState = null,
+        nodeEditDraft = NodeEditDraft(),
+    )
     is EditorIntent.ViewTransformGesture -> state.copy(
         viewTransform = applyViewTransformGesture(
             transform = state.viewTransform,
@@ -42,6 +53,7 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         nodeDragState = null,
         undoStack = emptyList(),
         redoStack = emptyList(),
+        nodeEditDraft = NodeEditDraft(),
     )
     EditorIntent.SaveRequested -> state.copy(
         isLoading = true,
@@ -102,7 +114,11 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
                 viewTransform = state.viewTransform,
             )
             if (hitId != null) {
-                state.copy(selection = EditorSelection.Node(hitId))
+                val synced = syncNodeEditState(EditorSelection.Node(hitId), state.drawing)
+                state.copy(
+                    selection = synced.selection,
+                    nodeEditDraft = synced.draft,
+                )
             } else {
                 val allocation = Drawing2DIdAllocator.allocateNodeId(state.drawing)
                 val newNode = Node2D(
@@ -118,19 +134,20 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
             }
         }
     }
-    }
     is EditorIntent.NodeDragStart -> {
         if (state.tool != EditorTool.NODE || state.nodeDragState != null) {
             state
         } else {
             val node = state.drawing.nodes.firstOrNull { it.id == intent.nodeId } ?: return state
+            val synced = syncNodeEditState(EditorSelection.Node(node.id), state.drawing)
             state.copy(
-                selection = EditorSelection.Node(node.id),
+                selection = synced.selection,
                 nodeDragState = NodeDragState(
                     nodeId = node.id,
                     startWorldPos = Point2D(node.x, node.y),
                     startPointerWorld = intent.startPointerWorld,
                 ),
+                nodeEditDraft = synced.draft,
             )
         }
     }
@@ -141,9 +158,11 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         if (updatedDrawing == state.drawing) {
             state
         } else {
+            val synced = syncNodeEditState(EditorSelection.Node(drag.nodeId), updatedDrawing)
             state.copy(
                 drawing = updatedDrawing,
-                selection = EditorSelection.Node(drag.nodeId),
+                selection = synced.selection,
+                nodeEditDraft = synced.draft,
             )
         }
     }
@@ -153,10 +172,12 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         val updatedDrawing = updateNodePosition(state.drawing, drag.nodeId, updatedPos)
         val previousDrawing = updateNodePosition(state.drawing, drag.nodeId, drag.startWorldPos)
         if (updatedPos == drag.startWorldPos) {
+            val synced = syncNodeEditState(EditorSelection.Node(drag.nodeId), previousDrawing)
             state.copy(
                 drawing = previousDrawing,
                 nodeDragState = null,
-                selection = EditorSelection.Node(drag.nodeId),
+                selection = synced.selection,
+                nodeEditDraft = synced.draft,
             )
         } else {
             state.copy(
@@ -168,10 +189,12 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
     EditorIntent.NodeDragCancel -> {
         val drag = state.nodeDragState ?: return state
         val restoredDrawing = updateNodePosition(state.drawing, drag.nodeId, drag.startWorldPos)
+        val synced = syncNodeEditState(EditorSelection.Node(drag.nodeId), restoredDrawing)
         state.copy(
             drawing = restoredDrawing,
             nodeDragState = null,
-            selection = EditorSelection.Node(drag.nodeId),
+            selection = synced.selection,
+            nodeEditDraft = synced.draft,
         )
     }
     is EditorIntent.NodeDeleteRequested -> {
@@ -182,9 +205,40 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
             state.copy(
                 selection = EditorSelection.None,
                 nodeDragState = null,
+                nodeEditDraft = NodeEditDraft(),
             ).pushHistory(updatedDrawing)
         }
     }
+    is EditorIntent.NodeEditXChanged -> {
+        val draft = state.nodeEditDraft
+        state.copy(
+            nodeEditDraft = draft.copy(
+                xText = intent.text,
+                xError = validateNodeCoordinateText(intent.text, "X"),
+                applyError = null,
+            )
+        )
+    }
+    is EditorIntent.NodeEditYChanged -> {
+        val draft = state.nodeEditDraft
+        state.copy(
+            nodeEditDraft = draft.copy(
+                yText = intent.text,
+                yError = validateNodeCoordinateText(intent.text, "Y"),
+                applyError = null,
+            )
+        )
+    }
+    is EditorIntent.NodeEditApplyRequested -> state.copy(
+        nodeEditDraft = state.nodeEditDraft.copy(applyError = null),
+    )
+    is EditorIntent.NodeEditApplied -> {
+        state.copy(selection = EditorSelection.Node(intent.nodeId))
+            .pushHistory(intent.drawing)
+    }
+    is EditorIntent.NodeEditApplyFailed -> state.copy(
+        nodeEditDraft = state.nodeEditDraft.copy(applyError = intent.message),
+    )
     EditorIntent.UndoRequested -> state.applyHistoryUndo()
     EditorIntent.RedoRequested -> state.applyHistoryRedo()
 }
@@ -194,46 +248,58 @@ private const val SCALE_DISTANCE_EPSILON = 1e-6
 private fun EditorState.pushHistory(newDrawing: Drawing2D): EditorState {
     val history = EditorHistory(undoStack = undoStack, redoStack = redoStack)
     val updated = EditorHistoryManager.push(history, drawing)
+    val synced = syncNodeEditState(selection, newDrawing)
     return copy(
         drawing = newDrawing,
         undoStack = updated.undoStack,
         redoStack = updated.redoStack,
         dirtyFlag = false,
         lastError = null,
+        selection = synced.selection,
+        nodeEditDraft = synced.draft,
     )
 }
 
 private fun EditorState.pushHistoryFrom(previousDrawing: Drawing2D, newDrawing: Drawing2D): EditorState {
     val history = EditorHistory(undoStack = undoStack, redoStack = redoStack)
     val updated = EditorHistoryManager.push(history, previousDrawing)
+    val synced = syncNodeEditState(selection, newDrawing)
     return copy(
         drawing = newDrawing,
         undoStack = updated.undoStack,
         redoStack = updated.redoStack,
         dirtyFlag = false,
         lastError = null,
+        selection = synced.selection,
+        nodeEditDraft = synced.draft,
     )
 }
 
 private fun EditorState.applyHistoryUndo(): EditorState {
     val history = EditorHistory(undoStack = undoStack, redoStack = redoStack)
     val updated = EditorHistoryManager.undo(history, drawing) ?: return this
+    val synced = syncNodeEditState(selection, updated.drawing)
     return copy(
         drawing = updated.drawing,
         undoStack = updated.history.undoStack,
         redoStack = updated.history.redoStack,
         dirtyFlag = false,
+        selection = synced.selection,
+        nodeEditDraft = synced.draft,
     )
 }
 
 private fun EditorState.applyHistoryRedo(): EditorState {
     val history = EditorHistory(undoStack = undoStack, redoStack = redoStack)
     val updated = EditorHistoryManager.redo(history, drawing) ?: return this
+    val synced = syncNodeEditState(selection, updated.drawing)
     return copy(
         drawing = updated.drawing,
         undoStack = updated.history.undoStack,
         redoStack = updated.history.redoStack,
         dirtyFlag = false,
+        selection = synced.selection,
+        nodeEditDraft = synced.draft,
     )
 }
 
@@ -340,4 +406,22 @@ private fun recomputeScaleDraft(draft: ScaleDraft): ScaleDraft {
         pendingDistancePx = distance,
         pendingMmPerPx = parsedLength / distance,
     )
+}
+
+private data class SyncedNodeEditState(
+    val selection: EditorSelection,
+    val draft: NodeEditDraft,
+)
+
+private fun syncNodeEditState(selection: EditorSelection, drawing: Drawing2D): SyncedNodeEditState {
+    return if (selection is EditorSelection.Node) {
+        val node = drawing.nodes.firstOrNull { it.id == selection.id }
+        if (node == null) {
+            SyncedNodeEditState(EditorSelection.None, NodeEditDraft())
+        } else {
+            SyncedNodeEditState(selection, buildNodeEditDraft(node))
+        }
+    } else {
+        SyncedNodeEditState(selection, NodeEditDraft())
+    }
 }

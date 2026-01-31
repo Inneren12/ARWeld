@@ -41,6 +41,7 @@ class ManualEditorViewModel @Inject constructor(
             is EditorIntent.NodeDragEnd -> handleNodeDragEnd(intent)
             EditorIntent.NodeDragCancel -> reduce(intent)
             is EditorIntent.NodeDeleteRequested -> handleNodeDelete(intent)
+            is EditorIntent.NodeEditApplyRequested -> handleNodeEditApply(intent)
             is EditorIntent.ToolChanged -> {
                 val previousTool = mutableUiState.value.tool
                 reduce(intent)
@@ -215,6 +216,56 @@ class ManualEditorViewModel @Inject constructor(
         viewModelScope.launch {
             val updated = reduceAndReturn(intent) ?: return@launch
             persistUpdatedDrawing(updated)
+        }
+    }
+
+    private fun handleNodeEditApply(intent: EditorIntent.NodeEditApplyRequested) {
+        viewModelScope.launch {
+            reduce(intent)
+            val state = mutableUiState.value
+            val draft = state.nodeEditDraft
+            if (draft.nodeId != intent.nodeId) {
+                reduce(EditorIntent.NodeEditApplyFailed("Selected node does not match the edit target."))
+                return@launch
+            }
+            val node = state.drawing.nodes.firstOrNull { it.id == intent.nodeId }
+            if (node == null) {
+                reduce(EditorIntent.NodeEditApplyFailed("Node not found."))
+                return@launch
+            }
+            val parsedX = parseStrictSignedNumber(draft.xText)
+            if (parsedX == null) {
+                reduce(EditorIntent.NodeEditApplyFailed("Enter a valid X coordinate (dot decimal)."))
+                return@launch
+            }
+            val parsedY = parseStrictSignedNumber(draft.yText)
+            if (parsedY == null) {
+                reduce(EditorIntent.NodeEditApplyFailed("Enter a valid Y coordinate (dot decimal)."))
+                return@launch
+            }
+            val updatedDrawing = state.drawing.copy(
+                nodes = state.drawing.nodes.map { existing ->
+                    if (existing.id == intent.nodeId) {
+                        existing.copy(x = parsedX, y = parsedY)
+                    } else {
+                        existing
+                    }
+                }
+            )
+            runCatching { drawing2DRepository.saveCurrentDrawing(updatedDrawing) }
+                .onSuccess {
+                    reduce(EditorIntent.NodeEditApplied(updatedDrawing, intent.nodeId))
+                    editorDiagnosticsLogger.logNodeMoved(
+                        nodeId = intent.nodeId,
+                        fromX = node.x,
+                        fromY = node.y,
+                        toX = parsedX,
+                        toY = parsedY,
+                    )
+                }
+                .onFailure { error ->
+                    reduce(EditorIntent.NodeEditApplyFailed(error.message ?: "Failed to save node coordinates."))
+                }
         }
     }
 
