@@ -101,6 +101,61 @@ object QualityMetricsV1 {
     const val SHADOW_CLIP_T = 8
     const val HIGHLIGHT_CLIP_T = 247
 
+    /**
+     * Variance of Laplacian (3x3, 4-neighbor) for blur estimation on a rectified bitmap.
+     *
+     * Grayscale conversion uses deterministic Rec.601 coefficients:
+     *   Y = 0.299R + 0.587G + 0.114B
+     *
+     * Laplacian kernel:
+     *   [ 0  1  0 ]
+     *   [ 1 -4  1 ]
+     *   [ 0  1  0 ]
+     */
+    fun blurVarianceLaplacian(bitmap: Bitmap): Double {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width < 3 || height < 3) return 0.0
+
+        val pixelCount = width * height
+        val pixels = IntArray(pixelCount)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        val grayscale = DoubleArray(pixelCount)
+        for (i in 0 until pixelCount) {
+            val pixel = pixels[i]
+            val r = (pixel shr 16) and 0xFF
+            val g = (pixel shr 8) and 0xFF
+            val b = pixel and 0xFF
+            grayscale[i] = 0.299 * r + 0.587 * g + 0.114 * b
+        }
+
+        var sum = 0.0
+        var sumSq = 0.0
+        var count = 0
+        for (y in 1 until height - 1) {
+            val row = y * width
+            val rowAbove = row - width
+            val rowBelow = row + width
+            for (x in 1 until width - 1) {
+                val idx = row + x
+                val laplacian = grayscale[rowAbove + x] +
+                    grayscale[rowBelow + x] +
+                    grayscale[idx - 1] +
+                    grayscale[idx + 1] -
+                    4.0 * grayscale[idx]
+                sum += laplacian
+                sumSq += laplacian * laplacian
+                count += 1
+            }
+        }
+
+        if (count == 0) return 0.0
+        val mean = sum / count
+        val variance = (sumSq / count) - (mean * mean)
+        return if (variance.isFinite()) max(0.0, variance) else 0.0
+    }
+
     fun skewFromQuad(corners: OrderedCornersV1, imageW: Int, imageH: Int): SkewMetricsV1 {
         val imageArea = imageW.toDouble() * imageH.toDouble()
         val points = corners.asList()
@@ -231,5 +286,6 @@ data class DrawingImportPipelineResultV1(
     val imageWidth: Int,
     val imageHeight: Int,
     val skewMetrics: SkewMetricsV1,
+    val blurVariance: Double? = null,
     val exposureMetrics: ExposureMetricsV1,
 )

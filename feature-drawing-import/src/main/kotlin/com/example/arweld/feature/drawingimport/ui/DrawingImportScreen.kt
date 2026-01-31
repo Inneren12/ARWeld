@@ -3,6 +3,7 @@ package com.example.arweld.feature.drawingimport.ui
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import java.io.ByteArrayOutputStream
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -945,6 +946,14 @@ fun DrawingImportScreen(
                                                                                 frame.width,
                                                                                 frame.height,
                                                                             )
+                                                                            val blurVariance = activeProjectId?.let { projectId ->
+                                                                                computeRectifiedBlurVariance(
+                                                                                    projectDir = File(
+                                                                                        DrawingImportArtifacts.artifactsRoot(context),
+                                                                                        projectId,
+                                                                                    ),
+                                                                                )
+                                                                            }
                                                                             val exposure = exposureMetrics
                                                                                 ?: ExposureMetricsV1(
                                                                                     meanY = 0.0,
@@ -957,6 +966,7 @@ fun DrawingImportScreen(
                                                                                 imageWidth = frame.width,
                                                                                 imageHeight = frame.height,
                                                                                 skewMetrics = metrics,
+                                                                                blurVariance = blurVariance,
                                                                                 exposureMetrics = exposure,
                                                                             )
                                                                         }
@@ -1137,6 +1147,7 @@ fun DrawingImportScreen(
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
                                                 Text(
+                                                    text = formatBlurVarianceLabel(result.blurVariance),
                                                     text = formatExposureMetrics(result.exposureMetrics),
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
@@ -1498,6 +1509,22 @@ private fun formatSkewMetrics(metrics: SkewMetricsV1): String {
         "Keystone W/H: $keystoneW/$keystoneH • Page fill: $pageFill • Status: ${metrics.status.name}"
 }
 
+private fun formatBlurVarianceLabel(blurVariance: Double?): String {
+    val formatted = blurVariance?.let { value ->
+        String.format(Locale.US, "%.2f", value)
+    } ?: "n/a"
+    return "Blur (VarLap): $formatted"
+}
+
+private fun computeRectifiedBlurVariance(projectDir: File): Double? {
+    val rectifiedFile = File(projectDir, ProjectLayoutV1.RECTIFIED_IMAGE_PNG)
+    if (!rectifiedFile.exists()) return null
+    val bitmap = BitmapFactory.decodeFile(rectifiedFile.absolutePath) ?: return null
+    return try {
+        QualityMetricsV1.blurVarianceLaplacian(bitmap)
+    } finally {
+        bitmap.recycle()
+    }
 private fun formatExposureMetrics(metrics: ExposureMetricsV1): String {
     val meanY = "%.1f".format(Locale.US, metrics.meanY)
     val clipLow = "%.2f".format(Locale.US, metrics.clipLowPct)

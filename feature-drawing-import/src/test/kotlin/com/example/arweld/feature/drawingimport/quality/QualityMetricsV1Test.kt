@@ -7,7 +7,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class QualityMetricsV1Test {
     @Test
     fun `skewFromQuad returns zeros for perfect rectangle`() {
@@ -75,6 +78,66 @@ class QualityMetricsV1Test {
     }
 
     @Test
+    fun `blurVarianceLaplacian decreases after box blur`() {
+        val sharp = createCheckerboardBitmap(width = 64, height = 64, cellSize = 4)
+        val blurred = boxBlur(sharp, radius = 1)
+
+        val sharpVar = QualityMetricsV1.blurVarianceLaplacian(sharp)
+        val blurredVar = QualityMetricsV1.blurVarianceLaplacian(blurred)
+
+        assertTrue(sharpVar.isFinite())
+        assertTrue(blurredVar.isFinite())
+        assertTrue(sharpVar > blurredVar)
+
+        sharp.recycle()
+        blurred.recycle()
+    }
+
+    private fun createCheckerboardBitmap(width: Int, height: Int, cellSize: Int): Bitmap {
+        val pixels = IntArray(width * height)
+        for (y in 0 until height) {
+            val yCell = y / cellSize
+            for (x in 0 until width) {
+                val xCell = x / cellSize
+                val isWhite = (xCell + yCell) % 2 == 0
+                pixels[y * width + x] = if (isWhite) Color.WHITE else Color.BLACK
+            }
+        }
+        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+    }
+
+    private fun boxBlur(source: Bitmap, radius: Int): Bitmap {
+        val width = source.width
+        val height = source.height
+        val pixels = IntArray(width * height)
+        source.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        val out = IntArray(width * height)
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                var rSum = 0
+                var gSum = 0
+                var bSum = 0
+                var count = 0
+                for (dy in -radius..radius) {
+                    val yy = (y + dy).coerceIn(0, height - 1)
+                    val row = yy * width
+                    for (dx in -radius..radius) {
+                        val xx = (x + dx).coerceIn(0, width - 1)
+                        val pixel = pixels[row + xx]
+                        rSum += (pixel shr 16) and 0xFF
+                        gSum += (pixel shr 8) and 0xFF
+                        bSum += pixel and 0xFF
+                        count += 1
+                    }
+                }
+                val r = rSum / count
+                val g = gSum / count
+                val b = bSum / count
+                out[y * width + x] = Color.rgb(r, g, b)
+            }
+        }
+        return Bitmap.createBitmap(out, width, height, Bitmap.Config.ARGB_8888)
     fun `exposure reports clipping for black image`() {
         val bitmap = solidBitmap(10, 10, Color.BLACK)
         val metrics = QualityMetricsV1.exposure(bitmap)
