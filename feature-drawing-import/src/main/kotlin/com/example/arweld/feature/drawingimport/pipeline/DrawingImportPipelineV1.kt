@@ -11,6 +11,7 @@ import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
 import com.example.arweld.feature.drawingimport.artifacts.RectifiedArtifactWriterV1
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLogger
+import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportBlurFailureCode
 import com.example.arweld.feature.drawingimport.preprocess.ContourV1
 import com.example.arweld.feature.drawingimport.preprocess.CornerOrderingV1
 import com.example.arweld.feature.drawingimport.preprocess.CornerPointV1
@@ -31,6 +32,8 @@ import com.example.arweld.feature.drawingimport.preprocess.RectifySizeParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizePolicyV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineResultV1
+import com.example.arweld.feature.drawingimport.quality.QualityMetricsV1
+import com.example.arweld.feature.drawingimport.quality.RectifiedQualityMetricsV1
 import com.example.arweld.feature.drawingimport.ui.DrawingImportSession
 import com.example.arweld.feature.drawingimport.ui.RectifiedImageInfo
 import java.io.File
@@ -150,6 +153,10 @@ class DrawingImportPipelineV1(
             }
         }
 
+        cancellationContext?.ensureActive()
+        val rectifiedMetrics = computeRectifiedMetrics(rectifiedBitmap, session.projectId)
+        cancellationContext?.ensureActive()
+
         val saveOutcome = runStage(PageDetectStageV1.SAVE, session.projectId) {
             stages.saveArtifacts(session, rectifiedBitmap, rectifiedSize)
         }
@@ -167,6 +174,7 @@ class DrawingImportPipelineV1(
                 refinedCorners = refinedFull,
                 rectifiedSize = rectifiedSize,
                 artifacts = updatedSession.artifacts,
+                rectifiedQualityMetrics = rectifiedMetrics,
             ),
         )
     }
@@ -234,6 +242,36 @@ class DrawingImportPipelineV1(
             extras = extras,
         )
     }
+
+    private fun computeRectifiedMetrics(
+        rectifiedBitmap: Bitmap,
+        projectId: String,
+    ): RectifiedQualityMetricsV1 {
+        logEvent(DrawingImportEvent.BLUR_METRIC_START, projectId)
+        val blurVariance = try {
+            QualityMetricsV1.blurVarianceLaplacian(rectifiedBitmap)
+        } catch (error: Throwable) {
+            if (error is CancellationException) throw error
+            val failureCode = when (error) {
+                is OutOfMemoryError -> DrawingImportBlurFailureCode.OUT_OF_MEMORY
+                else -> DrawingImportBlurFailureCode.UNKNOWN
+            }
+            logEvent(
+                DrawingImportEvent.BLUR_METRIC_FAIL,
+                projectId,
+                mapOf("failureCode" to failureCode.name),
+            )
+            null
+        }
+        if (blurVariance != null) {
+            logEvent(
+                DrawingImportEvent.BLUR_METRIC_OK,
+                projectId,
+                mapOf("blurVariance" to blurVariance.toString()),
+            )
+        }
+        return RectifiedQualityMetricsV1(blurVariance = blurVariance)
+    }
 }
 
 data class PipelineResultV1(
@@ -241,6 +279,7 @@ data class PipelineResultV1(
     val refinedCorners: OrderedCornersV1?,
     val rectifiedSize: RectifiedSizeV1,
     val artifacts: List<ArtifactEntryV1>,
+    val rectifiedQualityMetrics: RectifiedQualityMetricsV1? = null,
 )
 
 data class DrawingImportPipelineParamsV1(

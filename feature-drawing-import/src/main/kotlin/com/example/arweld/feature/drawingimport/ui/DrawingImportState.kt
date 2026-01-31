@@ -2,6 +2,7 @@ package com.example.arweld.feature.drawingimport.ui
 
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactEntryV1
 import com.example.arweld.feature.drawingimport.pipeline.PipelineResultV1
+import com.example.arweld.feature.drawingimport.quality.RectifiedQualityMetricsV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailureV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectStageV1
 import java.io.File
@@ -16,6 +17,7 @@ data class DrawingImportSession(
     val projectDir: File,
     val artifacts: List<ArtifactEntryV1>,
     val rectifiedImageInfo: RectifiedImageInfo? = null,
+    val rectifiedQualityMetrics: RectifiedQualityMetricsV1? = null,
 )
 
 sealed interface DrawingImportUiState {
