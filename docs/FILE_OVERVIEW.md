@@ -40,9 +40,11 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `app/src/main/kotlin/com/example/arweld/ui/drawingeditor/ManualEditorRoute.kt` — NavHost wrapper that renders the Manual Editor screen.
 - `feature-drawing-editor/src/main/kotlin/com/example/arweld/feature/drawingeditor/ui/ManualEditorScreen.kt` — Toolbar + canvas + bottom sheet placeholders for the manual editor shell.
 - `feature-drawing-editor/src/main/kotlin/com/example/arweld/feature/drawingeditor/viewmodel/ManualEditorViewModel.kt` — Loads the current Drawing2D and tracks the selected tool.
+- `feature-drawing-editor/src/main/kotlin/com/example/arweld/feature/drawingeditor/diagnostics/EditorDiagnostics.kt` — Event types and structured logging helpers for editor actions (EditorOpened, DrawingSaved, ToolChanged, NodeAdded, NodeMoved, MemberAdded, ScaleSet).
 - `core-domain/src/main/kotlin/com/example/arweld/core/domain/drawing2d/Drawing2DRepository.kt` — Repository contract for retrieving the current Drawing2D.
 - `core-data/src/main/kotlin/com/example/arweld/core/data/drawing2d/Drawing2DRepositoryImpl.kt` — File-backed repository implementation (read-only in MVP).
 - Manual editor layout overview: `docs/2d3d/editor_ui_mvp.md`
+- Editor diagnostics spec: `docs/2d3d/diagnostics.md`
 
 **Page detection failure codes (v1)**
 
