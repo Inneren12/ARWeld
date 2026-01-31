@@ -17,6 +17,8 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/ui/DrawingImportScreen.kt` — Drawing Import UI with raw capture and structured diagnostics events.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/diagnostics/DrawingImportDiagnostics.kt` — Event + error code catalog and structured logging helpers for drawing import.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectPreprocessor.kt` — Deterministic preprocessing pipeline that decodes raw captures, applies EXIF rotation, downscales to a fixed max side, and emits grayscale buffers for page detection (S2-PR07).
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/DrawingImportGuardrailsV1.kt` — Performance guardrails (MAX_DECODE_PIXELS/MAX_DECODE_SIDE/MAX_RECTIFIED_PIXELS/MAX_RECTIFIED_SIDE/PIPELINE_MAX_MS) used for safe decode, rectified caps, and time budgeting.
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/SafeBitmapDecodeV1.kt` — Bounds-first decode helper that computes deterministic inSampleSize, enforces decode caps, applies EXIF rotation, and returns stable failure codes (INPUT_TOO_LARGE/OOM_RISK).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/quality/QualityMetricsV1.kt` — Deterministic quality metrics for rectified captures (skew + blur variance via Laplacian); blur variance is computed in the pipeline and persisted to capture meta (UI reads session/meta, no disk recompute from rectified.png).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/RectifySizePolicyV1.kt` — Deterministic rectified size policy using ordered corners, clamp limits, rounding rules, and failure codes (S2-PR15).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/CornerRefinerV1.kt` — Deterministic subpixel-ish corner refinement over PageDetectFrame edges (fixed window/iters/epsilon) with safe fallback codes.
@@ -30,6 +32,8 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 | Code | Meaning |
 | --- | --- |
 | `DECODE_FAILED` | Raw image decode failed. |
+| `INPUT_TOO_LARGE` | Raw input exceeds decode guardrails (pixel count or max side). |
+| `OOM_RISK` | Decode hit an out-of-memory risk. |
 | `EXIF_FAILED` | EXIF orientation read failed. |
 | `EDGES_FAILED` | Edge detection failed. |
 | `CONTOURS_EMPTY` | No usable contours after extraction. |
@@ -39,6 +43,8 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 | `ORDER_NOT_FOUR_POINTS` | Ordering received a non-quad list. |
 | `ORDER_DEGENERATE` | Quad geometry was degenerate/invalid. |
 | `REFINE_FAILED` | Corner refinement failed. |
+| `RECTIFIED_TOO_LARGE` | Rectified output exceeds pixel/side caps. |
+| `TIME_BUDGET_EXCEEDED` | Pipeline exceeded the configured time budget. |
 | `UNKNOWN` | Unclassified failure. |
 
 ### AR view and rendering (feature-arview)

@@ -25,6 +25,10 @@ enum class PageDetectStageV1 {
 enum class PageDetectFailureCodeV1 {
     /** Raw image decode failed (bitmap decode returned null or threw). */
     DECODE_FAILED,
+    /** Raw input exceeds decode guardrails (pixel count or max side). */
+    INPUT_TOO_LARGE,
+    /** Decode failed due to an out-of-memory risk. */
+    OOM_RISK,
     /** EXIF orientation read failed. */
     EXIF_FAILED,
     /** Edge detection failed. */
@@ -43,6 +47,10 @@ enum class PageDetectFailureCodeV1 {
     ORDER_DEGENERATE,
     /** Corner refinement failed. */
     REFINE_FAILED,
+    /** Rectified output exceeds the maximum pixel count/side caps. */
+    RECTIFIED_TOO_LARGE,
+    /** Pipeline exceeded the configured time budget. */
+    TIME_BUDGET_EXCEEDED,
     /** Unknown/unclassified failure. */
     UNKNOWN,
 }

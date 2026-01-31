@@ -14,6 +14,7 @@ data class RectifySizeParamsV1(
     val maxSide: Int,
     val minSide: Int,
     val enforceEven: Boolean,
+    val maxPixels: Int,
 )
 
 object RectifySizePolicyV1 {
@@ -24,7 +25,8 @@ object RectifySizePolicyV1 {
         corners: OrderedCornersV1,
         params: RectifySizeParamsV1,
     ): PageDetectOutcomeV1<RectifiedSizeV1> {
-        if (params.maxSide <= 0 || params.minSide <= 0 || params.maxSide < params.minSide) {
+        // maxSide is a hard cap: sizes larger than this are deterministically downscaled.
+        if (params.maxSide <= 0 || params.minSide <= 0 || params.maxSide < params.minSide || params.maxPixels <= 0) {
             return PageDetectOutcomeV1.Failure(
                 PageDetectFailureV1(
                     stage = PageDetectStageV1.RECTIFY_SIZE,
@@ -108,6 +110,15 @@ object RectifySizePolicyV1 {
                     stage = PageDetectStageV1.RECTIFY_SIZE,
                     code = PageDetectFailureCodeV1.UNKNOWN,
                     debugMessage = "Rounded size violates min/max constraints.",
+                ),
+            )
+        }
+        if (roundedWidth.toLong() * roundedHeight.toLong() > params.maxPixels.toLong()) {
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.RECTIFY_SIZE,
+                    code = PageDetectFailureCodeV1.RECTIFIED_TOO_LARGE,
+                    debugMessage = "Rectified size exceeds maxPixels (${params.maxPixels}).",
                 ),
             )
         }

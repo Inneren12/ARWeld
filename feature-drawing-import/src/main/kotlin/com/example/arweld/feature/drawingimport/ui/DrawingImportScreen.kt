@@ -90,6 +90,7 @@ import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelector
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectOutcomeV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailureCodeV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifiedSizeV1
+import com.example.arweld.feature.drawingimport.preprocess.DrawingImportGuardrailsV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizeParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizePolicyV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineParamsV1
@@ -1088,9 +1089,10 @@ fun DrawingImportScreen(
                                                                             RectifySizePolicyV1.compute(
                                                                                 orderedOutcome.value,
                                                                                 RectifySizeParamsV1(
-                                                                                    maxSide = 2048,
+                                                                                    maxSide = DrawingImportGuardrailsV1.MAX_RECTIFIED_SIDE,
                                                                                     minSide = 256,
                                                                                     enforceEven = true,
+                                                                                    maxPixels = DrawingImportGuardrailsV1.MAX_RECTIFIED_PIXELS,
                                                                                 ),
                                                                             )
                                                                         }
