@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -66,7 +67,10 @@ import com.example.arweld.feature.drawingimport.BuildConfig
 import com.example.arweld.feature.drawingimport.artifacts.DeleteOutcomeV1
 import com.example.arweld.feature.drawingimport.artifacts.DrawingImportArtifacts
 import com.example.arweld.feature.drawingimport.artifacts.ProjectFolderManagerV1
-import com.example.arweld.feature.drawingimport.camera.CameraSession
+import com.example.arweld.feature.drawingimport.camera.CameraCaptureOutcome
+import com.example.arweld.feature.drawingimport.camera.CameraFacade
+import com.example.arweld.feature.drawingimport.camera.CameraState
+import com.example.arweld.feature.drawingimport.camera.RealCameraFacade
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorCode
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorMapper
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
@@ -109,6 +113,7 @@ import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -116,16 +121,20 @@ import kotlinx.coroutines.withContext
 fun DrawingImportScreen(
     modifier: Modifier = Modifier,
     diagnosticsRecorder: DiagnosticsRecorder,
+    cameraFacade: CameraFacade? = null,
+    permissionStateOverride: CameraPermissionState? = null,
+    initialScreenState: DrawingImportUiState = DrawingImportUiState.Idle,
+    initialProcessState: DrawingImportProcessState = DrawingImportProcessState.Idle,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val cameraSession = remember { CameraSession(context) }
+    val resolvedCameraFacade = cameraFacade ?: remember(context) { RealCameraFacade(context) }
     val projectFolderManager = remember(context) { ProjectFolderManagerV1(context) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var previewView: PreviewView? by remember { mutableStateOf(null) }
     var screenState by rememberSaveable {
-        mutableStateOf<DrawingImportUiState>(DrawingImportUiState.Idle)
+        mutableStateOf(initialScreenState)
     }
     var activeProjectId by rememberSaveable { mutableStateOf<String?>(null) }
     var imageError by remember { mutableStateOf(false) }
@@ -150,7 +159,7 @@ fun DrawingImportScreen(
     var refineOutcome by remember { mutableStateOf<PageDetectOutcomeV1<RefineResultV1>?>(null) }
     var refineFailure by remember { mutableStateOf<PageDetectFailureV1?>(null) }
     var pipelineResult by remember { mutableStateOf<DrawingImportPipelineResultV1?>(null) }
-    var processState by remember { mutableStateOf<DrawingImportProcessState>(DrawingImportProcessState.Idle) }
+    var processState by remember { mutableStateOf(initialProcessState) }
     var pipelineJob by remember { mutableStateOf<Job?>(null) }
     var loadedCaptureMeta by remember { mutableStateOf<CaptureMetaV1?>(null) }
     var captureMetaJson by remember { mutableStateOf<String?>(null) }
@@ -170,14 +179,15 @@ fun DrawingImportScreen(
         )
     }
     var uiState by remember {
-        mutableStateOf<CameraPermissionState>(
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                PackageManager.PERMISSION_GRANTED
+        mutableStateOf(
+            permissionStateOverride ?: if (
+                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
             ) {
                 CameraPermissionState.Ready
             } else {
                 CameraPermissionState.NeedsPermission
-            }
+            },
         )
     }
     if (uiState is CameraPermissionState.Ready && screenState == DrawingImportUiState.Idle) {
@@ -268,13 +278,10 @@ fun DrawingImportScreen(
         }
     }
 
-    DisposableEffect(shouldBindCamera, lifecycleOwner, previewView) {
-        val currentPreviewView = previewView
-        if (shouldBindCamera && currentPreviewView != null) {
-            cameraSession.start(
-                lifecycleOwner,
-                currentPreviewView,
-                onReady = {
+    LaunchedEffect(resolvedCameraFacade) {
+        resolvedCameraFacade.state.collectLatest { state ->
+            when (state) {
+                CameraState.Ready -> {
                     if (!hasLoggedCameraReady) {
                         logDiagnosticsEvent(
                             logger = diagnosticsLogger,
@@ -287,12 +294,10 @@ fun DrawingImportScreen(
                         )
                         hasLoggedCameraReady = true
                     }
-                },
-                onError = { throwable ->
-                    cameraSession.stop()
-                    uiState = CameraPermissionState.CameraError(
-                        throwable.message ?: "Camera failed to start. Please try again.",
-                    )
+                }
+                is CameraState.Error -> {
+                    resolvedCameraFacade.stop()
+                    uiState = CameraPermissionState.CameraError(state.message)
                     screenState = DrawingImportUiState.Error("Camera failed to start. Please try again.")
                     logDiagnosticsEvent(
                         logger = diagnosticsLogger,
@@ -312,16 +317,24 @@ fun DrawingImportScreen(
                             lastErrorCode = DrawingImportErrorCode.CAMERA_BIND_FAILED
                         },
                     )
-                },
-            )
+                }
+                CameraState.Idle -> Unit
+            }
+        }
+    }
+
+    DisposableEffect(shouldBindCamera, lifecycleOwner, previewView) {
+        val currentPreviewView = previewView
+        if (shouldBindCamera && currentPreviewView != null) {
+            resolvedCameraFacade.start(lifecycleOwner, currentPreviewView)
         }
         onDispose {
-            cameraSession.stop()
+            resolvedCameraFacade.stop()
         }
     }
 
     Surface(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().testTag(UiTags.drawingImportRoot),
         color = MaterialTheme.colorScheme.background
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -373,7 +386,10 @@ fun DrawingImportScreen(
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Spacer(modifier = Modifier.height(12.dp))
-                            Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                            Button(
+                                onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+                                modifier = Modifier.testTag(UiTags.cameraPermissionCta),
+                            ) {
                                 Text(text = "Grant Camera")
                             }
                         }
@@ -385,7 +401,10 @@ fun DrawingImportScreen(
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Spacer(modifier = Modifier.height(12.dp))
-                            Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                            Button(
+                                onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+                                modifier = Modifier.testTag(UiTags.cameraPermissionCta),
+                            ) {
                                 Text(text = "Retry Permission")
                             }
                         }
@@ -481,6 +500,7 @@ fun DrawingImportScreen(
                                         text = "Capture saved",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.testTag(UiTags.resultRoot),
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Text(
@@ -756,6 +776,7 @@ fun DrawingImportScreen(
                                                     }
                                                 },
                                                 enabled = !isRunning,
+                                                modifier = Modifier.testTag(UiTags.processButton),
                                             ) {
                                                 Text(text = if (isRunning) "Processing..." else "Process")
                                             }
@@ -1637,28 +1658,29 @@ fun DrawingImportScreen(
                                             tempDir.mkdirs()
                                         }
                                         val tempFile = File(tempDir, "raw_capture.jpg")
-                                        try {
-                                            val targetRotation = previewView?.display?.rotation
-                                            cameraSession.captureImage(tempFile, targetRotation)
-                                        } catch (error: Throwable) {
-                                            val code = DrawingImportErrorMapper.fromThrowable(error)
-                                            screenState = DrawingImportUiState.Error(
-                                                DrawingImportErrorMapper.messageFor(code),
-                                            )
-                                            logDiagnosticsError(
-                                                logger = diagnosticsLogger,
-                                                projectId = captureProjectId,
-                                                code = code,
-                                                onLogged = {
-                                                    lastEventName = DrawingImportEvent.ERROR.eventName
-                                                    lastErrorCode = code
-                                                },
-                                            )
-                                            snackbarHostState.showSnackbar(
-                                                DrawingImportErrorMapper.messageFor(code),
-                                            )
-                                            tempFile.delete()
-                                            return@launch
+                                        val targetRotation = previewView?.display?.rotation
+                                        when (val outcome = resolvedCameraFacade.capture(tempFile, targetRotation)) {
+                                            is CameraCaptureOutcome.Success -> Unit
+                                            is CameraCaptureOutcome.Failure -> {
+                                                val code = DrawingImportErrorMapper.fromThrowable(outcome.error)
+                                                screenState = DrawingImportUiState.Error(
+                                                    DrawingImportErrorMapper.messageFor(code),
+                                                )
+                                                logDiagnosticsError(
+                                                    logger = diagnosticsLogger,
+                                                    projectId = captureProjectId,
+                                                    code = code,
+                                                    onLogged = {
+                                                        lastEventName = DrawingImportEvent.ERROR.eventName
+                                                        lastErrorCode = code
+                                                    },
+                                                )
+                                                snackbarHostState.showSnackbar(
+                                                    DrawingImportErrorMapper.messageFor(code),
+                                                )
+                                                tempFile.delete()
+                                                return@launch
+                                            }
                                         }
                                         try {
                                             val artifactsRoot = projectFolderManager.artifactsRoot()
@@ -1725,6 +1747,7 @@ fun DrawingImportScreen(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary,
                                 ),
+                                modifier = Modifier.testTag(UiTags.captureButton),
                             ) {
                                 Text(text = "Capture")
                             }
