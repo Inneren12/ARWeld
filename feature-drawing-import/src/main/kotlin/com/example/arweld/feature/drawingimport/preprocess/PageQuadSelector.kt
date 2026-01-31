@@ -24,6 +24,9 @@ enum class PageDetectFailureCode {
     EXTREME_ASPECT_RATIO,
     SIZE_CONSTRAINTS,
     INVALID_SIZE_PARAMS,
+    INVALID_REFINE_PARAMS,
+    INVALID_FRAME,
+    REFINE_NON_FINITE,
 }
 
 data class PageDetectFailure(
