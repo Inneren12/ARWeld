@@ -66,6 +66,10 @@ data class NodeEditDraft(
     val applyError: String? = null,
 )
 
+data class MemberDraft(
+    val nodeAId: String? = null,
+)
+
 data class EditorState(
     val tool: EditorTool = EditorTool.SELECT,
     val selection: EditorSelection = EditorSelection.None,
@@ -79,6 +83,7 @@ data class EditorState(
     val nodeDragState: NodeDragState? = null,
     val scaleDraft: ScaleDraft = ScaleDraft(),
     val nodeEditDraft: NodeEditDraft = NodeEditDraft(),
+    val memberDraft: MemberDraft = MemberDraft(),
     val undoStack: List<Drawing2D> = emptyList(),
     val redoStack: List<Drawing2D> = emptyList(),
 )

@@ -63,6 +63,7 @@ import com.example.arweld.feature.drawingeditor.render.resolveAllMemberEndpoints
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorSelection
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorState
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorTool
+import com.example.arweld.feature.drawingeditor.viewmodel.MemberDraft
 import com.example.arweld.feature.drawingeditor.viewmodel.Point2
 import com.example.arweld.feature.drawingeditor.viewmodel.NodeEditDraft
 import com.example.arweld.feature.drawingeditor.viewmodel.ScaleDraft
@@ -119,6 +120,7 @@ fun ManualEditorScreen(
     onRedo: () -> Unit,
     onNodeDelete: (String) -> Unit,
     onNodeTap: (Point2D, Float) -> Unit,
+    onMemberNodeTap: (String) -> Unit,
     onNodeDragStart: (String, Point2D) -> Unit,
     onNodeDragMove: (Point2D) -> Unit,
     onNodeDragEnd: (Point2D) -> Unit,
@@ -162,6 +164,7 @@ fun ManualEditorScreen(
                 selectedTool = uiState.tool,
                 summaryText = buildSummaryText(uiState.drawing),
                 scaleDraft = uiState.scaleDraft,
+                memberDraft = uiState.memberDraft,
                 selectedNode = selectedNode,
                 nodeEditDraft = uiState.nodeEditDraft,
                 undoEnabled = uiState.undoStack.isNotEmpty(),
@@ -210,6 +213,7 @@ fun ManualEditorScreen(
                         uiState = uiState,
                         onScalePointSelected = onScalePointSelected,
                         onNodeTap = onNodeTap,
+                        onMemberNodeTap = onMemberNodeTap,
                         onNodeDragStart = onNodeDragStart,
                         onNodeDragMove = onNodeDragMove,
                         onNodeDragEnd = onNodeDragEnd,
@@ -230,6 +234,7 @@ private fun EditorCanvas(
     uiState: EditorState,
     onScalePointSelected: (Point2D) -> Unit,
     onNodeTap: (Point2D, Float) -> Unit,
+    onMemberNodeTap: (String) -> Unit,
     onNodeDragStart: (String, Point2D) -> Unit,
     onNodeDragMove: (Point2D) -> Unit,
     onNodeDragEnd: (Point2D) -> Unit,
@@ -311,7 +316,17 @@ private fun EditorCanvas(
                             }
                         }
                         EditorTool.NODE -> onNodeTap(worldTap, tolerancePx)
-                        EditorTool.MEMBER -> Unit
+                        EditorTool.MEMBER -> {
+                            val hitNodeId = hitTestNode(
+                                worldTap = worldTap,
+                                nodes = uiState.drawing.nodes,
+                                tolerancePx = tolerancePx,
+                                viewTransform = uiState.viewTransform,
+                            )
+                            if (hitNodeId != null) {
+                                onMemberNodeTap(hitNodeId)
+                            }
+                        }
                     }
                 }
             }
@@ -352,6 +367,19 @@ private fun EditorCanvas(
                 val screenB = worldToScreen(pointB, uiState.viewTransform)
                 drawLine(color = lineColor, start = screenA, end = screenB, strokeWidth = 3f)
             }
+
+            val memberDraftNode = uiState.memberDraft.nodeAId?.let { nodeId ->
+                uiState.drawing.nodes.firstOrNull { it.id == nodeId }
+            }
+            if (memberDraftNode != null) {
+                val screenA = worldToScreen(Point2D(memberDraftNode.x, memberDraftNode.y), uiState.viewTransform)
+                drawCircle(
+                    color = MaterialTheme.colorScheme.primary,
+                    radius = 12f,
+                    center = screenA,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f),
+                )
+            }
         }
 
         Column(
@@ -374,6 +402,19 @@ private fun EditorCanvas(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Tap two points to define scale.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (uiState.tool == EditorTool.MEMBER) {
+                Spacer(modifier = Modifier.height(4.dp))
+                val hint = if (uiState.memberDraft.nodeAId == null) {
+                    "Tap a node to start a member."
+                } else {
+                    "Select the second node to complete the member."
+                }
+                Text(
+                    text = hint,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -476,6 +517,7 @@ private fun BottomSheetContent(
     selectedTool: EditorTool,
     summaryText: String,
     scaleDraft: ScaleDraft,
+    memberDraft: MemberDraft,
     selectedNode: Node2D?,
     nodeEditDraft: NodeEditDraft,
     undoEnabled: Boolean,
@@ -510,6 +552,20 @@ private fun BottomSheetContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            if (selectedTool == EditorTool.MEMBER) {
+                Spacer(modifier = Modifier.height(8.dp))
+                val memberHint = if (memberDraft.nodeAId == null) {
+                    "Member tool: select the first node."
+                } else {
+                    "Member tool: select the second node."
+                }
+                Text(
+                    text = memberHint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             if (selectedNode != null) {
                 Spacer(modifier = Modifier.height(8.dp))

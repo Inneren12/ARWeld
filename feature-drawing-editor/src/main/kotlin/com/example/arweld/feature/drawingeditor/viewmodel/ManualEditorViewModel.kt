@@ -42,6 +42,7 @@ class ManualEditorViewModel @Inject constructor(
             EditorIntent.NodeDragCancel -> reduce(intent)
             is EditorIntent.NodeDeleteRequested -> handleNodeDelete(intent)
             is EditorIntent.NodeEditApplyRequested -> handleNodeEditApply(intent)
+            is EditorIntent.MemberNodeTapped -> handleMemberNodeTap(intent)
             is EditorIntent.ToolChanged -> {
                 val previousTool = mutableUiState.value.tool
                 reduce(intent)
@@ -51,6 +52,24 @@ class ManualEditorViewModel @Inject constructor(
                 )
             }
             else -> reduce(intent)
+        }
+    }
+
+    private fun handleMemberNodeTap(intent: EditorIntent.MemberNodeTapped) {
+        viewModelScope.launch {
+            val previous = mutableUiState.value
+            val previousMemberIds = previous.drawing.members.map { it.id }.toSet()
+            val updated = reduceAndReturn(intent) ?: return@launch
+            val newMember = updated.drawing.members.firstOrNull { it.id !in previousMemberIds }
+            if (newMember == null) {
+                return@launch
+            }
+            persistUpdatedDrawing(updated)
+            editorDiagnosticsLogger.logMemberAdded(
+                memberId = newMember.id,
+                aNodeId = newMember.aNodeId,
+                bNodeId = newMember.bNodeId,
+            )
         }
     }
 
