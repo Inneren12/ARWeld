@@ -3,7 +3,11 @@ package com.example.arweld.feature.drawingeditor.ui
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.awaitUpOrCancellation
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +55,7 @@ import coil.request.ImageRequest
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.core.drawing2d.editor.v1.missingNodeReferences
+import com.example.arweld.feature.drawingeditor.hittest.hitTestNode
 import com.example.arweld.feature.drawingeditor.hittest.selectEntityAtTap
 import com.example.arweld.feature.drawingeditor.render.ResolvedMember
 import com.example.arweld.feature.drawingeditor.render.resolveAllMemberEndpoints
@@ -113,6 +118,10 @@ fun ManualEditorScreen(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onNodeTap: (Point2D, Float) -> Unit,
+    onNodeDragStart: (String, Point2D) -> Unit,
+    onNodeDragMove: (Point2D) -> Unit,
+    onNodeDragEnd: (Point2D) -> Unit,
+    onNodeDragCancel: () -> Unit,
     onSelectEntity: (EditorSelection) -> Unit,
     onClearSelection: () -> Unit,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
@@ -187,6 +196,10 @@ fun ManualEditorScreen(
                         uiState = uiState,
                         onScalePointSelected = onScalePointSelected,
                         onNodeTap = onNodeTap,
+                        onNodeDragStart = onNodeDragStart,
+                        onNodeDragMove = onNodeDragMove,
+                        onNodeDragEnd = onNodeDragEnd,
+                        onNodeDragCancel = onNodeDragCancel,
                         onSelectEntity = onSelectEntity,
                         onClearSelection = onClearSelection,
                         onTransformGesture = onTransformGesture,
@@ -203,6 +216,10 @@ private fun EditorCanvas(
     uiState: EditorState,
     onScalePointSelected: (Point2D) -> Unit,
     onNodeTap: (Point2D, Float) -> Unit,
+    onNodeDragStart: (String, Point2D) -> Unit,
+    onNodeDragMove: (Point2D) -> Unit,
+    onNodeDragEnd: (Point2D) -> Unit,
+    onNodeDragCancel: () -> Unit,
     onSelectEntity: (EditorSelection) -> Unit,
     onClearSelection: () -> Unit,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
@@ -225,26 +242,60 @@ private fun EditorCanvas(
     val tolerancePx = with(LocalDensity.current) { HIT_TEST_TOLERANCE_DP.toPx() }
 
     Box(
-        modifier = modifier.pointerInput(uiState.tool, scale, offsetX, offsetY, tolerancePx) {
-            detectTapGestures { offset ->
-                val worldTap = screenToWorld(offset, uiState.viewTransform)
-                when (uiState.tool) {
-                    EditorTool.SCALE -> onScalePointSelected(worldTap)
-                    EditorTool.SELECT -> {
-                        val selection = selectEntityAtTap(
-                            worldTap = worldTap,
-                            drawing = uiState.drawing,
-                            tolerancePx = tolerancePx,
-                            viewTransform = uiState.viewTransform,
-                        )
-                        if (selection == EditorSelection.None) {
-                            onClearSelection()
-                        } else {
-                            onSelectEntity(selection)
-                        }
+        modifier = modifier.pointerInput(uiState.tool, uiState.drawing, scale, offsetX, offsetY, tolerancePx) {
+            awaitEachGesture {
+                val down = awaitFirstDown()
+                val worldDown = screenToWorld(down.position, uiState.viewTransform)
+                val hitNodeId = if (uiState.tool == EditorTool.NODE) {
+                    hitTestNode(
+                        worldTap = worldDown,
+                        nodes = uiState.drawing.nodes,
+                        tolerancePx = tolerancePx,
+                        viewTransform = uiState.viewTransform,
+                    )
+                } else {
+                    null
+                }
+                val dragPointer = awaitTouchSlopOrCancellation(down.id) { change, _ ->
+                    if (hitNodeId != null) {
+                        change.consume()
                     }
-                    EditorTool.NODE -> onNodeTap(worldTap, tolerancePx)
-                    EditorTool.MEMBER -> Unit
+                }
+                if (dragPointer != null && hitNodeId != null && uiState.tool == EditorTool.NODE) {
+                    onNodeDragStart(hitNodeId, worldDown)
+                    var lastWorld = screenToWorld(dragPointer.position, uiState.viewTransform)
+                    onNodeDragMove(lastWorld)
+                    val finished = drag(down.id) { change ->
+                        lastWorld = screenToWorld(change.position, uiState.viewTransform)
+                        onNodeDragMove(lastWorld)
+                        change.consume()
+                    }
+                    if (finished) {
+                        onNodeDragEnd(lastWorld)
+                    } else {
+                        onNodeDragCancel()
+                    }
+                } else {
+                    val up = awaitUpOrCancellation() ?: return@awaitEachGesture
+                    val worldTap = screenToWorld(up.position, uiState.viewTransform)
+                    when (uiState.tool) {
+                        EditorTool.SCALE -> onScalePointSelected(worldTap)
+                        EditorTool.SELECT -> {
+                            val selection = selectEntityAtTap(
+                                worldTap = worldTap,
+                                drawing = uiState.drawing,
+                                tolerancePx = tolerancePx,
+                                viewTransform = uiState.viewTransform,
+                            )
+                            if (selection == EditorSelection.None) {
+                                onClearSelection()
+                            } else {
+                                onSelectEntity(selection)
+                            }
+                        }
+                        EditorTool.NODE -> onNodeTap(worldTap, tolerancePx)
+                        EditorTool.MEMBER -> Unit
+                    }
                 }
             }
         }
@@ -254,6 +305,7 @@ private fun EditorCanvas(
             viewTransform = uiState.viewTransform,
             underlayState = uiState.underlayState,
             selection = uiState.selection,
+            allowTransformGestures = uiState.nodeDragState == null,
             onTransformGesture = onTransformGesture,
             modifier = Modifier
                 .fillMaxSize()
@@ -565,6 +617,7 @@ private fun DrawingCanvasWithUnderlay(
     viewTransform: ViewTransform,
     underlayState: UnderlayState,
     selection: EditorSelection,
+    allowTransformGestures: Boolean,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -597,6 +650,9 @@ private fun DrawingCanvasWithUnderlay(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTransformGestures { centroid, pan, zoom, _ ->
+                        if (!allowTransformGestures) {
+                            return@detectTransformGestures
+                        }
                         if (pan != Offset.Zero || zoom != 1f) {
                             onTransformGesture(
                                 panX = pan.x,

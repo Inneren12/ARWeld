@@ -33,6 +33,20 @@ The scale tool has dedicated regression coverage to keep calibration determinist
 ./gradlew :core-data:test --tests "*Drawing2DRepositoryImplTest"
 ```
 
+## Node Move Tests
+
+Node drag behavior is covered with reducer and ViewModel tests:
+
+- **Reducer:** deterministic drag math, undo snapshot only on drag end.
+- **ViewModel:** persistence occurs once per completed drag.
+
+### How to Run
+
+```bash
+# Node drag reducer + ViewModel tests
+./gradlew :feature-drawing-editor:test --tests "*NodeDragReducerTest" --tests "*ManualEditorViewModelTest"
+```
+
 ## Smoke Tests
 
 The smoke test suite (`Drawing2DEditorSmokeTest`) provides minimal coverage to catch basic wiring regressions in the 2D3D editor foundations without requiring full UI.
@@ -96,6 +110,7 @@ Note: Workspace path convention tests are in `core-domain/Project2D3DWorkspaceTe
 | `Drawing2DEditorDeterminismTest.kt` | `core-drawing2d` | Deterministic serialization verification |
 | `Project2D3DWorkspaceTest.kt` | `core-domain` | Workspace path and segment tests |
 | `ManualEditorViewModelTest.kt` | `feature-drawing-editor` | ViewModel state management tests |
+| `NodeDragReducerTest.kt` | `feature-drawing-editor` | Node drag reducer tests (deterministic move + history) |
 | `EditorDiagnosticsLoggerTest.kt` | `feature-drawing-editor` | Diagnostics event emission tests |
 
 ## Adding New Tests

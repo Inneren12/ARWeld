@@ -12,6 +12,26 @@
 - Node hit testing uses the same screen-space tolerance defined in the selection rules, converted
   to world units using `viewTransform.scale`.
 
+## Drag to move (NODE tool)
+- Dragging starts when the pointer goes down on an existing node while the **NODE** tool is active.
+  The node is selected immediately and begins moving once the pointer exceeds touch slop.
+- While dragging, the node updates live for immediate visual feedback.
+- Dragging uses world-space math derived from the drag start to avoid drift:
+
+```
+deltaWorld = pointerWorld - startPointerWorld
+newWorld = startWorldPos + deltaWorld
+```
+
+- The node position is computed from the **original start position**, not accumulated per tick, to
+  keep movement deterministic.
+
+## Drag commit policy
+- A single undo snapshot is pushed on **drag end** (not per move tick).
+- Persistence happens only on drag end:
+  - **Auto-save enabled:** persist `drawing2d.json` once per completed drag.
+  - **Manual save:** mark dirty once per completed drag (no per-frame writes).
+
 ## Deterministic IDs
 - New nodes use deterministic ID allocation (`N000001`, `N000002`, …) backed by
   `Drawing2DEditorMetaV1.nextNodeId`.
