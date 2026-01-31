@@ -41,23 +41,22 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.core.drawing2d.editor.v1.missingNodeReferences
+import com.example.arweld.feature.drawingeditor.hittest.selectEntityAtTap
 import com.example.arweld.feature.drawingeditor.render.ResolvedMember
 import com.example.arweld.feature.drawingeditor.render.resolveAllMemberEndpoints
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorSelection
@@ -74,6 +73,7 @@ import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleLengthMm
 import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleMmPerPx
 import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleValue
 import com.example.arweld.feature.drawingeditor.viewmodel.worldToScreen
+import java.util.Locale
 
 /**
  * Render configuration constants for drawing primitives.
@@ -104,6 +104,8 @@ private object RenderConfig {
     val ORIGIN_MARKER_COLOR = Color(0xFFE91E63)      // Pink
 }
 
+private val HIT_TEST_TOLERANCE_DP = 16.dp
+
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun ManualEditorScreen(
@@ -115,6 +117,8 @@ fun ManualEditorScreen(
     onScaleReset: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onSelectEntity: (EditorSelection) -> Unit,
+    onClearSelection: () -> Unit,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -183,10 +187,13 @@ fun ManualEditorScreen(
                 }
 
                 else -> {
-                    DrawingCanvasWithUnderlay(
                     EditorCanvas(
                         uiState = uiState,
                         onScalePointSelected = onScalePointSelected,
+                        onSelectEntity = onSelectEntity,
+                        onClearSelection = onClearSelection,
+                        onTransformGesture = onTransformGesture,
+                        modifier = Modifier.fillMaxSize(),
                         onTransformGesture = onTransformGesture,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -200,6 +207,8 @@ fun ManualEditorScreen(
 private fun EditorCanvas(
     uiState: EditorState,
     onScalePointSelected: (Point2D) -> Unit,
+    onSelectEntity: (EditorSelection) -> Unit,
+    onClearSelection: () -> Unit,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -217,31 +226,45 @@ private fun EditorCanvas(
     }
     labelPaint.color = MaterialTheme.colorScheme.onSurface.toArgb()
 
+    val tolerancePx = with(LocalDensity.current) { HIT_TEST_TOLERANCE_DP.toPx() }
+
     Box(
         modifier = modifier.pointerInput(uiState.tool, scale, offsetX, offsetY) {
             detectTapGestures { offset ->
                 if (uiState.tool == EditorTool.SCALE) {
                     onScalePointSelected(screenToWorld(offset, uiState.viewTransform))
         modifier = modifier
-            .pointerInput(uiState.tool, scale, offsetX, offsetY) {
+            .pointerInput(uiState.tool, scale, offsetX, offsetY, tolerancePx) {
                 detectTapGestures { offset ->
-                    if (uiState.tool == EditorTool.SCALE) {
-                        onScalePointSelected(screenToWorld(offset, uiState.viewTransform))
+                    when (uiState.tool) {
+                        EditorTool.SCALE -> {
+                            onScalePointSelected(screenToWorld(offset, uiState.viewTransform))
+                        }
+                        EditorTool.SELECT -> {
+                            val worldTap = screenToWorld(offset, uiState.viewTransform)
+                            val selection = selectEntityAtTap(
+                                worldTap = worldTap,
+                                drawing = uiState.drawing,
+                                tolerancePx = tolerancePx,
+                                viewTransform = uiState.viewTransform,
+                            )
+                            if (selection == EditorSelection.None) {
+                                onClearSelection()
+                            } else {
+                                onSelectEntity(selection)
+                            }
+                        }
+                        else -> Unit
                     }
-                    DrawingCanvas(
-                        drawing = uiState.drawing,
-                        viewTransform = uiState.viewTransform,
-                        underlayState = uiState.underlayState,
-                        selection = uiState.selection,
-                        onTransformGesture = onTransformGesture,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                    )
                 }
             }
         }
     ) {
+        DrawingCanvasWithUnderlay(
+            drawing = uiState.drawing,
+            viewTransform = uiState.viewTransform,
+            underlayState = uiState.underlayState,
+            selection = uiState.selection,
         DrawingCanvas(
             drawing = uiState.drawing,
             viewTransform = uiState.viewTransform,
@@ -250,6 +273,7 @@ private fun EditorCanvas(
                 .fillMaxSize()
                 .padding(16.dp),
         )
+
         Canvas(modifier = Modifier.fillMaxSize()) {
             val pointA = draft.pointA
             val pointB = draft.pointB
@@ -549,6 +573,8 @@ private fun worldToScreen(point: Point2D, transform: ViewTransform): Offset {
         y = (point.y * scale + transform.offsetY).toFloat(),
     )
 }
+
+private fun formatNumber(value: Double): String = String.format(Locale.US, "%.4f", value)
 
 @Composable
 private fun DrawingCanvasWithUnderlay(

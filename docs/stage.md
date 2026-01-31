@@ -1789,6 +1789,13 @@ data class ArScreenshotMetadata(
 - Unit tests: `DrawingRenderHelpersTest` covers endpoint resolution and missing node handling.
 - Documentation: Updated `docs/2d3d/editor_ui_mvp.md` with render layer details.
 
+**S3-11 — Selection + hit-testing (nodes/members) ✅ COMPLETED:**
+- Added deterministic hit-test utilities for nodes and members, using screen-space tolerance mapped through `viewTransform`.
+- Selection policy: node priority over member, deterministic tie-break by lowest id.
+- Canvas taps map to `SelectEntity` or `ClearSelection`, and selected entities render highlighted strokes.
+- Unit tests cover distance-to-segment math, selection priority, and tie-breaks.
+- Documentation: `docs/2d3d/selection_and_hit_testing.md`.
+
 **S3-14 — Scale tool (enter length + apply + persist + undo/redo) ✅ COMPLETED:**
 - Bottom sheet shows a real-length (mm) input once A/B are selected.
 - Valid input computes `mmPerPx = realLengthMm / distance(A, B)` and previews it.
