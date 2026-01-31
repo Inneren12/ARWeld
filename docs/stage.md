@@ -1776,6 +1776,11 @@ data class ArScreenshotMetadata(
 - The second tap stores Point B; markers A/B and a connecting line are rendered on the canvas.
 - A third tap resets the draft (A becomes the new tap point, B clears).
 
+**S3-14 — Scale tool (enter length + apply + persist + undo/redo) ✅ COMPLETED:**
+- Bottom sheet shows a real-length (mm) input once A/B are selected.
+- Valid input computes `mmPerPx = realLengthMm / distance(A, B)` and previews it.
+- Apply persists `Drawing2D.scale` via `Drawing2DRepository.saveCurrentDrawing()` with explicit validation errors.
+- Undo/redo restores scale set/unset deterministically.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**
