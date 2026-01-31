@@ -20,7 +20,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -30,6 +33,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -145,6 +149,8 @@ fun DrawingImportScreen(
     var processState by remember { mutableStateOf<DrawingImportProcessState>(DrawingImportProcessState.Idle) }
     var pipelineJob by remember { mutableStateOf<Job?>(null) }
     var loadedCaptureMeta by remember { mutableStateOf<CaptureMetaV1?>(null) }
+    var captureMetaJson by remember { mutableStateOf<String?>(null) }
+    var showCaptureMetaDialog by remember { mutableStateOf(false) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
@@ -226,7 +232,7 @@ fun DrawingImportScreen(
         val currentState = screenState
         if (meta != null && currentState is DrawingImportUiState.Saved) {
             val session = currentState.session
-            val metaBlur = meta.metrics?.blurVariance
+            val metaBlur = meta.metrics.blurVar
             val mergedMetrics = when {
                 session.rectifiedQualityMetrics == null -> RectifiedQualityMetricsV1(blurVariance = metaBlur)
                 session.rectifiedQualityMetrics.blurVariance == null && metaBlur != null -> {
@@ -235,7 +241,7 @@ fun DrawingImportScreen(
                 else -> session.rectifiedQualityMetrics
             }
             val mergedRectified = session.rectifiedImageInfo
-                ?: meta.rectified?.let { RectifiedImageInfo(it.widthPx, it.heightPx) }
+                ?: RectifiedImageInfo(meta.rectified.widthPx, meta.rectified.heightPx)
             screenState = DrawingImportUiState.Saved(
                 session.copy(
                     rectifiedQualityMetrics = mergedMetrics,
@@ -452,11 +458,18 @@ fun DrawingImportScreen(
                                         it.kind == ArtifactKindV1.RECTIFIED_IMAGE &&
                                             it.relPath == ProjectLayoutV1.RECTIFIED_IMAGE_PNG
                                     }
+                                    val captureMetaEntry = captureState.session.artifacts.firstOrNull {
+                                        it.kind == ArtifactKindV1.CAPTURE_META &&
+                                            it.relPath == ProjectLayoutV1.CAPTURE_META_JSON
+                                    }
                                     val rectifiedInfo = captureState.session.rectifiedImageInfo
                                     val rawFile = rawEntry?.let {
                                         File(captureState.session.projectDir, it.relPath)
                                     }
                                     val rectifiedFile = rectifiedEntry?.let {
+                                        File(captureState.session.projectDir, it.relPath)
+                                    }
+                                    val captureMetaFile = captureMetaEntry?.let {
                                         File(captureState.session.projectDir, it.relPath)
                                     }
 
@@ -596,6 +609,26 @@ fun DrawingImportScreen(
                                                 pixelSha256 = entry.pixelSha256,
                                                 sizeLabel = sizeLabel,
                                             )
+                                        }
+                                        captureMetaEntry?.let { entry ->
+                                            ArtifactSummaryRow(
+                                                label = "Capture meta",
+                                                relPath = entry.relPath,
+                                                sha256 = entry.sha256,
+                                            )
+                                            TextButton(
+                                                onClick = {
+                                                    coroutineScope.launch {
+                                                        val json = withContext(Dispatchers.IO) {
+                                                            captureMetaFile?.takeIf { it.exists() }?.readText()
+                                                        }
+                                                        captureMetaJson = json
+                                                        showCaptureMetaDialog = true
+                                                    }
+                                                },
+                                            ) {
+                                                Text(text = "Open JSON")
+                                            }
                                         }
                                         ArtifactSummaryRow(
                                             label = "Manifest",
@@ -1684,6 +1717,28 @@ fun DrawingImportScreen(
         }
     }
 
+    if (showCaptureMetaDialog) {
+        AlertDialog(
+            onDismissRequest = { showCaptureMetaDialog = false },
+            title = { Text(text = "Capture meta.json") },
+            text = {
+                val scrollState = rememberScrollState()
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 320.dp)
+                        .verticalScroll(scrollState),
+                ) {
+                    Text(text = captureMetaJson ?: "capture_meta.json not available.")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showCaptureMetaDialog = false }) {
+                    Text(text = "Close")
+                }
+            },
+        )
+    }
+
     DisposableEffect(Unit) {
         logDiagnosticsEvent(
             logger = diagnosticsLogger,
@@ -1743,7 +1798,7 @@ private fun resolvedBlurVariance(
         ?.session
         ?.rectifiedQualityMetrics
         ?.blurVariance
-    val metaBlur = captureMeta?.metrics?.blurVariance
+    val metaBlur = captureMeta?.metrics?.blurVar
     return sessionBlur ?: metaBlur
 }
 
