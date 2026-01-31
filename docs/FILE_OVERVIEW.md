@@ -21,6 +21,7 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/RectifySizePolicyV1.kt` — Deterministic rectified size policy using ordered corners, clamp limits, rounding rules, and failure codes (S2-PR15).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/CornerRefinerV1.kt` — Deterministic subpixel-ish corner refinement over PageDetectFrame edges (fixed window/iters/epsilon) with safe fallback codes.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectContractsV1.kt` — Unified page detection outcome contract (stage + failure code + debug message) for preprocess/edges/contours/quad/order/refine.
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/pipeline/DrawingImportPipelineV1.kt` — End-to-end deterministic pipeline orchestrator (upright load → preprocess → detect → order/refine → size → rectify → save) with stage logging.
 - `overlays/corners.png` — Debug corner overlay artifact saved via `ProjectLayoutV1.overlay("corners")` after ordering/refining corners.
 - `app/src/main/kotlin/com/example/arweld/ui/drawingimport/DrawingImportRoute.kt` — App-level navigation wrapper for Drawing Import.
 

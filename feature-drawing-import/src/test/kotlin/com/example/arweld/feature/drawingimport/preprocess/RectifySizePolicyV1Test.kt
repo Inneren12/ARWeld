@@ -11,10 +11,10 @@ class RectifySizePolicyV1Test {
     @Test
     fun `compute returns size for axis-aligned rectangle`() {
         val corners = OrderedCornersV1(
-            topLeft = PointV1(0, 0),
-            topRight = PointV1(200, 0),
-            bottomRight = PointV1(200, 100),
-            bottomLeft = PointV1(0, 100),
+            topLeft = CornerPointV1(0.0, 0.0),
+            topRight = CornerPointV1(200.0, 0.0),
+            bottomRight = CornerPointV1(200.0, 100.0),
+            bottomLeft = CornerPointV1(0.0, 100.0),
         )
         val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false)
 
@@ -29,10 +29,10 @@ class RectifySizePolicyV1Test {
     @Test
     fun `compute uses max of opposite sides for skewed quad`() {
         val corners = OrderedCornersV1(
-            topLeft = PointV1(0, 0),
-            topRight = PointV1(100, 0),
-            bottomRight = PointV1(110, 60),
-            bottomLeft = PointV1(-10, 50),
+            topLeft = CornerPointV1(0.0, 0.0),
+            topRight = CornerPointV1(100.0, 0.0),
+            bottomRight = CornerPointV1(110.0, 60.0),
+            bottomLeft = CornerPointV1(-10.0, 50.0),
         )
         val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false)
 
@@ -53,10 +53,10 @@ class RectifySizePolicyV1Test {
     @Test
     fun `compute clamps large quad to maxSide with aspect ratio preserved`() {
         val corners = OrderedCornersV1(
-            topLeft = PointV1(0, 0),
-            topRight = PointV1(4000, 0),
-            bottomRight = PointV1(4000, 2000),
-            bottomLeft = PointV1(0, 2000),
+            topLeft = CornerPointV1(0.0, 0.0),
+            topRight = CornerPointV1(4000.0, 0.0),
+            bottomRight = CornerPointV1(4000.0, 2000.0),
+            bottomLeft = CornerPointV1(0.0, 2000.0),
         )
         val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false)
 
@@ -71,10 +71,10 @@ class RectifySizePolicyV1Test {
     @Test
     fun `compute clamps small quad to minSide with aspect ratio preserved`() {
         val corners = OrderedCornersV1(
-            topLeft = PointV1(0, 0),
-            topRight = PointV1(100, 0),
-            bottomRight = PointV1(100, 50),
-            bottomLeft = PointV1(0, 50),
+            topLeft = CornerPointV1(0.0, 0.0),
+            topRight = CornerPointV1(100.0, 0.0),
+            bottomRight = CornerPointV1(100.0, 50.0),
+            bottomLeft = CornerPointV1(0.0, 50.0),
         )
         val params = RectifySizeParamsV1(maxSide = 2048, minSide = 200, enforceEven = false)
 
@@ -89,10 +89,10 @@ class RectifySizePolicyV1Test {
     @Test
     fun `compute enforces even size when requested`() {
         val corners = OrderedCornersV1(
-            topLeft = PointV1(0, 0),
-            topRight = PointV1(101, 0),
-            bottomRight = PointV1(101, 51),
-            bottomLeft = PointV1(0, 51),
+            topLeft = CornerPointV1(0.0, 0.0),
+            topRight = CornerPointV1(101.0, 0.0),
+            bottomRight = CornerPointV1(101.0, 51.0),
+            bottomLeft = CornerPointV1(0.0, 51.0),
         )
         val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = true)
 
@@ -106,7 +106,7 @@ class RectifySizePolicyV1Test {
 
     @Test
     fun `compute fails for degenerate quad`() {
-        val point = PointV1(10, 10)
+        val point = CornerPointV1(10.0, 10.0)
         val corners = OrderedCornersV1(
             topLeft = point,
             topRight = point,
@@ -125,10 +125,10 @@ class RectifySizePolicyV1Test {
     @Test
     fun `compute fails for extreme aspect ratio`() {
         val corners = OrderedCornersV1(
-            topLeft = PointV1(0, 0),
-            topRight = PointV1(500, 0),
-            bottomRight = PointV1(500, 50),
-            bottomLeft = PointV1(0, 50),
+            topLeft = CornerPointV1(0.0, 0.0),
+            topRight = CornerPointV1(500.0, 0.0),
+            bottomRight = CornerPointV1(500.0, 50.0),
+            bottomLeft = CornerPointV1(0.0, 50.0),
         )
         val params = RectifySizeParamsV1(maxSide = 2048, minSide = 1, enforceEven = false)
 
