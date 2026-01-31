@@ -43,6 +43,8 @@ class ManualEditorScaleTest {
         assertEquals(100.0, savedDrawing.scale?.realLengthMm)
         assertEquals(Point2D(0.0, 0.0), savedDrawing.scale?.pointA)
         assertEquals(Point2D(0.0, 10.0), savedDrawing.scale?.pointB)
+        assertNotNull(viewModel.uiState.value.drawing.scale)
+        assertEquals(100.0, viewModel.uiState.value.drawing.scale?.realLengthMm)
     }
 
     @Test
@@ -54,6 +56,27 @@ class ManualEditorScaleTest {
         viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.SCALE))
         viewModel.onIntent(EditorIntent.ScalePointSelected(Point2D(5.0, 5.0)))
         viewModel.onIntent(EditorIntent.ScalePointSelected(Point2D(5.0, 5.0)))
+        viewModel.onIntent(EditorIntent.ScaleLengthChanged("120"))
+        viewModel.onIntent(EditorIntent.ScaleApplyRequested)
+
+        advanceUntilIdle()
+
+        assertNull(repository.savedDrawing)
+        assertEquals(
+            "Points are too close to compute scale.",
+            viewModel.uiState.value.scaleDraft.applyError,
+        )
+    }
+
+    @Test
+    fun `scale apply fails on tiny distance`() = runTest {
+        val repository = FakeDrawing2DRepository()
+        val viewModel = ManualEditorViewModel(repository, EditorDiagnosticsLogger(FakeDiagnosticsRecorder()))
+        advanceUntilIdle()
+
+        viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.SCALE))
+        viewModel.onIntent(EditorIntent.ScalePointSelected(Point2D(0.0, 0.0)))
+        viewModel.onIntent(EditorIntent.ScalePointSelected(Point2D(0.0, 1e-9)))
         viewModel.onIntent(EditorIntent.ScaleLengthChanged("120"))
         viewModel.onIntent(EditorIntent.ScaleApplyRequested)
 

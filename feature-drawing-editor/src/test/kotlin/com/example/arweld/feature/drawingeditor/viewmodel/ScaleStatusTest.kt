@@ -51,7 +51,21 @@ class ScaleStatusTest {
         val status = deriveScaleStatus(scale)
 
         assertEquals(ScaleStatus.Set, status.status)
+        assertEquals(5.0, status.mmPerPx)
         assertEquals("5.000", formatScaleMmPerPx(status.mmPerPx ?: 0.0))
         assertEquals("100.0", formatScaleLengthMm(status.referenceLengthMm ?: 0.0))
+    }
+
+    @Test
+    fun `deriveScaleStatus returns invalid when distance is too small`() {
+        val scale = ScaleInfo(
+            pointA = Point2D(0.0, 0.0),
+            pointB = Point2D(0.0, 1e-9),
+            realLengthMm = 100.0,
+        )
+
+        val status = deriveScaleStatus(scale)
+
+        assertEquals(ScaleStatus.Invalid, status.status)
     }
 }
