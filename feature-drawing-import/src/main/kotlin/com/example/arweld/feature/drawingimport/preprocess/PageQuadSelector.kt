@@ -5,33 +5,10 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 
-sealed class PageQuadSelectionResult {
-    data class Success(val candidate: PageQuadCandidate) : PageQuadSelectionResult()
-    data class Failure(val failure: PageDetectFailure) : PageQuadSelectionResult()
-}
-
 data class PageQuadCandidate(
     val points: List<PointV1>,
     val contourArea: Double,
     val score: Double,
-)
-
-enum class PageDetectFailureCode {
-    PAGE_NOT_FOUND,
-    NO_CONVEX_QUAD,
-    QUAD_TOO_SMALL,
-    DEGENERATE_QUAD,
-    EXTREME_ASPECT_RATIO,
-    SIZE_CONSTRAINTS,
-    INVALID_SIZE_PARAMS,
-    INVALID_REFINE_PARAMS,
-    INVALID_FRAME,
-    REFINE_NON_FINITE,
-}
-
-data class PageDetectFailure(
-    val code: PageDetectFailureCode,
-    val message: String,
 )
 
 data class PageQuadSelectionConfig(
@@ -47,72 +24,93 @@ class PageQuadSelector(
         contours: List<ContourV1>,
         frameWidth: Int,
         frameHeight: Int,
-    ): PageQuadSelectionResult {
+    ): PageDetectOutcomeV1<PageQuadCandidate> {
         if (contours.isEmpty()) {
-            return PageQuadSelectionResult.Failure(
-                PageDetectFailure(
-                    code = PageDetectFailureCode.PAGE_NOT_FOUND,
-                    message = "No contours available for page detection.",
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.QUAD_SELECT,
+                    code = PageDetectFailureCodeV1.PAGE_NOT_FOUND,
+                    debugMessage = "No contours available for page detection.",
                 ),
             )
         }
-        require(frameWidth > 0 && frameHeight > 0) { "Frame size must be > 0." }
+        if (frameWidth <= 0 || frameHeight <= 0) {
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.QUAD_SELECT,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = "Frame size must be > 0.",
+                ),
+            )
+        }
         val frameArea = frameWidth.toDouble() * frameHeight.toDouble()
         val minArea = frameArea * config.minAreaFraction
         val candidates = mutableListOf<PageQuadCandidate>()
         var hasConvexQuad = false
         var hasQuadAboveThreshold = false
-        for (contour in contours) {
-            val epsilon = contour.perimeter * config.approxEpsilonRatio
-            val approx = approximatePolygon(contour.points, epsilon)
-            if (approx.size != 4) continue
-            if (!isConvexQuad(approx)) continue
-            hasConvexQuad = true
-            val quadArea = polygonArea(approx)
-            if (quadArea <= 0.0) continue
-            if (quadArea < minArea) {
-                continue
+        try {
+            for (contour in contours) {
+                val epsilon = contour.perimeter * config.approxEpsilonRatio
+                val approx = approximatePolygon(contour.points, epsilon)
+                if (approx.size != 4) continue
+                if (!isConvexQuad(approx)) continue
+                hasConvexQuad = true
+                val quadArea = polygonArea(approx)
+                if (quadArea <= 0.0) continue
+                if (quadArea < minArea) {
+                    continue
+                }
+                hasQuadAboveThreshold = true
+                val bbox = boundingBox(approx)
+                val bboxArea = bbox.width.toDouble() * bbox.height.toDouble()
+                val rectangularity = if (bboxArea > 0.0) quadArea / bboxArea else 0.0
+                val aspectRatio = aspectRatio(bbox)
+                val aspectScore = if (aspectRatio.isFinite()) {
+                    min(1.0, config.maxAspectRatio / aspectRatio)
+                } else {
+                    0.0
+                }
+                val score = quadArea * rectangularity * aspectScore
+                candidates.add(
+                    PageQuadCandidate(
+                        points = approx,
+                        contourArea = contour.area,
+                        score = score,
+                    ),
+                )
             }
-            hasQuadAboveThreshold = true
-            val bbox = boundingBox(approx)
-            val bboxArea = bbox.width.toDouble() * bbox.height.toDouble()
-            val rectangularity = if (bboxArea > 0.0) quadArea / bboxArea else 0.0
-            val aspectRatio = aspectRatio(bbox)
-            val aspectScore = if (aspectRatio.isFinite()) {
-                min(1.0, config.maxAspectRatio / aspectRatio)
-            } else {
-                0.0
-            }
-            val score = quadArea * rectangularity * aspectScore
-            candidates.add(
-                PageQuadCandidate(
-                    points = approx,
-                    contourArea = contour.area,
-                    score = score,
+        } catch (error: Throwable) {
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.QUAD_SELECT,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = error.message,
                 ),
             )
         }
         if (!hasConvexQuad) {
-            return PageQuadSelectionResult.Failure(
-                PageDetectFailure(
-                    code = PageDetectFailureCode.NO_CONVEX_QUAD,
-                    message = "No convex quad candidates after polygon approximation.",
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.QUAD_SELECT,
+                    code = PageDetectFailureCodeV1.NO_CONVEX_QUAD,
+                    debugMessage = "No convex quad candidates after polygon approximation.",
                 ),
             )
         }
         val viable = candidates.filter { it.score > 0.0 }
         if (viable.isEmpty() || !hasQuadAboveThreshold) {
-            return PageQuadSelectionResult.Failure(
-                PageDetectFailure(
-                    code = PageDetectFailureCode.QUAD_TOO_SMALL,
-                    message = "Convex quad candidates found but area below threshold.",
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.QUAD_SELECT,
+                    code = PageDetectFailureCodeV1.QUAD_TOO_SMALL,
+                    debugMessage = "Convex quad candidates found but area below threshold.",
                 ),
             )
         }
         val best = viable.maxWith(
             compareBy<PageQuadCandidate> { it.score }.thenBy { it.contourArea },
         )
-        return PageQuadSelectionResult.Success(best)
+        return PageDetectOutcomeV1.Success(best)
     }
 
     private fun approximatePolygon(points: List<PointV1>, epsilon: Double): List<PointV1> {

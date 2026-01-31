@@ -19,8 +19,25 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectPreprocessor.kt` — Deterministic preprocessing pipeline that decodes raw captures, applies EXIF rotation, downscales to a fixed max side, and emits grayscale buffers for page detection (S2-PR07).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/RectifySizePolicyV1.kt` — Deterministic rectified size policy using ordered corners, clamp limits, rounding rules, and failure codes (S2-PR15).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/CornerRefinerV1.kt` — Deterministic subpixel-ish corner refinement over PageDetectFrame edges (fixed window/iters/epsilon) with safe fallback codes.
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectContractsV1.kt` — Unified page detection outcome contract (stage + failure code + debug message) for preprocess/edges/contours/quad/order/refine.
 - `overlays/corners.png` — Debug corner overlay artifact saved via `ProjectLayoutV1.overlay("corners")` after ordering/refining corners.
 - `app/src/main/kotlin/com/example/arweld/ui/drawingimport/DrawingImportRoute.kt` — App-level navigation wrapper for Drawing Import.
+
+**Page detection failure codes (v1)**
+
+| Code | Meaning |
+| --- | --- |
+| `DECODE_FAILED` | Raw image decode failed. |
+| `EXIF_FAILED` | EXIF orientation read failed. |
+| `EDGES_FAILED` | Edge detection failed. |
+| `CONTOURS_EMPTY` | No usable contours after extraction. |
+| `PAGE_NOT_FOUND` | No contours available for quad selection. |
+| `NO_CONVEX_QUAD` | No convex quad candidates found. |
+| `QUAD_TOO_SMALL` | Quad candidates below area threshold. |
+| `ORDER_NOT_FOUR_POINTS` | Ordering received a non-quad list. |
+| `ORDER_DEGENERATE` | Quad geometry was degenerate/invalid. |
+| `REFINE_FAILED` | Corner refinement failed. |
+| `UNKNOWN` | Unclassified failure. |
 
 ### AR view and rendering (feature-arview)
 

@@ -16,24 +16,52 @@ class PageDetectEdgeDetector(
      * - Sobel gradients + non-maximum suppression
      * - Fixed double-threshold hysteresis (low/high)
      */
-    fun detect(frame: PageDetectFrame): EdgeMap {
-        require(frame.width > 0 && frame.height > 0) { "Frame size must be > 0." }
-        require(frame.gray.size == frame.width * frame.height) { "Invalid grayscale buffer size." }
-        val blurred = gaussianBlur5x5(frame.gray, frame.width, frame.height)
-        val gradients = sobelGradients(blurred, frame.width, frame.height)
-        val suppressed = nonMaxSuppression(
-            gradients.magnitude,
-            gradients.gx,
-            gradients.gy,
-            frame.width,
-            frame.height,
-        )
-        val edges = hysteresis(suppressed, frame.width, frame.height)
-        return EdgeMap(
-            width = frame.width,
-            height = frame.height,
-            edges = edges,
-        )
+    fun detect(frame: PageDetectFrame): PageDetectOutcomeV1<EdgeMap> {
+        if (frame.width <= 0 || frame.height <= 0) {
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.EDGES,
+                    code = PageDetectFailureCodeV1.EDGES_FAILED,
+                    debugMessage = "Frame size must be > 0.",
+                ),
+            )
+        }
+        if (frame.gray.size != frame.width * frame.height) {
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.EDGES,
+                    code = PageDetectFailureCodeV1.EDGES_FAILED,
+                    debugMessage = "Invalid grayscale buffer size.",
+                ),
+            )
+        }
+        return try {
+            val blurred = gaussianBlur5x5(frame.gray, frame.width, frame.height)
+            val gradients = sobelGradients(blurred, frame.width, frame.height)
+            val suppressed = nonMaxSuppression(
+                gradients.magnitude,
+                gradients.gx,
+                gradients.gy,
+                frame.width,
+                frame.height,
+            )
+            val edges = hysteresis(suppressed, frame.width, frame.height)
+            PageDetectOutcomeV1.Success(
+                EdgeMap(
+                    width = frame.width,
+                    height = frame.height,
+                    edges = edges,
+                ),
+            )
+        } catch (error: Throwable) {
+            PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.EDGES,
+                    code = PageDetectFailureCodeV1.EDGES_FAILED,
+                    debugMessage = error.message,
+                ),
+            )
+        }
     }
 
     private fun gaussianBlur5x5(gray: ByteArray, width: Int, height: Int): IntArray {

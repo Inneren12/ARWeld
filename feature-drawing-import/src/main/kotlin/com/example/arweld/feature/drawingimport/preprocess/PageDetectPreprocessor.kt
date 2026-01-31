@@ -8,22 +8,78 @@ import kotlin.math.floor
 import kotlin.math.max
 
 class PageDetectPreprocessor {
-    fun preprocess(input: PageDetectInput): PageDetectFrame {
-        require(input.maxSide > 0) { "maxSide must be > 0" }
+    fun preprocess(input: PageDetectInput): PageDetectOutcomeV1<PageDetectFrame> {
+        if (input.maxSide <= 0) {
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.PREPROCESS,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = "maxSide must be > 0.",
+                ),
+            )
+        }
         val decodeOptions = BitmapFactory.Options().apply {
             inPreferredConfig = Bitmap.Config.ARGB_8888
         }
-        val decoded = BitmapFactory.decodeFile(input.rawImageFile.absolutePath, decodeOptions)
-            ?: throw IllegalArgumentException("Unable to decode image: ${input.rawImageFile}")
+        val decoded = try {
+            BitmapFactory.decodeFile(input.rawImageFile.absolutePath, decodeOptions)
+        } catch (error: Throwable) {
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.PREPROCESS,
+                    code = PageDetectFailureCodeV1.DECODE_FAILED,
+                    debugMessage = error.message,
+                ),
+            )
+        } ?: return PageDetectOutcomeV1.Failure(
+            PageDetectFailureV1(
+                stage = PageDetectStageV1.PREPROCESS,
+                code = PageDetectFailureCodeV1.DECODE_FAILED,
+                debugMessage = "Unable to decode image: ${input.rawImageFile}",
+            ),
+        )
         val originalWidth = decoded.width
         val originalHeight = decoded.height
-        val exifOrientation = readExifOrientation(input.rawImageFile)
+        val exifOrientation = try {
+            readExifOrientation(input.rawImageFile)
+        } catch (error: Throwable) {
+            decoded.recycle()
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.PREPROCESS,
+                    code = PageDetectFailureCodeV1.EXIF_FAILED,
+                    debugMessage = error.message,
+                ),
+            )
+        }
         val transform = exifTransform(exifOrientation)
-        val rotated = applyTransform(decoded, transform)
+        val rotated = try {
+            applyTransform(decoded, transform)
+        } catch (error: Throwable) {
+            decoded.recycle()
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.PREPROCESS,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = error.message,
+                ),
+            )
+        }
         if (rotated !== decoded) {
             decoded.recycle()
         }
-        val targetSize = computeTargetSize(rotated.width, rotated.height, input.maxSide)
+        val targetSize = try {
+            computeTargetSize(rotated.width, rotated.height, input.maxSide)
+        } catch (error: Throwable) {
+            rotated.recycle()
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.PREPROCESS,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = error.message,
+                ),
+            )
+        }
         val scaled = if (targetSize.width == rotated.width && targetSize.height == rotated.height) {
             rotated
         } else {
@@ -32,7 +88,18 @@ class PageDetectPreprocessor {
         if (scaled !== rotated) {
             rotated.recycle()
         }
-        val gray = toGrayscale(scaled)
+        val gray = try {
+            toGrayscale(scaled)
+        } catch (error: Throwable) {
+            scaled.recycle()
+            return PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.PREPROCESS,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = error.message,
+                ),
+            )
+        }
         val frame = PageDetectFrame(
             width = scaled.width,
             height = scaled.height,
@@ -43,7 +110,7 @@ class PageDetectPreprocessor {
             rotationAppliedDeg = transform.rotationDeg,
         )
         scaled.recycle()
-        return frame
+        return PageDetectOutcomeV1.Success(frame)
     }
 
     internal fun computeTargetSize(
@@ -74,14 +141,10 @@ class PageDetectPreprocessor {
     }
 
     private fun readExifOrientation(file: java.io.File): Int {
-        return try {
-            ExifInterface(file).getAttributeInt(
-                ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_UNDEFINED,
-            )
-        } catch (error: Throwable) {
-            ExifInterface.ORIENTATION_UNDEFINED
-        }
+        return ExifInterface(file).getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_UNDEFINED,
+        )
     }
 
     private fun applyTransform(source: Bitmap, transform: ExifTransform): Bitmap {

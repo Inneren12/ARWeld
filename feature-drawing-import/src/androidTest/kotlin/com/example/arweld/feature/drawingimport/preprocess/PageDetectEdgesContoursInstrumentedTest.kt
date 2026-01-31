@@ -22,20 +22,26 @@ class PageDetectEdgesContoursInstrumentedTest {
         }
 
         val preprocessor = PageDetectPreprocessor()
-        val frame = preprocessor.preprocess(
+        val preprocessOutcome = preprocessor.preprocess(
             PageDetectInput(
                 rawImageFile = tempFile,
                 maxSide = 256,
             ),
         )
+        assertTrue(preprocessOutcome is PageDetectOutcomeV1.Success)
+        val frame = (preprocessOutcome as PageDetectOutcomeV1.Success).value
 
         val edgeDetector = PageDetectEdgeDetector()
-        val edgeMap = edgeDetector.detect(frame)
+        val edgeOutcome = edgeDetector.detect(frame)
+        assertTrue(edgeOutcome is PageDetectOutcomeV1.Success)
+        val edgeMap = (edgeOutcome as PageDetectOutcomeV1.Success).value
         val edgeCount = edgeMap.edges.count { it.toInt() != 0 }
         assertTrue(edgeCount > 0)
 
         val contourExtractor = PageDetectContourExtractor()
-        val contours = contourExtractor.extract(edgeMap)
+        val contourOutcome = contourExtractor.extract(edgeMap)
+        assertTrue(contourOutcome is PageDetectOutcomeV1.Success)
+        val contours = (contourOutcome as PageDetectOutcomeV1.Success).value
         assertTrue(contours.isNotEmpty())
 
         val maxArea = contours.maxOf { it.area }
