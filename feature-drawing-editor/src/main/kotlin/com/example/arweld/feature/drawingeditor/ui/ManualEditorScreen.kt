@@ -25,14 +25,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.arweld.feature.drawingeditor.viewmodel.ManualEditorTool
-import com.example.arweld.feature.drawingeditor.viewmodel.ManualEditorUiState
+import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
+import com.example.arweld.core.drawing2d.editor.v1.missingNodeReferences
+import com.example.arweld.feature.drawingeditor.viewmodel.EditorState
+import com.example.arweld.feature.drawingeditor.viewmodel.EditorTool
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun ManualEditorScreen(
-    uiState: ManualEditorUiState,
-    onToolSelected: (ManualEditorTool) -> Unit,
+    uiState: EditorState,
+    onToolSelected: (EditorTool) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -40,7 +42,7 @@ fun ManualEditorScreen(
             Column {
                 TopAppBar(title = { Text(text = "Manual Editor") })
                 ToolSelectorRow(
-                    selectedTool = uiState.selectedTool,
+                    selectedTool = uiState.tool,
                     onToolSelected = onToolSelected,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -50,8 +52,8 @@ fun ManualEditorScreen(
         },
         bottomBar = {
             BottomSheetPlaceholder(
-                selectedTool = uiState.selectedTool,
-                summaryText = buildSummaryText(uiState),
+                selectedTool = uiState.tool,
+                summaryText = buildSummaryText(uiState.drawing),
             )
         },
         modifier = modifier,
@@ -74,9 +76,9 @@ fun ManualEditorScreen(
                     }
                 }
 
-                uiState.errorMessage != null -> {
+                uiState.lastError != null -> {
                     Text(
-                        text = uiState.errorMessage,
+                        text = uiState.lastError ?: "Unknown error",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.align(Alignment.Center)
@@ -97,7 +99,7 @@ fun ManualEditorScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = buildSummaryText(uiState),
+                            text = buildSummaryText(uiState.drawing),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -110,15 +112,15 @@ fun ManualEditorScreen(
 
 @Composable
 private fun ToolSelectorRow(
-    selectedTool: ManualEditorTool,
-    onToolSelected: (ManualEditorTool) -> Unit,
+    selectedTool: EditorTool,
+    onToolSelected: (EditorTool) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ManualEditorTool.values().forEach { tool ->
+        EditorTool.values().forEach { tool ->
             val isSelected = tool == selectedTool
             OutlinedButton(
                 onClick = { onToolSelected(tool) },
@@ -138,7 +140,7 @@ private fun ToolSelectorRow(
 
 @Composable
 private fun BottomSheetPlaceholder(
-    selectedTool: ManualEditorTool,
+    selectedTool: EditorTool,
     summaryText: String,
     modifier: Modifier = Modifier,
 ) {
@@ -166,16 +168,16 @@ private fun BottomSheetPlaceholder(
     }
 }
 
-private fun toolLabel(tool: ManualEditorTool): String = when (tool) {
-    ManualEditorTool.SELECT -> "Select"
-    ManualEditorTool.SCALE -> "Scale"
-    ManualEditorTool.NODE -> "Node"
-    ManualEditorTool.MEMBER -> "Member"
+private fun toolLabel(tool: EditorTool): String = when (tool) {
+    EditorTool.SELECT -> "Select"
+    EditorTool.SCALE -> "Scale"
+    EditorTool.NODE -> "Node"
+    EditorTool.MEMBER -> "Member"
 }
 
-private fun buildSummaryText(uiState: ManualEditorUiState): String {
-    val summary = uiState.summary
-    val scaleStatus = if (summary.hasScale) "Scale calibrated" else "Scale not set"
-    return "Nodes: ${summary.nodeCount} • Members: ${summary.memberCount} • " +
-        "Missing refs: ${summary.missingNodeRefs} • $scaleStatus"
+private fun buildSummaryText(drawing: Drawing2D): String {
+    val missingRefs = drawing.missingNodeReferences()
+    val scaleStatus = if (drawing.scale != null) "Scale calibrated" else "Scale not set"
+    return "Nodes: ${drawing.nodes.size} • Members: ${drawing.members.size} • " +
+        "Missing refs: ${missingRefs.size} • $scaleStatus"
 }
