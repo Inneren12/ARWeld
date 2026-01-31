@@ -60,6 +60,10 @@ import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLogger
 import com.example.arweld.feature.drawingimport.preprocess.ContourStats
 import com.example.arweld.feature.drawingimport.preprocess.ContourV1
+import com.example.arweld.feature.drawingimport.quality.DrawingImportPipelineResultV1
+import com.example.arweld.feature.drawingimport.quality.OrderedCornersV1
+import com.example.arweld.feature.drawingimport.quality.QualityMetricsV1
+import com.example.arweld.feature.drawingimport.quality.SkewMetricsV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailure
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFrame
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectInput
@@ -106,6 +110,7 @@ fun DrawingImportScreen(
     var quadSelectionResult by remember { mutableStateOf<PageQuadSelectionResult?>(null) }
     var quadSelectionError by remember { mutableStateOf<String?>(null) }
     var isSelectingQuad by remember { mutableStateOf(false) }
+    var pipelineResult by remember { mutableStateOf<DrawingImportPipelineResultV1?>(null) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
@@ -484,6 +489,7 @@ fun DrawingImportScreen(
                                                         quadSelectionResult = null
                                                         quadSelectionError = null
                                                         isSelectingQuad = false
+                                                        pipelineResult = null
                                                         coroutineScope.launch(Dispatchers.Default) {
                                                             runCatching {
                                                                 pageDetectPreprocessor.preprocess(
@@ -580,6 +586,7 @@ fun DrawingImportScreen(
                                                         quadSelectionError = null
                                                         isPreparingFrame = true
                                                         isSelectingQuad = true
+                                                        pipelineResult = null
                                                         coroutineScope.launch(Dispatchers.Default) {
                                                             runCatching {
                                                                 val frame = pageDetectFrame ?: pageDetectPreprocessor.preprocess(
@@ -608,6 +615,26 @@ fun DrawingImportScreen(
                                                                         topContours = ContourStats.topByArea(contours, 3),
                                                                     )
                                                                     quadSelectionResult = result
+                                                                    pipelineResult = when (result) {
+                                                                        is PageQuadSelectionResult.Success -> {
+                                                                            val orderedCorners = OrderedCornersV1.fromPoints(result.candidate.points)
+                                                                            orderedCorners?.let { corners ->
+                                                                                val metrics = QualityMetricsV1.skewFromQuad(
+                                                                                    corners,
+                                                                                    frame.width,
+                                                                                    frame.height,
+                                                                                )
+                                                                                DrawingImportPipelineResultV1(
+                                                                                    orderedCorners = corners,
+                                                                                    refinedCorners = null,
+                                                                                    imageWidth = frame.width,
+                                                                                    imageHeight = frame.height,
+                                                                                    skewMetrics = metrics,
+                                                                                )
+                                                                            }
+                                                                        }
+                                                                        is PageQuadSelectionResult.Failure -> null
+                                                                    }
                                                                     isPreparingFrame = false
                                                                     isSelectingQuad = false
                                                                 }
@@ -687,6 +714,13 @@ fun DrawingImportScreen(
                                                     }
                                                 }
                                             }
+                                            pipelineResult?.let { result ->
+                                                val metrics = result.skewMetrics
+                                                Text(
+                                                    text = formatSkewMetrics(metrics),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                            }
                                             quadSelectionError?.let { message ->
                                                 Text(
                                                     text = "Quad selection failed: $message",
@@ -746,6 +780,7 @@ fun DrawingImportScreen(
                                         quadSelectionResult = null
                                         quadSelectionError = null
                                         isSelectingQuad = false
+                                        pipelineResult = null
                                         screenState = DrawingImportUiState.Ready
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -982,6 +1017,16 @@ private fun formatQuadLabel(candidate: PageQuadCandidate): String {
     val score = "%.2f".format(Locale.US, candidate.score)
     val points = candidate.points.joinToString(prefix = "[", postfix = "]") { "(${it.x},${it.y})" }
     return "Quad area=$area • score=$score • points=$points"
+}
+
+private fun formatSkewMetrics(metrics: SkewMetricsV1): String {
+    val angleMax = "%.2f".format(Locale.US, metrics.angleMaxAbsDeg)
+    val angleMean = "%.2f".format(Locale.US, metrics.angleMeanAbsDeg)
+    val keystoneW = "%.3f".format(Locale.US, metrics.keystoneWidthRatio)
+    val keystoneH = "%.3f".format(Locale.US, metrics.keystoneHeightRatio)
+    val pageFill = "%.3f".format(Locale.US, metrics.pageFillRatio)
+    return "Angle dev (max/mean): $angleMax°/$angleMean° • " +
+        "Keystone W/H: $keystoneW/$keystoneH • Page fill: $pageFill • Status: ${metrics.status.name}"
 }
 
 private fun formatFailureLabel(failure: PageDetectFailure): String {
