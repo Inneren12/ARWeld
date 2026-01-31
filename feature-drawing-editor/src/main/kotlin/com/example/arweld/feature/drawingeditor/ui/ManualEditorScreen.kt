@@ -36,11 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -117,6 +112,7 @@ fun ManualEditorScreen(
     onScaleReset: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onNodeTap: (Point2D, Float) -> Unit,
     onSelectEntity: (EditorSelection) -> Unit,
     onClearSelection: () -> Unit,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
@@ -190,12 +186,11 @@ fun ManualEditorScreen(
                     EditorCanvas(
                         uiState = uiState,
                         onScalePointSelected = onScalePointSelected,
+                        onNodeTap = onNodeTap,
                         onSelectEntity = onSelectEntity,
                         onClearSelection = onClearSelection,
                         onTransformGesture = onTransformGesture,
                         modifier = Modifier.fillMaxSize(),
-                        onTransformGesture = onTransformGesture,
-                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
@@ -207,6 +202,7 @@ fun ManualEditorScreen(
 private fun EditorCanvas(
     uiState: EditorState,
     onScalePointSelected: (Point2D) -> Unit,
+    onNodeTap: (Point2D, Float) -> Unit,
     onSelectEntity: (EditorSelection) -> Unit,
     onClearSelection: () -> Unit,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
@@ -229,33 +225,26 @@ private fun EditorCanvas(
     val tolerancePx = with(LocalDensity.current) { HIT_TEST_TOLERANCE_DP.toPx() }
 
     Box(
-        modifier = modifier.pointerInput(uiState.tool, scale, offsetX, offsetY) {
+        modifier = modifier.pointerInput(uiState.tool, scale, offsetX, offsetY, tolerancePx) {
             detectTapGestures { offset ->
-                if (uiState.tool == EditorTool.SCALE) {
-                    onScalePointSelected(screenToWorld(offset, uiState.viewTransform))
-        modifier = modifier
-            .pointerInput(uiState.tool, scale, offsetX, offsetY, tolerancePx) {
-                detectTapGestures { offset ->
-                    when (uiState.tool) {
-                        EditorTool.SCALE -> {
-                            onScalePointSelected(screenToWorld(offset, uiState.viewTransform))
+                val worldTap = screenToWorld(offset, uiState.viewTransform)
+                when (uiState.tool) {
+                    EditorTool.SCALE -> onScalePointSelected(worldTap)
+                    EditorTool.SELECT -> {
+                        val selection = selectEntityAtTap(
+                            worldTap = worldTap,
+                            drawing = uiState.drawing,
+                            tolerancePx = tolerancePx,
+                            viewTransform = uiState.viewTransform,
+                        )
+                        if (selection == EditorSelection.None) {
+                            onClearSelection()
+                        } else {
+                            onSelectEntity(selection)
                         }
-                        EditorTool.SELECT -> {
-                            val worldTap = screenToWorld(offset, uiState.viewTransform)
-                            val selection = selectEntityAtTap(
-                                worldTap = worldTap,
-                                drawing = uiState.drawing,
-                                tolerancePx = tolerancePx,
-                                viewTransform = uiState.viewTransform,
-                            )
-                            if (selection == EditorSelection.None) {
-                                onClearSelection()
-                            } else {
-                                onSelectEntity(selection)
-                            }
-                        }
-                        else -> Unit
                     }
+                    EditorTool.NODE -> onNodeTap(worldTap, tolerancePx)
+                    EditorTool.MEMBER -> Unit
                 }
             }
         }
@@ -265,9 +254,6 @@ private fun EditorCanvas(
             viewTransform = uiState.viewTransform,
             underlayState = uiState.underlayState,
             selection = uiState.selection,
-        DrawingCanvas(
-            drawing = uiState.drawing,
-            viewTransform = uiState.viewTransform,
             onTransformGesture = onTransformGesture,
             modifier = Modifier
                 .fillMaxSize()
@@ -543,9 +529,6 @@ private fun buildSummaryText(drawing: Drawing2D): String {
     }
     return "Nodes: ${drawing.nodes.size} • Members: ${drawing.members.size} • " +
         "Missing refs: ${missingRefs.size} • $scaleStatus"
-    val scaleStatus = if (drawing.scale != null) "Scale calibrated" else "Scale not set"
-    return "Nodes: ${drawing.nodes.size} \u2022 Members: ${drawing.members.size} \u2022 " +
-        "Missing refs: ${missingRefs.size} \u2022 $scaleStatus"
 }
 
 /**

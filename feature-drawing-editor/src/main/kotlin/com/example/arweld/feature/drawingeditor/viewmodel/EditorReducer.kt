@@ -1,6 +1,10 @@
 package com.example.arweld.feature.drawingeditor.viewmodel
 
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
+import com.example.arweld.core.drawing2d.editor.v1.Drawing2DIdAllocator
+import com.example.arweld.core.drawing2d.editor.v1.Node2D
+import com.example.arweld.core.drawing2d.editor.v1.canonicalize
+import com.example.arweld.feature.drawingeditor.hittest.hitTestNode
 
 fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = when (intent) {
     is EditorIntent.ToolChanged -> state.copy(
@@ -81,6 +85,33 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         scaleDraft = state.scaleDraft.copy(applyError = intent.message),
     )
     is EditorIntent.DrawingMutationApplied -> state.pushHistory(intent.drawing)
+    is EditorIntent.NodeTap -> {
+        if (state.tool != EditorTool.NODE) {
+            state
+        } else {
+            val hitId = hitTestNode(
+                worldTap = intent.worldPoint,
+                nodes = state.drawing.nodes,
+                tolerancePx = intent.tolerancePx,
+                viewTransform = state.viewTransform,
+            )
+            if (hitId != null) {
+                state.copy(selection = EditorSelection.Node(hitId))
+            } else {
+                val allocation = Drawing2DIdAllocator.allocateNodeId(state.drawing)
+                val newNode = Node2D(
+                    id = allocation.id,
+                    x = intent.worldPoint.x,
+                    y = intent.worldPoint.y,
+                )
+                val updatedDrawing = allocation.drawing
+                    .copy(nodes = allocation.drawing.nodes + newNode)
+                    .canonicalize()
+                state.copy(selection = EditorSelection.Node(allocation.id))
+                    .pushHistory(updatedDrawing)
+            }
+        }
+    }
     EditorIntent.UndoRequested -> state.applyHistoryUndo()
     EditorIntent.RedoRequested -> state.applyHistoryRedo()
 }

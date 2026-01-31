@@ -3,6 +3,7 @@ package com.example.arweld.feature.drawingeditor.viewmodel
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Member2D
 import com.example.arweld.core.drawing2d.editor.v1.Node2D
+import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -57,5 +58,38 @@ class EditorReducerTest {
 
         assertEquals(false, result.isLoading)
         assertEquals("Load failed", result.lastError)
+    }
+
+    @Test
+    fun `node tap on empty adds node with deterministic id and selects it`() {
+        val initial = EditorState(
+            tool = EditorTool.NODE,
+            drawing = Drawing2D(nodes = emptyList(), members = emptyList()),
+            isLoading = false,
+        )
+        val tap = Point2D(x = 12.5, y = -4.0)
+
+        val result = reduceEditorState(initial, EditorIntent.NodeTap(tap, tolerancePx = 16f))
+
+        assertEquals(1, result.drawing.nodes.size)
+        assertEquals(EditorSelection.Node("N000001"), result.selection)
+        assertEquals(2, result.drawing.meta?.nextNodeId)
+        assertEquals(tap.x, result.drawing.nodes.first().x, 0.0)
+        assertEquals(tap.y, result.drawing.nodes.first().y, 0.0)
+    }
+
+    @Test
+    fun `node tap near existing node selects it without creating new node`() {
+        val existing = Node2D(id = "N000005", x = 0.0, y = 0.0)
+        val initial = EditorState(
+            tool = EditorTool.NODE,
+            drawing = Drawing2D(nodes = listOf(existing), members = emptyList()),
+            isLoading = false,
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.NodeTap(Point2D(x = 1.0, y = 1.0), tolerancePx = 16f))
+
+        assertEquals(1, result.drawing.nodes.size)
+        assertEquals(EditorSelection.Node("N000005"), result.selection)
     }
 }
