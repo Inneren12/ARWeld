@@ -1765,6 +1765,12 @@ data class ArScreenshotMetadata(
 
 ### 3.4.1 2D3D Editor — Scale Tool
 
+**S3-09 — Canvas coordinate system + pan/zoom ✅ COMPLETED:**
+- Added deterministic view transform math for world↔screen mapping with scale clamping.
+- Wired editor state + reducer intents for pan/zoom gestures.
+- Added minimal canvas gestures (pan + pinch zoom) and overlay HUD for scale.
+- Documented coordinate spaces and transform formulas in `docs/2d3d/coordinates_and_transform.md`.
+
 **S3-13 — Scale tool (pick A/B points + draft overlay) ✅ COMPLETED:**
 - When tool = SCALE, the first tap stores Point A (world/drawing space).
 - The second tap stores Point B; markers A/B and a connecting line are rendered on the canvas.
