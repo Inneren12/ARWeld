@@ -321,6 +321,7 @@ ARWeld/
 │   ├── PROJECT_OVERVIEW.md                # High-level overview
 │   ├── MODULES.md                         # Module descriptions
 │   ├── drawing/DRAWING2D_V1.md             # Drawing2D v1 schema + storage spec
+│   ├── drawing/IMPORT_PIPELINE_V1.md       # Sprint 2 drawing import pipeline contract
 │   ├── drawing/SCHEMA_EVOLUTION.md         # Drawing2D + artifact schema evolution policy
 │   └── FILE_OVERVIEW.md                   # This file
 │
@@ -1228,6 +1229,7 @@ androidTestImplementation(libs.androidx.junit)
 | Drawing2D artifact manifest schema | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/v1/` |
 | Drawing2D artifact bundle IO | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/` |
 | Drawing2D spec docs | `docs/drawing/DRAWING2D_V1.md` |
+| Drawing import pipeline spec | `docs/drawing/IMPORT_PIPELINE_V1.md` |
 | Drawing2D schema evolution | `docs/drawing/SCHEMA_EVOLUTION.md` |
 | Export logic | `feature/supervisor/export/` |
 
