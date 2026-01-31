@@ -1,5 +1,7 @@
 package com.example.arweld.feature.drawingimport.quality
 
+import android.graphics.Bitmap
+import android.graphics.Color
 import com.example.arweld.feature.drawingimport.preprocess.PointV1
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -70,5 +72,42 @@ class QualityMetricsV1Test {
         assertTrue(metrics.keystoneWidthRatio.isFinite())
         assertTrue(metrics.keystoneHeightRatio.isFinite())
         assertTrue(metrics.pageFillRatio.isFinite())
+    }
+
+    @Test
+    fun `exposure reports clipping for black image`() {
+        val bitmap = solidBitmap(10, 10, Color.BLACK)
+        val metrics = QualityMetricsV1.exposure(bitmap)
+
+        assertEquals(0.0, metrics.meanY, 0.01)
+        assertEquals(100.0, metrics.clipLowPct, 0.01)
+        assertEquals(0.0, metrics.clipHighPct, 0.01)
+    }
+
+    @Test
+    fun `exposure reports clipping for white image`() {
+        val bitmap = solidBitmap(12, 8, Color.WHITE)
+        val metrics = QualityMetricsV1.exposure(bitmap)
+
+        assertEquals(255.0, metrics.meanY, 0.01)
+        assertEquals(0.0, metrics.clipLowPct, 0.01)
+        assertEquals(100.0, metrics.clipHighPct, 0.01)
+    }
+
+    @Test
+    fun `exposure reports mid-gray without clipping`() {
+        val gray = Color.rgb(128, 128, 128)
+        val bitmap = solidBitmap(9, 9, gray)
+        val metrics = QualityMetricsV1.exposure(bitmap)
+
+        assertEquals(128.0, metrics.meanY, 0.01)
+        assertEquals(0.0, metrics.clipLowPct, 0.01)
+        assertEquals(0.0, metrics.clipHighPct, 0.01)
+    }
+}
+
+private fun solidBitmap(width: Int, height: Int, color: Int): Bitmap {
+    return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
+        eraseColor(color)
     }
 }

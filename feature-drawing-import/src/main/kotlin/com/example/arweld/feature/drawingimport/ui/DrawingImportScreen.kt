@@ -68,6 +68,7 @@ import com.example.arweld.feature.drawingimport.preprocess.CornerOrderingV1
 import com.example.arweld.feature.drawingimport.preprocess.CornerRefinerV1
 import com.example.arweld.feature.drawingimport.preprocess.OrderedCornersV1 as PreprocessOrderedCornersV1
 import com.example.arweld.feature.drawingimport.quality.DrawingImportPipelineResultV1
+import com.example.arweld.feature.drawingimport.quality.ExposureMetricsV1
 import com.example.arweld.feature.drawingimport.quality.OrderedCornersV1 as QualityOrderedCornersV1
 import com.example.arweld.feature.drawingimport.quality.QualityMetricsV1
 import com.example.arweld.feature.drawingimport.quality.SkewMetricsV1
@@ -891,6 +892,14 @@ fun DrawingImportScreen(
                                                                 }
                                                                 is PageDetectOutcomeV1.Failure -> null
                                                             }
+                                                            val exposureMetrics = runCatching {
+                                                                val bitmap = frameToBitmap(frame)
+                                                                try {
+                                                                    QualityMetricsV1.exposure(bitmap)
+                                                                } finally {
+                                                                    bitmap.recycle()
+                                                                }
+                                                            }.getOrNull()
                                                             withContext(Dispatchers.Main) {
                                                                 pageDetectFrame = frame
                                                                 pageDetectInfo = PageDetectFrameInfo(
@@ -919,12 +928,19 @@ fun DrawingImportScreen(
                                                                                 frame.width,
                                                                                 frame.height,
                                                                             )
+                                                                            val exposure = exposureMetrics
+                                                                                ?: ExposureMetricsV1(
+                                                                                    meanY = 0.0,
+                                                                                    clipLowPct = 0.0,
+                                                                                    clipHighPct = 0.0,
+                                                                                )
                                                                             DrawingImportPipelineResultV1(
                                                                                 orderedCorners = corners,
                                                                                 refinedCorners = null,
                                                                                 imageWidth = frame.width,
                                                                                 imageHeight = frame.height,
                                                                                 skewMetrics = metrics,
+                                                                                exposureMetrics = exposure,
                                                                             )
                                                                         }
                                                                     }
@@ -1101,6 +1117,10 @@ fun DrawingImportScreen(
                                                 val metrics = result.skewMetrics
                                                 Text(
                                                     text = formatSkewMetrics(metrics),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                                Text(
+                                                    text = formatExposureMetrics(result.exposureMetrics),
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
                                             }
@@ -1459,6 +1479,13 @@ private fun formatSkewMetrics(metrics: SkewMetricsV1): String {
     val pageFill = "%.3f".format(Locale.US, metrics.pageFillRatio)
     return "Angle dev (max/mean): $angleMax°/$angleMean° • " +
         "Keystone W/H: $keystoneW/$keystoneH • Page fill: $pageFill • Status: ${metrics.status.name}"
+}
+
+private fun formatExposureMetrics(metrics: ExposureMetricsV1): String {
+    val meanY = "%.1f".format(Locale.US, metrics.meanY)
+    val clipLow = "%.2f".format(Locale.US, metrics.clipLowPct)
+    val clipHigh = "%.2f".format(Locale.US, metrics.clipHighPct)
+    return "Mean Y: $meanY • Clipped low: $clipLow% • Clipped high: $clipHigh%"
 }
 
 private fun formatFailureLabel(label: String, failure: PageDetectFailureV1): String {
