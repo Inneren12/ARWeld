@@ -1814,6 +1814,12 @@ data class ArScreenshotMetadata(
 - Drag updates node position live using `startWorldPos + (pointerWorld - startPointerWorld)` to avoid drift.
 - Commit policy: one undo snapshot + persistence only on drag end.
 - Tests cover deterministic drag math and commit-on-end behavior.
+
+**S3-19 — Nodes tool delete + cascade ✅ COMPLETED:**
+- Added a Delete node action in the bottom sheet when a node is selected.
+- Reducer removes the node and cascades deletion to connected members to prevent dangling refs.
+- Delete clears selection, pushes a single undo snapshot, and persists once per delete.
+- Added reducer + undo/redo tests for delete behavior.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**
