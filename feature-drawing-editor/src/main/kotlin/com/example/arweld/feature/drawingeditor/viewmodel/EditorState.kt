@@ -1,6 +1,7 @@
 package com.example.arweld.feature.drawingeditor.viewmodel
 
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
+import java.io.File
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
 
 enum class EditorTool {
@@ -24,6 +25,22 @@ data class ViewTransform(
     val offsetY: Float = 0f,
 )
 
+/**
+ * Underlay image state for the canvas renderer.
+ */
+sealed interface UnderlayState {
+    /** No underlay configured in the workspace. */
+    data object None : UnderlayState
+
+    /** Underlay is configured but loading. */
+    data object Loading : UnderlayState
+
+    /** Underlay loaded successfully with file path for Coil. */
+    data class Loaded(val file: File) : UnderlayState
+
+    /** Underlay file is configured but doesn't exist or failed to load. */
+    data class Missing(val path: String) : UnderlayState
+}
 data class ScaleDraft(
     val pointA: Point2D? = null,
     val pointB: Point2D? = null,
@@ -42,6 +59,8 @@ data class EditorState(
     val lastError: String? = null,
     val dirtyFlag: Boolean = false,
     val viewTransform: ViewTransform = ViewTransform(),
+    /** Underlay image state (if workspace has an underlay configured). */
+    val underlayState: UnderlayState = UnderlayState.None,
     val scaleDraft: ScaleDraft = ScaleDraft(),
     val undoStack: List<Drawing2D> = emptyList(),
     val redoStack: List<Drawing2D> = emptyList(),
