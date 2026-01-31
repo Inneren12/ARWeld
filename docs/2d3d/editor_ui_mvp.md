@@ -65,6 +65,15 @@ layout for toolbar, canvas, and bottom sheet sections.
   - Provide **X** and **Y** text inputs with explicit validation errors.
   - Include an **Apply** button to commit the coordinate change as a single undo step.
   - Keep the **Delete node** action visible below the edit controls.
+- When a member is selected:
+  - Show member ID and endpoint node IDs (A/B).
+  - Show resolved endpoint coordinates (A/B) in world space.
+  - Always show the member length in drawing units (`px`).
+  - If scale is set and valid, also show the length in mm using
+    `lengthMm = lengthPx * (realLengthMm / distance(scale.pointA, scale.pointB))`.
+  - If scale is missing, show a “Set scale to get mm length” CTA that switches to the Scale tool.
+  - Show a profile reference placeholder (“Profile: —” when not set).
+  - Keep the **Delete member** action visible below the details.
 
 ## Data Wiring
 - `ManualEditorViewModel` loads the current `Drawing2D` via `Drawing2DRepository`.

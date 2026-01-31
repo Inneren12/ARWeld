@@ -90,6 +90,21 @@ Member creation validation is covered with reducer tests:
 ./gradlew :feature-drawing-editor:test --tests "*EditorReducerTest"
 ```
 
+## Member Panel Length Tests
+
+The member bottom sheet calculations are covered with pure JVM tests:
+
+- `computeLengthPx` uses Euclidean distance between endpoint coordinates.
+- `computeMmPerPx` and `computeLengthMm` follow the scale conversion formula.
+- Missing scale inputs return `null` without crashing.
+- Unresolved endpoints return explicit error results.
+
+### How to Run
+
+```bash
+./gradlew :feature-drawing-editor:test --tests "*MemberMetricsTest"
+```
+
 ## Smoke Tests
 
 The smoke test suite (`Drawing2DEditorSmokeTest`) provides minimal coverage to catch basic wiring regressions in the 2D3D editor foundations without requiring full UI.

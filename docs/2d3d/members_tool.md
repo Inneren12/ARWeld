@@ -14,7 +14,20 @@ always anchored to existing nodes (no free-floating endpoints).
 - When a member is selected, the bottom sheet shows:
   - Member ID
   - Endpoint node IDs (A/B)
+  - Resolved endpoint coordinates (A/B) in world space, formatted with 3 decimals (Locale.US)
+  - Member length in drawing units (`px`), formatted with 2 decimals (Locale.US)
+  - Member length in **mm** (only when scale is set and valid), formatted with 1 decimal (Locale.US)
+  - Profile reference placeholder (“—” when not set)
+  - If endpoints are unresolved (missing node references), the panel explicitly shows
+    “unresolved endpoints” and skips length calculations.
+  - If scale is missing, the panel shows a “Set scale to get mm length” CTA that switches to
+    the Scale tool.
   - **Delete member** action
+
+### Length Formulas (deterministic)
+- `lengthPx = distance(nodeA, nodeB)` measured in editor drawing units.
+- `mmPerPx = realLengthMm / distance(scale.pointA, scale.pointB)` (see Scale tool).
+- `lengthMm = lengthPx * mmPerPx` when a valid scale calibration exists.
 
 ## Delete Member (S3-24)
 - The delete action removes only the member; nodes are unchanged.
