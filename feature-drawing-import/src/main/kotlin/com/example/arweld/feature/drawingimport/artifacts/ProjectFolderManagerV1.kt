@@ -36,10 +36,10 @@ data class CleanupReportV1(
     val retentionDeletedCount: Int get() = retentionDeleted.size
 }
 
-class ProjectFolderManagerV1 private constructor(
-    private val baseRoot: File,
-    private val policy: ArtifactsRootPolicyV1,
-    private val retention: RetentionPolicyV1,
+class ProjectFolderManagerV1(
+    private val rootDir: File,
+    private val policy: ArtifactsRootPolicyV1 = ArtifactsRootPolicyV1(),
+    private val retention: RetentionPolicyV1 = RetentionPolicyV1(),
 ) {
     private val logger = Logger.getLogger(ProjectFolderManagerV1::class.java.name)
 
@@ -48,26 +48,16 @@ class ProjectFolderManagerV1 private constructor(
         policy: ArtifactsRootPolicyV1 = ArtifactsRootPolicyV1(),
         retention: RetentionPolicyV1 = RetentionPolicyV1(),
     ) : this(
-        baseRoot = File(context.filesDir, "artifacts"),
-        policy = policy,
-        retention = retention,
-    )
-
-    constructor(
-        rootDir: File,
-        policy: ArtifactsRootPolicyV1 = ArtifactsRootPolicyV1(),
-        retention: RetentionPolicyV1 = RetentionPolicyV1(),
-    ) : this(
-        baseRoot = rootDir,
+        rootDir = File(context.filesDir, "artifacts"),
         policy = policy,
         retention = retention,
     )
 
     fun artifactsRoot(): File {
-        if (!baseRoot.exists()) {
-            baseRoot.mkdirs()
+        if (!rootDir.exists()) {
+            rootDir.mkdirs()
         }
-        return baseRoot
+        return rootDir
     }
 
     fun finalDir(projectId: String): File {
@@ -196,6 +186,18 @@ class ProjectFolderManagerV1 private constructor(
         if (report.retentionDeleted.isNotEmpty()) {
             logger.info("ProjectFolderManagerV1 retentionDeleted=${report.retentionDeleted}")
         }
+    }
+
+    companion object {
+        fun fromBaseRoot(
+            baseRoot: File,
+            policy: ArtifactsRootPolicyV1 = ArtifactsRootPolicyV1(),
+            retention: RetentionPolicyV1 = RetentionPolicyV1(),
+        ): ProjectFolderManagerV1 = ProjectFolderManagerV1(
+            rootDir = baseRoot,
+            policy = policy,
+            retention = retention,
+        )
     }
 
     private data class ProjectCandidate(
