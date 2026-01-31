@@ -340,7 +340,7 @@ class DrawingImportPipelineV1(
         block: () -> PageDetectOutcomeV1<T>,
     ): PageDetectOutcomeV1<T> {
         cancellationContext?.ensureActive()
-        checkTimeBudget(stage, projectId)?.let { return it }
+        checkTimeBudget<T>(stage, projectId)?.let { return it }
         stageListener(stage)
         logEvent(DrawingImportEvent.STAGE_START, projectId, mapOf("stage" to stage.name))
         val outcome = try {
