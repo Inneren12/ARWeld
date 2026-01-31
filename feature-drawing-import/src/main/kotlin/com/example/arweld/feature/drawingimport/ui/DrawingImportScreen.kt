@@ -32,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,10 +51,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
+import com.example.arweld.core.drawing2d.Drawing2DJson
 import com.example.arweld.core.drawing2d.artifacts.layout.v1.ProjectLayoutV1
 import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
 import com.example.arweld.core.drawing2d.artifacts.io.v1.ManifestWriterV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
+import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetaV1
 import com.example.arweld.feature.drawingimport.BuildConfig
 import com.example.arweld.feature.drawingimport.artifacts.DrawingImportArtifacts
 import com.example.arweld.feature.drawingimport.camera.CameraSession
@@ -73,6 +76,7 @@ import com.example.arweld.feature.drawingimport.quality.DrawingImportPipelineRes
 import com.example.arweld.feature.drawingimport.quality.ExposureMetricsV1
 import com.example.arweld.feature.drawingimport.quality.OrderedCornersV1 as QualityOrderedCornersV1
 import com.example.arweld.feature.drawingimport.quality.QualityMetricsV1
+import com.example.arweld.feature.drawingimport.quality.RectifiedQualityMetricsV1
 import com.example.arweld.feature.drawingimport.quality.SkewMetricsV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailureV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectStageV1
@@ -137,6 +141,7 @@ fun DrawingImportScreen(
     var pipelineResult by remember { mutableStateOf<DrawingImportPipelineResultV1?>(null) }
     var processState by remember { mutableStateOf<DrawingImportProcessState>(DrawingImportProcessState.Idle) }
     var pipelineJob by remember { mutableStateOf<Job?>(null) }
+    var loadedCaptureMeta by remember { mutableStateOf<CaptureMetaV1?>(null) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
@@ -196,6 +201,46 @@ fun DrawingImportScreen(
 
     val shouldBindCamera = uiState is CameraPermissionState.Ready &&
         (screenState is DrawingImportUiState.Ready || screenState is DrawingImportUiState.Capturing)
+
+    LaunchedEffect(activeProjectId) {
+        val projectId = activeProjectId
+        if (projectId == null) {
+            loadedCaptureMeta = null
+            return@LaunchedEffect
+        }
+        val projectDir = File(DrawingImportArtifacts.artifactsRoot(context), projectId)
+        val metaFile = File(projectDir, ProjectLayoutV1.CAPTURE_META_JSON)
+        val meta = withContext(Dispatchers.IO) {
+            if (!metaFile.exists()) {
+                null
+            } else {
+                runCatching {
+                    Drawing2DJson.decodeFromString<CaptureMetaV1>(metaFile.readText())
+                }.getOrNull()
+            }
+        }
+        loadedCaptureMeta = meta
+        val currentState = screenState
+        if (meta != null && currentState is DrawingImportUiState.Saved) {
+            val session = currentState.session
+            val metaBlur = meta.metrics?.blurVariance
+            val mergedMetrics = when {
+                session.rectifiedQualityMetrics == null -> RectifiedQualityMetricsV1(blurVariance = metaBlur)
+                session.rectifiedQualityMetrics.blurVariance == null && metaBlur != null -> {
+                    RectifiedQualityMetricsV1(blurVariance = metaBlur)
+                }
+                else -> session.rectifiedQualityMetrics
+            }
+            val mergedRectified = session.rectifiedImageInfo
+                ?: meta.rectified?.let { RectifiedImageInfo(it.widthPx, it.heightPx) }
+            screenState = DrawingImportUiState.Saved(
+                session.copy(
+                    rectifiedQualityMetrics = mergedMetrics,
+                    rectifiedImageInfo = mergedRectified,
+                ),
+            )
+        }
+    }
 
     DisposableEffect(shouldBindCamera) {
         if (!shouldBindCamera) {
@@ -1089,23 +1134,23 @@ fun DrawingImportScreen(
                                                                 rectifiedSizeOutcome = sizeOutcome
                                                                 pipelineResult = when (quadOutcome) {
                                                                     is PageDetectOutcomeV1.Success -> {
-                                                                        val orderedCorners = QualityOrderedCornersV1.fromPoints(
-                                                                            quadOutcome.value.points,
+                                                                    val orderedCorners = QualityOrderedCornersV1.fromPoints(
+                                                                        quadOutcome.value.points,
+                                                                    )
+                                                                    orderedCorners?.let { corners ->
+                                                                        val metrics = QualityMetricsV1.skewFromQuad(
+                                                                            corners,
+                                                                            frame.width,
+                                                                            frame.height,
                                                                         )
-                                                                        orderedCorners?.let { corners ->
-                                                                            val metrics = QualityMetricsV1.skewFromQuad(
-                                                                                corners,
-                                                                                frame.width,
-                                                                                frame.height,
-                                                                            )
-                                                                            val blurVariance = (screenState as? DrawingImportUiState.Saved)
-                                                                                ?.session
-                                                                                ?.rectifiedQualityMetrics
-                                                                                ?.blurVariance
-                                                                            val exposure = exposureMetrics
-                                                                                ?: ExposureMetricsV1(
-                                                                                    meanY = 0.0,
-                                                                                    clipLowPct = 0.0,
+                                                                        val blurVariance = resolvedBlurVariance(
+                                                                            screenState = screenState,
+                                                                            captureMeta = loadedCaptureMeta,
+                                                                        )
+                                                                        val exposure = exposureMetrics
+                                                                            ?: ExposureMetricsV1(
+                                                                                meanY = 0.0,
+                                                                                clipLowPct = 0.0,
                                                                                     clipHighPct = 0.0,
                                                                                 )
                                                                             DrawingImportPipelineResultV1(
@@ -1290,10 +1335,10 @@ fun DrawingImportScreen(
                                                 }
                                             pipelineResult?.let { result ->
                                                 val metrics = result.skewMetrics
-                                                val blurVariance = (screenState as? DrawingImportUiState.Saved)
-                                                    ?.session
-                                                    ?.rectifiedQualityMetrics
-                                                    ?.blurVariance
+                                                val blurVariance = resolvedBlurVariance(
+                                                    screenState = screenState,
+                                                    captureMeta = loadedCaptureMeta,
+                                                )
                                                 Text(
                                                     text = formatSkewMetrics(metrics),
                                                     style = MaterialTheme.typography.bodySmall,
@@ -1670,10 +1715,22 @@ private fun formatSkewMetrics(metrics: SkewMetricsV1): String {
         "Keystone W/H: $keystoneW/$keystoneH • Page fill: $pageFill • Status: ${metrics.status.name}"
 }
 
+private fun resolvedBlurVariance(
+    screenState: DrawingImportUiState,
+    captureMeta: CaptureMetaV1?,
+): Double? {
+    val sessionBlur = (screenState as? DrawingImportUiState.Saved)
+        ?.session
+        ?.rectifiedQualityMetrics
+        ?.blurVariance
+    val metaBlur = captureMeta?.metrics?.blurVariance
+    return sessionBlur ?: metaBlur
+}
+
 private fun formatBlurVarianceLabel(blurVariance: Double?): String {
     val formatted = blurVariance?.let { value ->
         String.format(Locale.US, "%.2f", value)
-    } ?: "n/a"
+    } ?: "—"
     return "Blur (VarLap): $formatted"
 }
 
