@@ -21,7 +21,7 @@ class Drawing2DEditorSerializationTest {
                 pointB = Point2D(x = 40.0, y = 60.0),
                 realLengthMm = 1500.0
             ),
-            meta = listOf(MetaEntryV1("source", "manual"))
+            meta = Drawing2DEditorMetaV1(entries = listOf(MetaEntryV1("source", "manual")))
         )
 
         val json = Drawing2DEditorJson.encodeToString(drawing)

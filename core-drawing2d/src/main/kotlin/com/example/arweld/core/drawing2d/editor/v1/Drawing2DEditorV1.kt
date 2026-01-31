@@ -12,7 +12,14 @@ data class Drawing2D(
     val nodes: List<Node2D>,
     val members: List<Member2D>,
     val scale: ScaleInfo? = null,
-    val meta: List<MetaEntryV1>? = null
+    val meta: Drawing2DEditorMetaV1? = null
+)
+
+@Serializable
+data class Drawing2DEditorMetaV1(
+    val nextNodeId: Long = 1,
+    val nextMemberId: Long = 1,
+    val entries: List<MetaEntryV1>? = null
 )
 
 @Serializable

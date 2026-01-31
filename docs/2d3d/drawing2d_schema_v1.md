@@ -14,7 +14,7 @@ Drawing2D v1 (manual editor) is a minimal, stable JSON schema for authoring 2D n
 | `nodes` | array of `Node2D` | ✅ | Node list; `id` must be unique. |
 | `members` | array of `Member2D` | ✅ | Member list; `aNodeId`/`bNodeId` reference nodes. |
 | `scale` | `ScaleInfo` | ❌ | Optional scale calibration. |
-| `meta` | array of `MetaEntryV1` | ❌ | Optional metadata (ordered key/value pairs). |
+| `meta` | `Drawing2DEditorMetaV1` | ❌ | Optional metadata and deterministic ID counters. |
 
 ## Node2D
 | Field | Type | Required | Notes |
@@ -54,6 +54,28 @@ Metadata entries are ordered key/value pairs shared across Drawing2D v1 schemas:
 | `key` | string | ✅ |
 | `value` | string | ✅ |
 
+## Drawing2DEditorMetaV1
+Manual editor metadata and deterministic ID counters:
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `nextNodeId` | number | ❌ | Next node counter (default `1`). |
+| `nextMemberId` | number | ❌ | Next member counter (default `1`). |
+| `entries` | array of `MetaEntryV1` | ❌ | Optional metadata entries (ordered). |
+
+## Deterministic IDs & Ordering
+To prevent save diffs/flapping, the manual editor uses deterministic IDs and canonical ordering rules.
+
+**ID strategy (editor v1):**
+- Node IDs are generated as `N000001`, `N000002`, ... using a zero-padded, 6-digit counter.
+- Member IDs are generated as `M000001`, `M000002`, ... using a zero-padded, 6-digit counter.
+- Counters are stored in `meta.nextNodeId` and `meta.nextMemberId`.
+- Each allocation increments the corresponding counter by 1 (monotonic, session-local).
+
+**Canonical ordering on save:**
+- `nodes` are sorted by `id` ascending.
+- `members` are sorted by `id` ascending.
+
 ## Example JSON
 ```json
 {
@@ -70,9 +92,13 @@ Metadata entries are ordered key/value pairs shared across Drawing2D v1 schemas:
     "pointB": { "x": 40.0, "y": 60.0 },
     "realLengthMm": 1500.0
   },
-  "meta": [
-    { "key": "source", "value": "manual" }
-  ]
+  "meta": {
+    "nextNodeId": 3,
+    "nextMemberId": 2,
+    "entries": [
+      { "key": "source", "value": "manual" }
+    ]
+  }
 }
 ```
 
