@@ -8,6 +8,13 @@ import androidx.exifinterface.media.ExifInterface
 import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactEntryV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
+import com.example.arweld.core.drawing2d.artifacts.v1.CaptureCornersV1
+import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetaV1
+import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetricsV1
+import com.example.arweld.core.drawing2d.artifacts.v1.CornerQuadV1
+import com.example.arweld.core.drawing2d.artifacts.v1.RectifiedCaptureV1
+import com.example.arweld.core.drawing2d.v1.PointV1
+import com.example.arweld.feature.drawingimport.artifacts.CaptureMetaWriterV1
 import com.example.arweld.feature.drawingimport.artifacts.RectifiedArtifactWriterV1
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLogger
@@ -166,6 +173,17 @@ class DrawingImportPipelineV1(
             is PageDetectOutcomeV1.Success -> saveOutcome.value
             is PageDetectOutcomeV1.Failure -> return saveOutcome
         }
+        val captureMetaOutcome = writeCaptureMeta(
+            session = updatedSession,
+            orderedCorners = orderedFull,
+            refinedCorners = refinedFull,
+            rectifiedSize = rectifiedSize,
+            rectifiedMetrics = rectifiedMetrics,
+        )
+        val sessionWithMeta = when (captureMetaOutcome) {
+            is PageDetectOutcomeV1.Success -> captureMetaOutcome.value
+            is PageDetectOutcomeV1.Failure -> return captureMetaOutcome
+        }
 
         logEvent(DrawingImportEvent.PIPELINE_OK, session.projectId)
         return PageDetectOutcomeV1.Success(
@@ -173,7 +191,7 @@ class DrawingImportPipelineV1(
                 orderedCorners = orderedFull,
                 refinedCorners = refinedFull,
                 rectifiedSize = rectifiedSize,
-                artifacts = updatedSession.artifacts,
+                artifacts = sessionWithMeta.artifacts,
                 rectifiedQualityMetrics = rectifiedMetrics,
             ),
         )
@@ -271,6 +289,46 @@ class DrawingImportPipelineV1(
             )
         }
         return RectifiedQualityMetricsV1(blurVariance = blurVariance)
+    }
+
+    private fun writeCaptureMeta(
+        session: DrawingImportSession,
+        orderedCorners: OrderedCornersV1,
+        refinedCorners: OrderedCornersV1?,
+        rectifiedSize: RectifiedSizeV1,
+        rectifiedMetrics: RectifiedQualityMetricsV1,
+    ): PageDetectOutcomeV1<DrawingImportSession> {
+        return try {
+            val captureMeta = CaptureMetaV1(
+                corners = CaptureCornersV1(
+                    ordered = orderedCorners.toCornerQuadV1(),
+                    refined = refinedCorners?.toCornerQuadV1(),
+                ),
+                rectified = RectifiedCaptureV1(
+                    widthPx = rectifiedSize.width,
+                    heightPx = rectifiedSize.height,
+                ),
+                metrics = CaptureMetricsV1(
+                    blurVariance = rectifiedMetrics.blurVariance,
+                ),
+            )
+            val store = FileArtifactStoreV1(session.projectDir)
+            val updatedSession = CaptureMetaWriterV1().write(
+                captureMeta = captureMeta,
+                projectStore = store,
+                session = session,
+                rewriteManifest = true,
+            )
+            PageDetectOutcomeV1.Success(updatedSession)
+        } catch (error: Throwable) {
+            PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.SAVE,
+                    code = PageDetectFailureCodeV1.UNKNOWN,
+                    debugMessage = error.message,
+                ),
+            )
+        }
     }
 }
 
@@ -629,6 +687,15 @@ private fun OrderedCornersV1.scale(scaleX: Double, scaleY: Double): OrderedCorne
             x = bottomLeft.x * scaleX,
             y = bottomLeft.y * scaleY,
         ),
+    )
+}
+
+private fun OrderedCornersV1.toCornerQuadV1(): CornerQuadV1 {
+    return CornerQuadV1(
+        topLeft = PointV1(topLeft.x, topLeft.y),
+        topRight = PointV1(topRight.x, topRight.y),
+        bottomRight = PointV1(bottomRight.x, bottomRight.y),
+        bottomLeft = PointV1(bottomLeft.x, bottomLeft.y),
     )
 }
 
