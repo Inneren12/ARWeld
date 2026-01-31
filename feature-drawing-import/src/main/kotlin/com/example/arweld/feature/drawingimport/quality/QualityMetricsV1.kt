@@ -292,4 +292,5 @@ data class DrawingImportPipelineResultV1(
     val skewMetrics: SkewMetricsV1,
     val blurVariance: Double? = null,
     val exposureMetrics: ExposureMetricsV1,
+    val qualityGate: QualityGateResultV1? = null,
 )
