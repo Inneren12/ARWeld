@@ -10,7 +10,8 @@ import java.nio.file.StandardCopyOption
 import java.util.UUID
 
 class FileArtifactStoreV1(
-    override val baseDir: File
+    override val baseDir: File,
+    private val faultInjector: ArtifactWriteFaultInjectorV1? = null,
 ) : ArtifactStoreV1 {
 
     override fun writeBytes(
@@ -19,6 +20,7 @@ class FileArtifactStoreV1(
         bytes: ByteArray,
         mime: String
     ): ArtifactEntryV1 {
+        faultInjector?.onWrite(kind, relPath, bytes.size)
         if (!baseDir.exists()) {
             check(baseDir.mkdirs()) { "Failed to create base directory: ${'$'}{baseDir.path}" }
         }

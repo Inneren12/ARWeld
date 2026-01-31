@@ -49,6 +49,12 @@ enum class PageDetectFailureCodeV1 {
     REFINE_FAILED,
     /** Rectified output exceeds the maximum pixel count/side caps. */
     RECTIFIED_TOO_LARGE,
+    /** Failed to open output transaction staging directory. */
+    OUTPUT_OPEN_FAILED,
+    /** Failed to commit staged output to final directory. */
+    OUTPUT_COMMIT_FAILED,
+    /** Failed to rollback staged output after a failure. */
+    OUTPUT_ROLLBACK,
     /** Pipeline exceeded the configured time budget. */
     TIME_BUDGET_EXCEEDED,
     /** Unknown/unclassified failure. */

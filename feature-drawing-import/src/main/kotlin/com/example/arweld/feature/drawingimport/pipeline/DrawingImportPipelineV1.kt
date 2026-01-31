@@ -5,7 +5,8 @@ import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.os.SystemClock
-import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
+import com.example.arweld.core.drawing2d.artifacts.io.v1.ArtifactStoreV1
+import com.example.arweld.core.drawing2d.artifacts.io.v1.ProjectTransactionV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactEntryV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
 import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetaV1
@@ -61,10 +62,60 @@ class DrawingImportPipelineV1(
     private val eventLogger: DrawingImportEventLogger? = null,
     private val stageListener: (PageDetectStageV1) -> Unit = {},
     private val cancellationContext: CoroutineContext? = null,
+    private val transactionFactory: (File, String) -> ProjectTransactionV1 = { root, id ->
+        ProjectTransactionV1(root, id)
+    },
 ) {
     private var pipelineStartMs: Long = 0L
 
-    fun run(session: DrawingImportSession): PageDetectOutcomeV1<PipelineResultV1> {
+    suspend fun run(session: DrawingImportSession): PageDetectOutcomeV1<PipelineResultV1> {
+        val artifactsRoot = session.projectDir.parentFile
+            ?: return failure(
+                PageDetectStageV1.SAVE,
+                PageDetectFailureCodeV1.OUTPUT_OPEN_FAILED,
+                "Missing artifacts root for ${session.projectDir.path}",
+            )
+        val transaction = transactionFactory(artifactsRoot, session.projectId)
+        val projectStore = try {
+            transaction.open()
+        } catch (error: Throwable) {
+            return failure(
+                PageDetectStageV1.SAVE,
+                PageDetectFailureCodeV1.OUTPUT_OPEN_FAILED,
+                error.message,
+            )
+        }
+        val stagingSession = session.copy(projectDir = transaction.stagingDir)
+        return try {
+            val outcome = runInternal(stagingSession, projectStore)
+            when (outcome) {
+                is PageDetectOutcomeV1.Success -> {
+                    try {
+                        transaction.commit()
+                        outcome
+                    } catch (error: Throwable) {
+                        runCatching { transaction.rollback() }
+                        failure(
+                            PageDetectStageV1.SAVE,
+                            PageDetectFailureCodeV1.OUTPUT_COMMIT_FAILED,
+                            error.message,
+                        )
+                    }
+                }
+                is PageDetectOutcomeV1.Failure -> {
+                    rollbackOnFailure(transaction, outcome)
+                }
+            }
+        } catch (error: CancellationException) {
+            runCatching { transaction.rollback() }
+            throw error
+        }
+    }
+
+    private fun runInternal(
+        session: DrawingImportSession,
+        projectStore: ArtifactStoreV1,
+    ): PageDetectOutcomeV1<PipelineResultV1> {
         pipelineStartMs = SystemClock.elapsedRealtime()
         logEvent(DrawingImportEvent.PIPELINE_START, session.projectId)
         val rawFile = session.rawImageFileOrNull()
@@ -212,7 +263,7 @@ class DrawingImportPipelineV1(
         )
 
         val saveOutcome = runStage(PageDetectStageV1.SAVE, session.projectId) {
-            stages.saveArtifacts(session, rectifiedResult.bitmap, rectifiedSize)
+            stages.saveArtifacts(session, projectStore, rectifiedResult.bitmap, rectifiedSize)
         }
         rectifiedResult.bitmap.recycle()
         upright.recycle()
@@ -222,6 +273,7 @@ class DrawingImportPipelineV1(
         }
         val captureMetaOutcome = writeCaptureMeta(
             session = updatedSession,
+            projectStore = projectStore,
             upright = upright,
             frame = frame,
             orderedCorners = orderedFull,
@@ -249,6 +301,24 @@ class DrawingImportPipelineV1(
                 rectifiedQualityMetrics = rectifiedMetrics,
             ),
         )
+    }
+
+    private fun rollbackOnFailure(
+        transaction: ProjectTransactionV1,
+        failure: PageDetectOutcomeV1.Failure,
+    ): PageDetectOutcomeV1<PipelineResultV1> {
+        return try {
+            transaction.rollback()
+            failure
+        } catch (error: Throwable) {
+            PageDetectOutcomeV1.Failure(
+                PageDetectFailureV1(
+                    stage = PageDetectStageV1.SAVE,
+                    code = PageDetectFailureCodeV1.OUTPUT_ROLLBACK,
+                    debugMessage = error.message,
+                ),
+            )
+        }
     }
 
     private fun <T> runStage(
@@ -379,6 +449,7 @@ class DrawingImportPipelineV1(
 
     private fun writeCaptureMeta(
         session: DrawingImportSession,
+        projectStore: ArtifactStoreV1,
         upright: UprightBitmapV1,
         frame: PageDetectFrame,
         orderedCorners: OrderedCornersV1,
@@ -433,10 +504,9 @@ class DrawingImportPipelineV1(
                     reasons = qualityGate.reasons.map { it.name },
                 ),
             )
-            val store = FileArtifactStoreV1(session.projectDir)
             val updatedSession = CaptureMetaWriterV1().write(
                 captureMeta = captureMeta,
-                projectStore = store,
+                projectStore = projectStore,
                 session = session,
                 rewriteManifest = true,
             )
@@ -524,6 +594,7 @@ interface DrawingImportPipelineStagesV1 {
 
     fun saveArtifacts(
         session: DrawingImportSession,
+        projectStore: ArtifactStoreV1,
         rectified: Bitmap,
         size: RectifiedSizeV1,
     ): PageDetectOutcomeV1<DrawingImportSession>
@@ -680,11 +751,11 @@ interface DrawingImportPipelineStagesV1 {
 
         override fun saveArtifacts(
             session: DrawingImportSession,
+            projectStore: ArtifactStoreV1,
             rectified: Bitmap,
             size: RectifiedSizeV1,
         ): PageDetectOutcomeV1<DrawingImportSession> {
             return try {
-                val projectStore = FileArtifactStoreV1(session.projectDir)
                 val updated = artifactWriter.write(
                     rectifiedBitmap = rectified,
                     projectStore = projectStore,

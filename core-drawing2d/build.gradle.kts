@@ -18,6 +18,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+    testImplementation(libs.kotlinx.coroutines.core)
 }
 
 tasks.withType<JavaCompile>().configureEach {
