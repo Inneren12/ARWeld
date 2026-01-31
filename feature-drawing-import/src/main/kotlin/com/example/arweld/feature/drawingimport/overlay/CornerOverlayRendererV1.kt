@@ -22,7 +22,7 @@ class CornerOverlayRendererV1 {
         val markerRadius = max(4f, width * 0.012f)
         val refinedRadius = markerRadius * 0.65f
         val labelOffset = markerRadius + stroke * 1.5f
-        val textSize = max(12f, width * 0.045f)
+        val labelTextSize = max(12f, width * 0.045f)
 
         val orderedColor = 0xFF00BCD4.toInt()
         val refinedColor = 0xFFFFC107.toInt()
@@ -52,7 +52,7 @@ class CornerOverlayRendererV1 {
         }
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFFFFFFF.toInt()
-            textSize = textSize
+            textSize = labelTextSize
             style = Paint.Style.FILL
             setShadowLayer(2f, 1f, 1f, 0xFF000000.toInt())
         }
