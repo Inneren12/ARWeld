@@ -17,6 +17,7 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/ui/DrawingImportScreen.kt` — Drawing Import UI with raw capture and structured diagnostics events.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/diagnostics/DrawingImportDiagnostics.kt` — Event + error code catalog and structured logging helpers for drawing import.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectPreprocessor.kt` — Deterministic preprocessing pipeline that decodes raw captures, applies EXIF rotation, downscales to a fixed max side, and emits grayscale buffers for page detection (S2-PR07).
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/CornerRefinerV1.kt` — Deterministic subpixel-ish corner refinement over PageDetectFrame edges (fixed window/iters/epsilon) with safe fallback codes.
 - `app/src/main/kotlin/com/example/arweld/ui/drawingimport/DrawingImportRoute.kt` — App-level navigation wrapper for Drawing Import.
 
 ### AR view and rendering (feature-arview)

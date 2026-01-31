@@ -60,6 +60,9 @@ import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLogger
 import com.example.arweld.feature.drawingimport.preprocess.ContourStats
 import com.example.arweld.feature.drawingimport.preprocess.ContourV1
+import com.example.arweld.feature.drawingimport.preprocess.CornerOrderingV1
+import com.example.arweld.feature.drawingimport.preprocess.CornerRefinerV1
+import com.example.arweld.feature.drawingimport.preprocess.OrderedCornersV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailure
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFrame
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectInput
@@ -69,6 +72,8 @@ import com.example.arweld.feature.drawingimport.preprocess.PageDetectPreprocesso
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadCandidate
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelectionResult
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelector
+import com.example.arweld.feature.drawingimport.preprocess.RefineParamsV1
+import com.example.arweld.feature.drawingimport.preprocess.RefineResultV1
 import java.io.File
 import java.util.Locale
 import java.util.UUID
@@ -106,6 +111,9 @@ fun DrawingImportScreen(
     var quadSelectionResult by remember { mutableStateOf<PageQuadSelectionResult?>(null) }
     var quadSelectionError by remember { mutableStateOf<String?>(null) }
     var isSelectingQuad by remember { mutableStateOf(false) }
+    var orderedCorners by remember { mutableStateOf<OrderedCornersV1?>(null) }
+    var refineResult by remember { mutableStateOf<RefineResultV1?>(null) }
+    var refineError by remember { mutableStateOf<String?>(null) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
@@ -113,6 +121,13 @@ fun DrawingImportScreen(
     val edgeDetector = remember { PageDetectEdgeDetector() }
     val contourExtractor = remember { PageDetectContourExtractor() }
     val quadSelector = remember { PageQuadSelector() }
+    val refineParams = remember {
+        RefineParamsV1(
+            windowRadiusPx = 6,
+            maxIters = 6,
+            epsilon = 0.25,
+        )
+    }
     var uiState by remember {
         mutableStateOf<CameraPermissionState>(
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -484,6 +499,9 @@ fun DrawingImportScreen(
                                                         quadSelectionResult = null
                                                         quadSelectionError = null
                                                         isSelectingQuad = false
+                                                        orderedCorners = null
+                                                        refineResult = null
+                                                        refineError = null
                                                         coroutineScope.launch(Dispatchers.Default) {
                                                             runCatching {
                                                                 pageDetectPreprocessor.preprocess(
@@ -610,6 +628,14 @@ fun DrawingImportScreen(
                                                                     quadSelectionResult = result
                                                                     isPreparingFrame = false
                                                                     isSelectingQuad = false
+                                                                    orderedCorners = (result as? PageQuadSelectionResult.Success)
+                                                                        ?.candidate
+                                                                        ?.points
+                                                                        ?.let { points ->
+                                                                            runCatching { CornerOrderingV1.order(points) }.getOrNull()
+                                                                        }
+                                                                    refineResult = null
+                                                                    refineError = null
                                                                 }
                                                             }.onFailure { error ->
                                                                 withContext(Dispatchers.Main) {
@@ -622,6 +648,42 @@ fun DrawingImportScreen(
                                                     },
                                                 ) {
                                                     Text(text = "Select page quad")
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                            ) {
+                                                Button(
+                                                    onClick = {
+                                                        val frame = pageDetectFrame
+                                                        val ordered = orderedCorners
+                                                        if (frame == null || ordered == null) {
+                                                            coroutineScope.launch {
+                                                                snackbarHostState.showSnackbar(
+                                                                    "Run quad selection before refining corners.",
+                                                                )
+                                                            }
+                                                            return@Button
+                                                        }
+                                                        refineError = null
+                                                        coroutineScope.launch(Dispatchers.Default) {
+                                                            runCatching {
+                                                                CornerRefinerV1.refine(frame, ordered, refineParams)
+                                                            }.onSuccess { result ->
+                                                                withContext(Dispatchers.Main) {
+                                                                    refineResult = result
+                                                                }
+                                                            }.onFailure { error ->
+                                                                withContext(Dispatchers.Main) {
+                                                                    refineResult = null
+                                                                    refineError = error.message ?: "Corner refinement failed."
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                ) {
+                                                    Text(text = "Refine corners")
                                                 }
                                             }
                                             if (isPreparingFrame) {
@@ -694,6 +756,25 @@ fun DrawingImportScreen(
                                                     color = MaterialTheme.colorScheme.error,
                                                 )
                                             }
+                                            orderedCorners?.let { corners ->
+                                                Text(
+                                                    text = formatOrderedCornersLabel(corners),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                            }
+                                            refineResult?.let { result ->
+                                                Text(
+                                                    text = formatRefineLabel(result),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                            }
+                                            refineError?.let { message ->
+                                                Text(
+                                                    text = "Refine failed: $message",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error,
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -746,6 +827,9 @@ fun DrawingImportScreen(
                                         quadSelectionResult = null
                                         quadSelectionError = null
                                         isSelectingQuad = false
+                                        orderedCorners = null
+                                        refineResult = null
+                                        refineError = null
                                         screenState = DrawingImportUiState.Ready
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -923,6 +1007,9 @@ fun DrawingImportScreen(
                                     quadSelectionResult = null
                                     quadSelectionError = null
                                     isSelectingQuad = false
+                                    orderedCorners = null
+                                    refineResult = null
+                                    refineError = null
                                     screenState = DrawingImportUiState.Ready
                                 },
                                 colors = ButtonDefaults.buttonColors(
@@ -987,6 +1074,23 @@ private fun formatQuadLabel(candidate: PageQuadCandidate): String {
 private fun formatFailureLabel(failure: PageDetectFailure): String {
     return "Quad selection: ${failure.code.name} • ${failure.message}"
 }
+
+private fun formatOrderedCornersLabel(corners: OrderedCornersV1): String {
+    val points = corners.toList()
+        .joinToString(prefix = "[", postfix = "]") { "(${it.x.formatPx()},${it.y.formatPx()})" }
+    return "Ordered corners (TL/TR/BR/BL): $points"
+}
+
+private fun formatRefineLabel(result: RefineResultV1): String {
+    val deltas = result.deltasPx.joinToString(prefix = "[", postfix = "]") { it.formatDeltaPx() }
+    val status = result.status.name
+    val failure = result.failureCode?.name?.let { " • $it" } ?: ""
+    return "Refine $status$failure • deltas=$deltas"
+}
+
+private fun Double.formatDeltaPx(): String = "%.2fpx".format(Locale.US, this)
+
+private fun Double.formatPx(): String = "%.1f".format(Locale.US, this)
 
 private sealed interface CameraPermissionState {
     data object NeedsPermission : CameraPermissionState
