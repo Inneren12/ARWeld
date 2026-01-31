@@ -58,7 +58,12 @@ import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorCo
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorMapper
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLogger
+import com.example.arweld.feature.drawingimport.preprocess.ContourStats
+import com.example.arweld.feature.drawingimport.preprocess.ContourV1
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectFrame
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectInput
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectContourExtractor
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectEdgeDetector
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectPreprocessor
 import java.io.File
 import java.util.Locale
@@ -87,12 +92,18 @@ fun DrawingImportScreen(
     var lastErrorCode by remember { mutableStateOf<DrawingImportErrorCode?>(null) }
     var hasLoggedCameraReady by remember { mutableStateOf(false) }
     var pageDetectInfo by remember { mutableStateOf<PageDetectFrameInfo?>(null) }
+    var pageDetectFrame by remember { mutableStateOf<PageDetectFrame?>(null) }
     var pageDetectError by remember { mutableStateOf<String?>(null) }
     var isPreparingFrame by remember { mutableStateOf(false) }
+    var contourInfo by remember { mutableStateOf<ContourDebugInfo?>(null) }
+    var contourError by remember { mutableStateOf<String?>(null) }
+    var isRunningContours by remember { mutableStateOf(false) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
     val pageDetectPreprocessor = remember { PageDetectPreprocessor() }
+    val edgeDetector = remember { PageDetectEdgeDetector() }
+    val contourExtractor = remember { PageDetectContourExtractor() }
     var uiState by remember {
         mutableStateOf<CameraPermissionState>(
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -440,48 +451,112 @@ fun DrawingImportScreen(
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.SemiBold,
                                             )
-                                            Button(
-                                                onClick = {
-                                                    if (rawFile == null) {
-                                                        coroutineScope.launch {
-                                                            snackbarHostState.showSnackbar(
-                                                                "Raw image missing; recapture first.",
-                                                            )
-                                                        }
-                                                        return@Button
-                                                    }
-                                                    pageDetectInfo = null
-                                                    pageDetectError = null
-                                                    isPreparingFrame = true
-                                                    coroutineScope.launch(Dispatchers.Default) {
-                                                        runCatching {
-                                                            pageDetectPreprocessor.preprocess(
-                                                                PageDetectInput(rawImageFile = rawFile),
-                                                            )
-                                                        }.onSuccess { frame ->
-                                                            withContext(Dispatchers.Main) {
-                                                                pageDetectInfo = PageDetectFrameInfo(
-                                                                    width = frame.width,
-                                                                    height = frame.height,
-                                                                    downscaleFactor = frame.downscaleFactor,
-                                                                    rotationAppliedDeg = frame.rotationAppliedDeg,
-                                                                )
-                                                                isPreparingFrame = false
-                                                            }
-                                                        }.onFailure { error ->
-                                                            withContext(Dispatchers.Main) {
-                                                                pageDetectError = error.message ?: "Failed to preprocess."
-                                                                isPreparingFrame = false
-                                                            }
-                                                        }
-                                                    }
-                                                },
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                             ) {
-                                                Text(text = "Prepare for detection")
+                                                Button(
+                                                    onClick = {
+                                                        if (rawFile == null) {
+                                                            coroutineScope.launch {
+                                                                snackbarHostState.showSnackbar(
+                                                                    "Raw image missing; recapture first.",
+                                                                )
+                                                            }
+                                                            return@Button
+                                                        }
+                                                        pageDetectInfo = null
+                                                        pageDetectFrame = null
+                                                        pageDetectError = null
+                                                        isPreparingFrame = true
+                                                        contourInfo = null
+                                                        contourError = null
+                                                        isRunningContours = false
+                                                        coroutineScope.launch(Dispatchers.Default) {
+                                                            runCatching {
+                                                                pageDetectPreprocessor.preprocess(
+                                                                    PageDetectInput(rawImageFile = rawFile),
+                                                                )
+                                                            }.onSuccess { frame ->
+                                                                withContext(Dispatchers.Main) {
+                                                                    pageDetectFrame = frame
+                                                                    pageDetectInfo = PageDetectFrameInfo(
+                                                                        width = frame.width,
+                                                                        height = frame.height,
+                                                                        downscaleFactor = frame.downscaleFactor,
+                                                                        rotationAppliedDeg = frame.rotationAppliedDeg,
+                                                                    )
+                                                                    isPreparingFrame = false
+                                                                }
+                                                            }.onFailure { error ->
+                                                                withContext(Dispatchers.Main) {
+                                                                    pageDetectError = error.message ?: "Failed to preprocess."
+                                                                    isPreparingFrame = false
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                ) {
+                                                    Text(text = "Prepare for detection")
+                                                }
+                                                Button(
+                                                    onClick = {
+                                                        if (rawFile == null) {
+                                                            coroutineScope.launch {
+                                                                snackbarHostState.showSnackbar(
+                                                                    "Raw image missing; recapture first.",
+                                                                )
+                                                            }
+                                                            return@Button
+                                                        }
+                                                        contourInfo = null
+                                                        contourError = null
+                                                        pageDetectError = null
+                                                        isPreparingFrame = true
+                                                        isRunningContours = true
+                                                        coroutineScope.launch(Dispatchers.Default) {
+                                                            runCatching {
+                                                                val frame = pageDetectFrame ?: pageDetectPreprocessor.preprocess(
+                                                                    PageDetectInput(rawImageFile = rawFile),
+                                                                )
+                                                                val edges = edgeDetector.detect(frame)
+                                                                val contours = contourExtractor.extract(edges)
+                                                                Triple(frame, contours, ContourStats.topByArea(contours, 3))
+                                                            }.onSuccess { (frame, contours, topContours) ->
+                                                                withContext(Dispatchers.Main) {
+                                                                    pageDetectFrame = frame
+                                                                    pageDetectInfo = PageDetectFrameInfo(
+                                                                        width = frame.width,
+                                                                        height = frame.height,
+                                                                        downscaleFactor = frame.downscaleFactor,
+                                                                        rotationAppliedDeg = frame.rotationAppliedDeg,
+                                                                    )
+                                                                    contourInfo = ContourDebugInfo(
+                                                                        totalContours = contours.size,
+                                                                        topContours = topContours,
+                                                                    )
+                                                                    isPreparingFrame = false
+                                                                    isRunningContours = false
+                                                                }
+                                                            }.onFailure { error ->
+                                                                withContext(Dispatchers.Main) {
+                                                                    contourError = error.message ?: "Failed to run edges+contours."
+                                                                    isPreparingFrame = false
+                                                                    isRunningContours = false
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                ) {
+                                                    Text(text = "Run edges+contours")
+                                                }
                                             }
                                             if (isPreparingFrame) {
                                                 Text(
-                                                    text = "Preparing frame...",
+                                                    text = if (isRunningContours) {
+                                                        "Running edges+contours..."
+                                                    } else {
+                                                        "Preparing frame..."
+                                                    },
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
                                             }
@@ -496,6 +571,25 @@ fun DrawingImportScreen(
                                             pageDetectError?.let { message ->
                                                 Text(
                                                     text = "Prep failed: $message",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error,
+                                                )
+                                            }
+                                            contourInfo?.let { info ->
+                                                Text(
+                                                    text = "Contours: ${info.totalContours}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                                info.topContours.forEachIndexed { index, contour ->
+                                                    Text(
+                                                        text = formatContourLabel(index, contour),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                    )
+                                                }
+                                            }
+                                            contourError?.let { message ->
+                                                Text(
+                                                    text = "Contour run failed: $message",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.error,
                                                 )
@@ -542,8 +636,12 @@ fun DrawingImportScreen(
                                         activeProjectId = null
                                         imageError = false
                                         pageDetectInfo = null
+                                        pageDetectFrame = null
                                         pageDetectError = null
                                         isPreparingFrame = false
+                                        contourInfo = null
+                                        contourError = null
+                                        isRunningContours = false
                                         screenState = DrawingImportUiState.Ready
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -579,8 +677,12 @@ fun DrawingImportScreen(
                                         val captureProjectId = activeProjectId ?: UUID.randomUUID().toString()
                                         activeProjectId = captureProjectId
                                         pageDetectInfo = null
+                                        pageDetectFrame = null
                                         pageDetectError = null
                                         isPreparingFrame = false
+                                        contourInfo = null
+                                        contourError = null
+                                        isRunningContours = false
                                         logDiagnosticsEvent(
                                             logger = diagnosticsLogger,
                                             event = DrawingImportEvent.CAPTURE_START,
@@ -703,8 +805,12 @@ fun DrawingImportScreen(
                                     activeProjectId = null
                                     imageError = false
                                     pageDetectInfo = null
+                                    pageDetectFrame = null
                                     pageDetectError = null
                                     isPreparingFrame = false
+                                    contourInfo = null
+                                    contourError = null
+                                    isRunningContours = false
                                     screenState = DrawingImportUiState.Ready
                                 },
                                 colors = ButtonDefaults.buttonColors(
@@ -747,6 +853,17 @@ private data class PageDetectFrameInfo(
     val downscaleFactor: Double,
     val rotationAppliedDeg: Int,
 )
+
+private data class ContourDebugInfo(
+    val totalContours: Int,
+    val topContours: List<ContourV1>,
+)
+
+private fun formatContourLabel(index: Int, contour: ContourV1): String {
+    val area = "%.1f".format(Locale.US, contour.area)
+    val bbox = "x=${contour.bbox.x}, y=${contour.bbox.y}, w=${contour.bbox.width}, h=${contour.bbox.height}"
+    return "#${index + 1} area=$area • bbox=($bbox)"
+}
 
 private sealed interface CameraPermissionState {
     data object NeedsPermission : CameraPermissionState
