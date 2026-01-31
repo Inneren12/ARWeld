@@ -21,3 +21,7 @@ interface ArtifactStoreV1 {
         mime: String = "application/json"
     ): ArtifactEntryV1
 }
+
+fun interface ArtifactWriteFaultInjectorV1 {
+    fun onWrite(kind: ArtifactKindV1, relPath: String, byteCount: Int)
+}

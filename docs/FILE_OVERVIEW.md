@@ -25,6 +25,7 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/CornerRefinerV1.kt` — Deterministic subpixel-ish corner refinement over PageDetectFrame edges (fixed window/iters/epsilon) with safe fallback codes.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectContractsV1.kt` — Unified page detection outcome contract (stage + failure code + debug message) for preprocess/edges/contours/quad/order/refine.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/pipeline/DrawingImportPipelineV1.kt` — End-to-end deterministic pipeline orchestrator (upright load → preprocess → detect → order/refine → size → rectify → save) with stage logging.
+- `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/ProjectTransactionV1.kt` — Atomic output transaction: write artifacts to `<artifactsRoot>/.staging/<projectId>` and commit to `<artifactsRoot>/<projectId>` on success.
 - `overlays/corners.png` — Debug corner overlay artifact saved via `ProjectLayoutV1.overlay("corners")` after ordering/refining corners.
 - `app/src/main/kotlin/com/example/arweld/ui/drawingimport/DrawingImportRoute.kt` — App-level navigation wrapper for Drawing Import.
 
@@ -45,6 +46,9 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 | `ORDER_DEGENERATE` | Quad geometry was degenerate/invalid. |
 | `REFINE_FAILED` | Corner refinement failed. |
 | `RECTIFIED_TOO_LARGE` | Rectified output exceeds pixel/side caps. |
+| `OUTPUT_OPEN_FAILED` | Failed to open output transaction staging directory. |
+| `OUTPUT_COMMIT_FAILED` | Failed to commit staged output to final directory. |
+| `OUTPUT_ROLLBACK` | Failed to rollback staged output after a failure. |
 | `TIME_BUDGET_EXCEEDED` | Pipeline exceeded the configured time budget. |
 | `UNKNOWN` | Unclassified failure. |
 

@@ -1,6 +1,7 @@
 package com.example.arweld.feature.drawingimport.pipeline
 
 import android.graphics.Bitmap
+import com.example.arweld.core.drawing2d.artifacts.io.v1.ArtifactStoreV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactEntryV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
 import com.example.arweld.feature.drawingimport.preprocess.BboxV1
@@ -20,6 +21,7 @@ import com.example.arweld.feature.drawingimport.preprocess.RefineResultV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineStatusV1
 import com.example.arweld.feature.drawingimport.ui.DrawingImportSession
 import java.io.File
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -38,7 +40,7 @@ class DrawingImportPipelineV1Test {
         val stages = FakeStages(outcomes)
         val pipeline = DrawingImportPipelineV1(stages = stages)
 
-        val result = pipeline.run(session)
+        val result = runBlocking { pipeline.run(session) }
 
         assertTrue(result is PageDetectOutcomeV1.Failure)
         val failureResult = result as PageDetectOutcomeV1.Failure
@@ -68,7 +70,7 @@ class DrawingImportPipelineV1Test {
         val stages = FakeStages(outcomes)
         val pipeline = DrawingImportPipelineV1(stages = stages)
 
-        val result = pipeline.run(session)
+        val result = runBlocking { pipeline.run(session) }
 
         assertTrue(result is PageDetectOutcomeV1.Failure)
         val failureResult = result as PageDetectOutcomeV1.Failure
@@ -83,7 +85,7 @@ class DrawingImportPipelineV1Test {
         val stages = FakeStages(outcomes)
         val pipeline = DrawingImportPipelineV1(stages = stages)
 
-        val result = pipeline.run(session)
+        val result = runBlocking { pipeline.run(session) }
 
         assertTrue(result is PageDetectOutcomeV1.Success)
         val success = result as PageDetectOutcomeV1.Success
@@ -91,7 +93,8 @@ class DrawingImportPipelineV1Test {
     }
 
     private fun testSession(): DrawingImportSession {
-        val projectDir = createTempDir(prefix = "pipeline-test")
+        val rootDir = createTempDir(prefix = "pipeline-artifacts")
+        val projectDir = File(rootDir, "project-1")
         val rawFile = File(projectDir, "raw/raw.jpg")
         rawFile.parentFile?.mkdirs()
         rawFile.writeBytes(ByteArray(1))
@@ -220,6 +223,7 @@ class DrawingImportPipelineV1Test {
 
         override fun saveArtifacts(
             session: DrawingImportSession,
+            projectStore: ArtifactStoreV1,
             rectified: Bitmap,
             size: RectifiedSizeV1,
         ): PageDetectOutcomeV1<DrawingImportSession> {
