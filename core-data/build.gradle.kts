@@ -49,6 +49,7 @@ ksp {
 dependencies {
     // Core modules
     implementation(project(":core-domain"))
+    implementation(project(":core-drawing2d"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)

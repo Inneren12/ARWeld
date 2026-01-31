@@ -14,6 +14,7 @@ import com.example.arweld.feature.home.ui.HomeScreen
 import com.example.arweld.navigation.ROUTE_ASSEMBLER_QUEUE
 import com.example.arweld.navigation.ROUTE_DRAWING_IMPORT
 import com.example.arweld.navigation.ROUTE_LOGIN
+import com.example.arweld.navigation.ROUTE_MANUAL_EDITOR
 import com.example.arweld.navigation.ROUTE_QC_QUEUE
 import com.example.arweld.navigation.ROUTE_REPORTS
 import com.example.arweld.navigation.ROUTE_SCAN_CODE
@@ -48,6 +49,7 @@ fun HomeRoute(
             onNavigateToExportCenter = { navController.navigate(ROUTE_EXPORT_CENTER) },
             onNavigateToOfflineQueue = { navController.navigate(ROUTE_OFFLINE_QUEUE) },
             onNavigateToDrawingImport = { navController.navigate(ROUTE_DRAWING_IMPORT) },
+            onNavigateToManualEditor = { navController.navigate(ROUTE_MANUAL_EDITOR) },
         )
     }
 }
