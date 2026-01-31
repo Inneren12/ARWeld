@@ -6,7 +6,8 @@ import kotlin.math.max
 
 class PageDetectPreprocessor {
     fun preprocess(input: PageDetectInput): PageDetectOutcomeV1<PageDetectFrame> {
-        if (input.maxSide <= 0) {
+        val params = input.params
+        if (params.maxSide <= 0) {
             return PageDetectOutcomeV1.Failure(
                 PageDetectFailureV1(
                     stage = PageDetectStageV1.PREPROCESS,
@@ -17,8 +18,8 @@ class PageDetectPreprocessor {
         }
         val decodeOutcome = SafeBitmapDecodeV1.decodeUprightWithInfo(
             rawFile = input.rawImageFile,
-            maxPixels = input.maxPixels,
-            maxSide = input.maxSide,
+            maxPixels = params.maxDecodePixels,
+            maxSide = params.maxDecodeSide,
         )
         val decodeResult = when (decodeOutcome) {
             is PageDetectOutcomeV1.Success -> decodeOutcome.value
@@ -32,7 +33,7 @@ class PageDetectPreprocessor {
         val originalWidth = decodeResult.info.originalWidth
         val originalHeight = decodeResult.info.originalHeight
         val targetSize = try {
-            computeTargetSize(rotated.width, rotated.height, input.maxSide)
+            computeTargetSize(rotated.width, rotated.height, params.maxSide)
         } catch (error: Throwable) {
             rotated.recycle()
             return PageDetectOutcomeV1.Failure(

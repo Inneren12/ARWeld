@@ -50,13 +50,13 @@ class PageDetectCornerRefineInstrumentedTest {
         val preprocessOutcome = PageDetectPreprocessor().preprocess(
             PageDetectInput(
                 rawImageFile = file,
-                maxSide = 200,
+                params = PageDetectParamsV1(maxSide = 200),
             ),
         )
         assertTrue(preprocessOutcome is PageDetectOutcomeV1.Success)
         val frame = (preprocessOutcome as PageDetectOutcomeV1.Success).value
 
-        val edgesOutcome = PageDetectEdgeDetector().detect(frame)
+        val edgesOutcome = PageDetectEdgeDetector(PageDetectParamsV1(maxSide = 200)).detect(frame)
         assertTrue(edgesOutcome is PageDetectOutcomeV1.Success)
         val edges = (edgesOutcome as PageDetectOutcomeV1.Success).value
 
@@ -82,7 +82,7 @@ class PageDetectCornerRefineInstrumentedTest {
         val refineOutcome = CornerRefinerV1.refine(
             frame,
             ordered,
-            RefineParamsV1(windowRadiusPx = 6, maxIters = 6, epsilon = 0.25),
+            PageDetectParamsV1().refineParams,
         )
         assertTrue(refineOutcome is PageDetectOutcomeV1.Success)
         val refine = (refineOutcome as PageDetectOutcomeV1.Success).value

@@ -22,14 +22,16 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/SafeBitmapDecodeV1.kt` — Bounds-first decode helper that computes deterministic inSampleSize, enforces decode caps, applies EXIF rotation, and returns stable failure codes (INPUT_TOO_LARGE/OOM_RISK).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/quality/QualityMetricsV1.kt` — Deterministic quality metrics for rectified captures (skew + blur variance via Laplacian); blur variance is computed in the pipeline and persisted to capture meta (UI reads session/meta, no disk recompute from rectified.png).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/quality/QualityGateV1.kt` — Deterministic quality gate (PASS/WARN/FAIL) with stable reason codes and default thresholds (S2-PR22).
-- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/RectifySizePolicyV1.kt` — Deterministic rectified size policy using ordered corners, clamp limits, rounding rules, and failure codes (S2-PR15).
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/RectifySizePolicyV1.kt` — Deterministic rectified size policy using ordered corners, clamp limits, rounding rules, and failure codes (S2-PR15); `RectifyParamsV1` centralizes size caps.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/CornerRefinerV1.kt` — Deterministic subpixel-ish corner refinement over PageDetectFrame edges (fixed window/iters/epsilon) with safe fallback codes.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectContractsV1.kt` — Unified page detection outcome contract (stage + failure code + debug message) for preprocess/edges/contours/quad/order/refine.
+- `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectParamsV1.kt` — Centralized v1 parameters for page detection (preprocess sizing, canny thresholds, refine tuning).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/pipeline/DrawingImportPipelineV1.kt` — End-to-end deterministic pipeline orchestrator (upright load → preprocess → detect → order/refine → size → rectify → save) with stage logging.
 - `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/ProjectTransactionV1.kt` — Atomic output transaction: write artifacts to `<artifactsRoot>/.staging/<projectId>` and commit to `<artifactsRoot>/projects/<projectId>` on success.
 - `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/ProjectFinalizerV1.kt` — Finalization step that rewrites deterministic `manifest.json`, generates `checksums.sha256`, verifies hashes, and writes `meta/project_complete.json`.
 - `overlays/corners.png` — Debug corner overlay artifact saved via `ProjectLayoutV1.overlay("corners")` after ordering/refining corners.
 - `app/src/main/kotlin/com/example/arweld/ui/drawingimport/DrawingImportRoute.kt` — App-level navigation wrapper for Drawing Import.
+- Drawing import pipeline spec: `docs/drawing/IMPORT_PIPELINE_V1.md`
 
 **Page detection failure codes (v1)**
 

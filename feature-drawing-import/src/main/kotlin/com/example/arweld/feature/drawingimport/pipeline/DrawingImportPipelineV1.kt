@@ -40,9 +40,9 @@ import com.example.arweld.feature.drawingimport.preprocess.PageQuadCandidate
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelector
 import com.example.arweld.feature.drawingimport.preprocess.RectifiedSizeV1
 import com.example.arweld.feature.drawingimport.preprocess.DrawingImportGuardrailsV1
-import com.example.arweld.feature.drawingimport.preprocess.RectifySizeParamsV1
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectParamsV1
+import com.example.arweld.feature.drawingimport.preprocess.RectifyParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizePolicyV1
-import com.example.arweld.feature.drawingimport.preprocess.RefineParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineResultV1
 import com.example.arweld.feature.drawingimport.preprocess.SafeBitmapDecodeV1
 import com.example.arweld.feature.drawingimport.quality.ExposureMetricsV1
@@ -243,8 +243,8 @@ class DrawingImportPipelineV1(
             mapOf(
                 "rectifiedWidth" to rectifiedSize.width.toString(),
                 "rectifiedHeight" to rectifiedSize.height.toString(),
-                "maxRectifiedPixels" to params.maxRectifiedPixels.toString(),
-                "maxRectifiedSide" to params.maxRectifiedSide.toString(),
+                "maxRectifiedPixels" to params.rectifyParams.maxPixels.toString(),
+                "maxRectifiedSide" to params.rectifyParams.maxSide.toString(),
             ),
         )
 
@@ -545,23 +545,14 @@ data class PipelineResultV1(
     val finalization: FinalizeOutcomeV1? = null,
 )
 
+/**
+ * Centralized tunables for the drawing import pipeline v1.
+ */
 data class DrawingImportPipelineParamsV1(
-    val maxSide: Int = 2048,
-    val minSide: Int = 256,
-    val enforceEven: Boolean = true,
-    val maxDecodePixels: Int = DrawingImportGuardrailsV1.MAX_DECODE_PIXELS,
-    val maxDecodeSide: Int = DrawingImportGuardrailsV1.MAX_DECODE_SIDE,
-    val maxRectifiedPixels: Int = DrawingImportGuardrailsV1.MAX_RECTIFIED_PIXELS,
-    val maxRectifiedSide: Int = DrawingImportGuardrailsV1.MAX_RECTIFIED_SIDE,
+    val pageDetectParams: PageDetectParamsV1 = PageDetectParamsV1(),
+    val rectifyParams: RectifyParamsV1 = RectifyParamsV1(),
     val pipelineMaxMs: Long? = DrawingImportGuardrailsV1.PIPELINE_MAX_MS,
     val enforceTimeBudget: Boolean = false,
-    val edgeLowThreshold: Int = 60,
-    val edgeHighThreshold: Int = 180,
-    val refineParams: RefineParamsV1 = RefineParamsV1(
-        windowRadiusPx = 6,
-        maxIters = 6,
-        epsilon = 0.25,
-    ),
 )
 
 data class UprightBitmapV1(
@@ -622,8 +613,8 @@ interface DrawingImportPipelineStagesV1 {
         override fun loadUpright(rawFile: File): PageDetectOutcomeV1<UprightBitmapV1> {
             val decodeOutcome = SafeBitmapDecodeV1.decodeUprightWithInfo(
                 rawFile = rawFile,
-                maxPixels = params.maxDecodePixels,
-                maxSide = params.maxDecodeSide,
+                maxPixels = params.pageDetectParams.maxDecodePixels,
+                maxSide = params.pageDetectParams.maxDecodeSide,
             )
             val decodeResult = when (decodeOutcome) {
                 is PageDetectOutcomeV1.Success -> decodeOutcome.value
@@ -648,10 +639,11 @@ interface DrawingImportPipelineStagesV1 {
             upright: UprightBitmapV1,
             params: DrawingImportPipelineParamsV1,
         ): PageDetectOutcomeV1<PageDetectFrame> {
-            if (params.maxSide <= 0) {
+            val maxSide = params.pageDetectParams.maxSide
+            if (maxSide <= 0) {
                 return failure(PageDetectStageV1.PREPROCESS, PageDetectFailureCodeV1.UNKNOWN, "maxSide must be > 0")
             }
-            val target = computeTargetSize(upright.bitmap.width, upright.bitmap.height, params.maxSide)
+            val target = computeTargetSize(upright.bitmap.width, upright.bitmap.height, maxSide)
             val scaled = if (target.width == upright.bitmap.width && target.height == upright.bitmap.height) {
                 upright.bitmap
             } else {
@@ -681,10 +673,7 @@ interface DrawingImportPipelineStagesV1 {
         }
 
         override fun detectEdges(frame: PageDetectFrame): PageDetectOutcomeV1<EdgeMap> {
-            val detector = PageDetectEdgeDetector(
-                lowThreshold = params.edgeLowThreshold,
-                highThreshold = params.edgeHighThreshold,
-            )
+            val detector = PageDetectEdgeDetector(params.pageDetectParams)
             return detector.detect(frame)
         }
 
@@ -708,7 +697,7 @@ interface DrawingImportPipelineStagesV1 {
             ordered: OrderedCornersV1,
             params: DrawingImportPipelineParamsV1,
         ): PageDetectOutcomeV1<RefineResultV1> {
-            return CornerRefinerV1.refine(frame, ordered, params.refineParams)
+            return CornerRefinerV1.refine(frame, ordered, params.pageDetectParams.refineParams)
         }
 
         override fun computeRectifiedSize(
@@ -717,12 +706,7 @@ interface DrawingImportPipelineStagesV1 {
         ): PageDetectOutcomeV1<RectifiedSizeV1> {
             return RectifySizePolicyV1.compute(
                 corners,
-                RectifySizeParamsV1(
-                    maxSide = params.maxRectifiedSide,
-                    minSide = params.minSide,
-                    enforceEven = params.enforceEven,
-                    maxPixels = params.maxRectifiedPixels,
-                ),
+                params.rectifyParams,
             )
         }
 

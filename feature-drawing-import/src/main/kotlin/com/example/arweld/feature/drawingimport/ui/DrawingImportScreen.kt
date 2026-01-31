@@ -2,8 +2,6 @@ package com.example.arweld.feature.drawingimport.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import java.io.ByteArrayOutputStream
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
@@ -32,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -78,6 +77,31 @@ import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLo
 import com.example.arweld.feature.drawingimport.overlay.CornerOverlayRendererV1
 import com.example.arweld.feature.drawingimport.pipeline.DrawingImportPipelineParamsV1
 import com.example.arweld.feature.drawingimport.pipeline.DrawingImportPipelineV1
+import com.example.arweld.feature.drawingimport.ui.components.ArtifactSummaryRow
+import com.example.arweld.feature.drawingimport.ui.components.DebugDetailsCard
+import com.example.arweld.feature.drawingimport.ui.debug.ContourDebugInfo
+import com.example.arweld.feature.drawingimport.ui.debug.PageDetectFrameInfo
+import com.example.arweld.feature.drawingimport.ui.format.formatBlurVarianceLabel
+import com.example.arweld.feature.drawingimport.ui.format.formatContourLabel
+import com.example.arweld.feature.drawingimport.ui.format.formatExposureMetrics
+import com.example.arweld.feature.drawingimport.ui.format.formatFailureLabel
+import com.example.arweld.feature.drawingimport.ui.format.formatOrderedCornersLabel
+import com.example.arweld.feature.drawingimport.ui.format.formatQuadLabel
+import com.example.arweld.feature.drawingimport.ui.format.formatQualityGateDecision
+import com.example.arweld.feature.drawingimport.ui.format.formatQualityGateReasons
+import com.example.arweld.feature.drawingimport.ui.format.formatRectifiedFailureLabel
+import com.example.arweld.feature.drawingimport.ui.format.formatRectifiedSizeLabel
+import com.example.arweld.feature.drawingimport.ui.format.formatRefineLabel
+import com.example.arweld.feature.drawingimport.ui.format.formatSkewMetrics
+import com.example.arweld.feature.drawingimport.ui.format.formatStageLabel
+import com.example.arweld.feature.drawingimport.ui.format.shortenSha
+import com.example.arweld.feature.drawingimport.ui.logging.logDiagnosticsError
+import com.example.arweld.feature.drawingimport.ui.logging.logDiagnosticsEvent
+import com.example.arweld.feature.drawingimport.ui.logging.logPageDetectFailure
+import com.example.arweld.feature.drawingimport.ui.state.CameraPermissionState
+import com.example.arweld.feature.drawingimport.ui.util.encodePng
+import com.example.arweld.feature.drawingimport.ui.util.frameToBitmap
+import com.example.arweld.feature.drawingimport.ui.util.resolvedBlurVariance
 import com.example.arweld.feature.drawingimport.preprocess.ContourStats
 import com.example.arweld.feature.drawingimport.preprocess.ContourV1
 import com.example.arweld.feature.drawingimport.preprocess.CornerOrderingV1
@@ -103,13 +127,9 @@ import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelector
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectOutcomeV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailureCodeV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifiedSizeV1
-import com.example.arweld.feature.drawingimport.preprocess.DrawingImportGuardrailsV1
-import com.example.arweld.feature.drawingimport.preprocess.RectifySizeParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizePolicyV1
-import com.example.arweld.feature.drawingimport.preprocess.RefineParamsV1
 import com.example.arweld.feature.drawingimport.preprocess.RefineResultV1
 import java.io.File
-import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -167,17 +187,15 @@ fun DrawingImportScreen(
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
+    val pipelineParams = remember { DrawingImportPipelineParamsV1() }
+    val pageDetectParams = remember { pipelineParams.pageDetectParams }
+    val rectifyParams = remember { pipelineParams.rectifyParams }
     val pageDetectPreprocessor = remember { PageDetectPreprocessor() }
-    val edgeDetector = remember { PageDetectEdgeDetector() }
+    val edgeDetector = remember(pageDetectParams) { PageDetectEdgeDetector(pageDetectParams) }
     val contourExtractor = remember { PageDetectContourExtractor() }
     val quadSelector = remember { PageQuadSelector() }
-    val refineParams = remember {
-        RefineParamsV1(
-            windowRadiusPx = 6,
-            maxIters = 6,
-            epsilon = 0.25,
-        )
-    }
+    var showDebugPanel by rememberSaveable { mutableStateOf(false) }
+    val isDebugPanelVisible = BuildConfig.DEBUG && showDebugPanel
     var uiState by remember {
         mutableStateOf(
             permissionStateOverride ?: if (
@@ -744,7 +762,7 @@ fun DrawingImportScreen(
                                                     processState = DrawingImportProcessState.Running(PageDetectStageV1.LOAD_UPRIGHT)
                                                     pipelineJob = coroutineScope.launch(Dispatchers.Default) {
                                                         val pipeline = DrawingImportPipelineV1(
-                                                            params = DrawingImportPipelineParamsV1(),
+                                                            params = pipelineParams,
                                                             eventLogger = diagnosticsLogger,
                                                             stageListener = { stage ->
                                                                 coroutineScope.launch {
@@ -796,7 +814,7 @@ fun DrawingImportScreen(
                                             }
                                         }
                                     }
-                                    if (BuildConfig.DEBUG) {
+                                    if (isDebugPanelVisible) {
                                         Spacer(modifier = Modifier.height(16.dp))
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -932,7 +950,7 @@ fun DrawingImportScreen(
                                                         pipelineResult = null
                                                         coroutineScope.launch(Dispatchers.Default) {
                                                             val outcome = pageDetectPreprocessor.preprocess(
-                                                                PageDetectInput(rawImageFile = rawFile),
+                                                                PageDetectInput(rawImageFile = rawFile, params = pageDetectParams),
                                                             )
                                                             withContext(Dispatchers.Main) {
                                                                 when (outcome) {
@@ -990,7 +1008,7 @@ fun DrawingImportScreen(
                                                             val frameOutcome = pageDetectFrame?.let {
                                                                 PageDetectOutcomeV1.Success(it)
                                                             } ?: pageDetectPreprocessor.preprocess(
-                                                                PageDetectInput(rawImageFile = rawFile),
+                                                                PageDetectInput(rawImageFile = rawFile, params = pageDetectParams),
                                                             )
                                                             val frame = when (frameOutcome) {
                                                                 is PageDetectOutcomeV1.Success -> frameOutcome.value
@@ -1096,7 +1114,7 @@ fun DrawingImportScreen(
                                                             val frameOutcome = pageDetectFrame?.let {
                                                                 PageDetectOutcomeV1.Success(it)
                                                             } ?: pageDetectPreprocessor.preprocess(
-                                                                PageDetectInput(rawImageFile = rawFile),
+                                                                PageDetectInput(rawImageFile = rawFile, params = pageDetectParams),
                                                             )
                                                             val frame = when (frameOutcome) {
                                                                 is PageDetectOutcomeV1.Success -> frameOutcome.value
@@ -1168,12 +1186,7 @@ fun DrawingImportScreen(
                                                                         is PageDetectOutcomeV1.Success -> {
                                                                             RectifySizePolicyV1.compute(
                                                                                 orderedOutcome.value,
-                                                                                RectifySizeParamsV1(
-                                                                                    maxSide = DrawingImportGuardrailsV1.MAX_RECTIFIED_SIDE,
-                                                                                    minSide = 256,
-                                                                                    enforceEven = true,
-                                                                                    maxPixels = DrawingImportGuardrailsV1.MAX_RECTIFIED_PIXELS,
-                                                                                ),
+                                                                                rectifyParams,
                                                                             )
                                                                         }
                                                                         is PageDetectOutcomeV1.Failure -> {
@@ -1316,7 +1329,11 @@ fun DrawingImportScreen(
                                                         }
                                                         refineFailure = null
                                                         coroutineScope.launch(Dispatchers.Default) {
-                                                            val refineResult = CornerRefinerV1.refine(frame, ordered, refineParams)
+                                                            val refineResult = CornerRefinerV1.refine(
+                                                                frame,
+                                                                ordered,
+                                                                pageDetectParams.refineParams,
+                                                            )
                                                             withContext(Dispatchers.Main) {
                                                                 refineOutcome = refineResult
                                                                 when (refineResult) {
@@ -1421,6 +1438,7 @@ fun DrawingImportScreen(
                                                         )
                                                     }
                                                 }
+                                            }
                                             pipelineResult?.let { result ->
                                                 val metrics = result.skewMetrics
                                                 val blurVariance = resolvedBlurVariance(
@@ -1499,6 +1517,23 @@ fun DrawingImportScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     if (BuildConfig.DEBUG) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = "Debug panel",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Switch(
+                                checked = showDebugPanel,
+                                onCheckedChange = { showDebugPanel = it },
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    if (isDebugPanelVisible) {
                         DebugDetailsCard(
                             lastEventName = lastEventName,
                             lastErrorCode = lastErrorCode,
@@ -1840,295 +1875,4 @@ fun DrawingImportScreen(
         )
         onDispose { }
     }
-}
-
-private data class PageDetectFrameInfo(
-    val width: Int,
-    val height: Int,
-    val downscaleFactor: Double,
-    val rotationAppliedDeg: Int,
-)
-
-private data class ContourDebugInfo(
-    val totalContours: Int,
-    val topContours: List<ContourV1>,
-)
-
-private fun formatContourLabel(index: Int, contour: ContourV1): String {
-    val area = "%.1f".format(Locale.US, contour.area)
-    val bbox = "x=${contour.bbox.x}, y=${contour.bbox.y}, w=${contour.bbox.width}, h=${contour.bbox.height}"
-    return "#${index + 1} area=$area • bbox=($bbox)"
-}
-
-private fun formatQuadLabel(candidate: PageQuadCandidate): String {
-    val area = "%.1f".format(Locale.US, candidate.contourArea)
-    val score = "%.2f".format(Locale.US, candidate.score)
-    val points = candidate.points.joinToString(prefix = "[", postfix = "]") { "(${it.x},${it.y})" }
-    return "Quad area=$area • score=$score • points=$points"
-}
-
-private fun formatRectifiedSizeLabel(size: RectifiedSizeV1): String {
-    return "Rectified size=${size.width}x${size.height}"
-}
-
-private fun formatSkewMetrics(metrics: SkewMetricsV1): String {
-    val angleMax = "%.2f".format(Locale.US, metrics.angleMaxAbsDeg)
-    val angleMean = "%.2f".format(Locale.US, metrics.angleMeanAbsDeg)
-    val keystoneW = "%.3f".format(Locale.US, metrics.keystoneWidthRatio)
-    val keystoneH = "%.3f".format(Locale.US, metrics.keystoneHeightRatio)
-    val pageFill = "%.3f".format(Locale.US, metrics.pageFillRatio)
-    return "Angle dev (max/mean): $angleMax°/$angleMean° • " +
-        "Keystone W/H: $keystoneW/$keystoneH • Page fill: $pageFill • Status: ${metrics.status.name}"
-}
-
-private fun resolvedBlurVariance(
-    screenState: DrawingImportUiState,
-    captureMeta: CaptureMetaV1?,
-): Double? {
-    val sessionBlur = (screenState as? DrawingImportUiState.Saved)
-        ?.session
-        ?.rectifiedQualityMetrics
-        ?.blurVariance
-    val metaBlur = captureMeta?.metrics?.blurVar
-    return sessionBlur ?: metaBlur
-}
-
-private fun formatBlurVarianceLabel(blurVariance: Double?): String {
-    val formatted = blurVariance?.let { value ->
-        String.format(Locale.US, "%.2f", value)
-    } ?: "—"
-    return "Blur (VarLap): $formatted"
-}
-
-private fun formatExposureMetrics(metrics: ExposureMetricsV1): String {
-    val meanY = "%.1f".format(Locale.US, metrics.meanY)
-    val clipLow = "%.2f".format(Locale.US, metrics.clipLowPct)
-    val clipHigh = "%.2f".format(Locale.US, metrics.clipHighPct)
-    return "Mean Y: $meanY • Clipped low: $clipLow% • Clipped high: $clipHigh%"
-}
-
-private fun formatQualityGateDecision(result: QualityGateResultV1): String {
-    return "Quality: ${result.decision.name}"
-}
-
-private fun formatQualityGateReasons(result: QualityGateResultV1): String {
-    if (result.reasons.isEmpty()) return "Reasons: —"
-    val formatted = result.reasons.joinToString { code ->
-        val hint = QualityGateV1.hintFor(code)
-        if (hint == null) {
-            code.name
-        } else {
-            "${code.name} ($hint)"
-        }
-    }
-    return "Reasons: $formatted"
-}
-
-private fun formatFailureLabel(label: String, failure: PageDetectFailureV1): String {
-    val guidance = "Try retake with better lighting and keep the page flat."
-    val debugCode = "${failure.stage.name}:${failure.code.name}"
-    val debugMessage = failure.debugMessage?.let { " • detail=$it" } ?: ""
-    return "$label failed: stage=${failure.stage.name} • code=${failure.code.name} • $guidance • debug=$debugCode$debugMessage"
-}
-
-private fun formatRectifiedFailureLabel(failure: PageDetectFailureV1): String {
-    return formatFailureLabel("Rectified size", failure)
-}
-
-private fun formatStageLabel(stage: PageDetectStageV1): String {
-    return when (stage) {
-        PageDetectStageV1.LOAD_UPRIGHT -> "Load upright bitmap"
-        PageDetectStageV1.PREPROCESS -> "Preprocess"
-        PageDetectStageV1.EDGES -> "Detect edges"
-        PageDetectStageV1.CONTOURS -> "Extract contours"
-        PageDetectStageV1.QUAD_SELECT -> "Select quad"
-        PageDetectStageV1.ORDER -> "Order corners"
-        PageDetectStageV1.REFINE -> "Refine corners"
-        PageDetectStageV1.RECTIFY_SIZE -> "Rectified size"
-        PageDetectStageV1.RECTIFY -> "Rectify bitmap"
-        PageDetectStageV1.SAVE -> "Save artifacts"
-    }
-}
-
-private fun formatOrderedCornersLabel(corners: PreprocessOrderedCornersV1): String {
-    val points = corners.toList()
-        .joinToString(prefix = "[", postfix = "]") { "(${it.x.formatPx()},${it.y.formatPx()})" }
-    return "Ordered corners (TL/TR/BR/BL): $points"
-}
-
-private fun frameToBitmap(frame: PageDetectFrame): Bitmap {
-    val expectedSize = frame.width * frame.height
-    require(frame.gray.size == expectedSize) {
-        "Frame gray data mismatch: expected $expectedSize bytes, got ${frame.gray.size}."
-    }
-    val pixels = IntArray(expectedSize)
-    for (i in 0 until expectedSize) {
-        val gray = frame.gray[i].toInt() and 0xFF
-        pixels[i] = 0xFF000000.toInt() or (gray shl 16) or (gray shl 8) or gray
-    }
-    return Bitmap.createBitmap(
-        pixels,
-        frame.width,
-        frame.height,
-        Bitmap.Config.ARGB_8888,
-    )
-}
-
-private fun encodePng(bitmap: Bitmap): ByteArray {
-    val stream = ByteArrayOutputStream()
-    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-    return stream.toByteArray()
-}
-
-private fun formatRefineLabel(result: RefineResultV1): String {
-    val deltas = result.deltasPx.joinToString(prefix = "[", postfix = "]") { it.formatDeltaPx() }
-    val status = result.status.name
-    return "Refine $status • deltas=$deltas"
-}
-
-private fun Double.formatDeltaPx(): String = "%.2fpx".format(Locale.US, this)
-
-private fun Double.formatPx(): String = "%.1f".format(Locale.US, this)
-
-private sealed interface CameraPermissionState {
-    data object NeedsPermission : CameraPermissionState
-    data object PermissionDenied : CameraPermissionState
-    data object Ready : CameraPermissionState
-    data class CameraError(val message: String) : CameraPermissionState
-}
-
-@Composable
-private fun ArtifactSummaryRow(
-    label: String,
-    relPath: String,
-    sha256: String,
-    pixelSha256: String? = null,
-    sizeLabel: String? = null,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Text(
-            text = relPath,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Text(
-            text = "SHA: ${shortenSha(sha256)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        pixelSha256?.let { pixelSha ->
-            Text(
-                text = "Pixel SHA: ${shortenSha(pixelSha)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-        }
-        sizeLabel?.let { size ->
-            Text(
-                text = "Size: $size",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-        }
-    }
-}
-
-private fun shortenSha(sha256: String, max: Int = 12): String {
-    return if (sha256.length <= max) sha256 else sha256.take(max)
-}
-
-@Composable
-private fun DebugDetailsCard(
-    lastEventName: String?,
-    lastErrorCode: DrawingImportErrorCode?,
-) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = "Debug details",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = "Last event: ${lastEventName ?: "none"}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = "Last error: ${lastErrorCode?.name ?: "none"}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-private fun logDiagnosticsEvent(
-    logger: DrawingImportEventLogger,
-    event: DrawingImportEvent,
-    state: String,
-    projectId: String?,
-    extras: Map<String, String> = emptyMap(),
-    onLogged: () -> Unit,
-) {
-    logger.logEvent(
-        event = event,
-        state = state,
-        projectId = projectId,
-        extras = extras,
-    )
-    onLogged()
-}
-
-private fun logPageDetectFailure(
-    logger: DrawingImportEventLogger,
-    failure: PageDetectFailureV1,
-    projectId: String?,
-    onLogged: () -> Unit,
-) {
-    val extras = buildMap {
-        put("detectStage", failure.stage.name)
-        put("detectCode", failure.code.name)
-        failure.debugMessage?.let { put("debugMessage", it) }
-    }
-    logger.logEvent(
-        event = DrawingImportEvent.ERROR,
-        state = "page_detect_failure",
-        projectId = projectId,
-        errorCode = DrawingImportErrorCode.UNKNOWN,
-        message = "${failure.stage.name}:${failure.code.name}",
-        extras = extras,
-    )
-    onLogged()
-}
-
-private fun logDiagnosticsError(
-    logger: DrawingImportEventLogger,
-    projectId: String?,
-    code: DrawingImportErrorCode,
-    onLogged: () -> Unit,
-) {
-    logger.logEvent(
-        event = DrawingImportEvent.ERROR,
-        state = "error",
-        projectId = projectId,
-        errorCode = code,
-        message = DrawingImportErrorMapper.messageFor(code),
-    )
-    onLogged()
 }
