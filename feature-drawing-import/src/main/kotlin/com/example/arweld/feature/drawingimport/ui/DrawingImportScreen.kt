@@ -58,9 +58,14 @@ import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorCo
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorMapper
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLogger
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectInput
+import com.example.arweld.feature.drawingimport.preprocess.PageDetectPreprocessor
 import java.io.File
+import java.util.Locale
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun DrawingImportScreen(
@@ -81,9 +86,13 @@ fun DrawingImportScreen(
     var lastEventName by remember { mutableStateOf<String?>(null) }
     var lastErrorCode by remember { mutableStateOf<DrawingImportErrorCode?>(null) }
     var hasLoggedCameraReady by remember { mutableStateOf(false) }
+    var pageDetectInfo by remember { mutableStateOf<PageDetectFrameInfo?>(null) }
+    var pageDetectError by remember { mutableStateOf<String?>(null) }
+    var isPreparingFrame by remember { mutableStateOf(false) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
+    val pageDetectPreprocessor = remember { PageDetectPreprocessor() }
     var uiState by remember {
         mutableStateOf<CameraPermissionState>(
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -421,6 +430,78 @@ fun DrawingImportScreen(
                                             sha256 = manifestEntry?.sha256 ?: "--",
                                         )
                                     }
+                                    if (BuildConfig.DEBUG) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            Text(
+                                                text = "Page detection prep",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                            )
+                                            Button(
+                                                onClick = {
+                                                    if (rawFile == null) {
+                                                        coroutineScope.launch {
+                                                            snackbarHostState.showSnackbar(
+                                                                "Raw image missing; recapture first.",
+                                                            )
+                                                        }
+                                                        return@Button
+                                                    }
+                                                    pageDetectInfo = null
+                                                    pageDetectError = null
+                                                    isPreparingFrame = true
+                                                    coroutineScope.launch(Dispatchers.Default) {
+                                                        runCatching {
+                                                            pageDetectPreprocessor.preprocess(
+                                                                PageDetectInput(rawImageFile = rawFile),
+                                                            )
+                                                        }.onSuccess { frame ->
+                                                            withContext(Dispatchers.Main) {
+                                                                pageDetectInfo = PageDetectFrameInfo(
+                                                                    width = frame.width,
+                                                                    height = frame.height,
+                                                                    downscaleFactor = frame.downscaleFactor,
+                                                                    rotationAppliedDeg = frame.rotationAppliedDeg,
+                                                                )
+                                                                isPreparingFrame = false
+                                                            }
+                                                        }.onFailure { error ->
+                                                            withContext(Dispatchers.Main) {
+                                                                pageDetectError = error.message ?: "Failed to preprocess."
+                                                                isPreparingFrame = false
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                            ) {
+                                                Text(text = "Prepare for detection")
+                                            }
+                                            if (isPreparingFrame) {
+                                                Text(
+                                                    text = "Preparing frame...",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                            }
+                                            pageDetectInfo?.let { info ->
+                                                Text(
+                                                    text = "Frame: ${info.width}x${info.height} " +
+                                                        "• downscale ${"%.2f".format(Locale.US, info.downscaleFactor)} " +
+                                                        "• rotation ${info.rotationAppliedDeg}°",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                )
+                                            }
+                                            pageDetectError?.let { message ->
+                                                Text(
+                                                    text = "Prep failed: $message",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error,
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -460,6 +541,9 @@ fun DrawingImportScreen(
                                         session?.projectDir?.deleteRecursively()
                                         activeProjectId = null
                                         imageError = false
+                                        pageDetectInfo = null
+                                        pageDetectError = null
+                                        isPreparingFrame = false
                                         screenState = DrawingImportUiState.Ready
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -494,6 +578,9 @@ fun DrawingImportScreen(
                                         screenState = DrawingImportUiState.Capturing
                                         val captureProjectId = activeProjectId ?: UUID.randomUUID().toString()
                                         activeProjectId = captureProjectId
+                                        pageDetectInfo = null
+                                        pageDetectError = null
+                                        isPreparingFrame = false
                                         logDiagnosticsEvent(
                                             logger = diagnosticsLogger,
                                             event = DrawingImportEvent.CAPTURE_START,
@@ -615,6 +702,9 @@ fun DrawingImportScreen(
                                     )
                                     activeProjectId = null
                                     imageError = false
+                                    pageDetectInfo = null
+                                    pageDetectError = null
+                                    isPreparingFrame = false
                                     screenState = DrawingImportUiState.Ready
                                 },
                                 colors = ButtonDefaults.buttonColors(
@@ -650,6 +740,13 @@ fun DrawingImportScreen(
         onDispose { }
     }
 }
+
+private data class PageDetectFrameInfo(
+    val width: Int,
+    val height: Int,
+    val downscaleFactor: Double,
+    val rotationAppliedDeg: Int,
+)
 
 private sealed interface CameraPermissionState {
     data object NeedsPermission : CameraPermissionState
