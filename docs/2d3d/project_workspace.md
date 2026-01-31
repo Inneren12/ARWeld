@@ -37,3 +37,9 @@ Naming and path joins are centralized in:
 
 - The workspace root is a project-specific directory (e.g., from `filesDir` or a SAF Document tree).
 - `Project2D3DWorkspaceResolver` provides helpers for both local `File` access and SAF `DocumentFile` access to keep storage handling consistent.
+
+## Drawing2D IO Behavior
+
+- **Atomic save:** `drawing2d.json` is written to a temporary file (`drawing2d.json.tmp`), flushed/fsynced, and then renamed into place to avoid partial writes on crash.
+- **Missing file:** loading `drawing2d.json` returns an empty `Drawing2D` (schemaVersion = 1, empty nodes/members) when the file does not exist.
+- **Error handling:** IO and parse errors surface to the caller; no silent failure paths are used.
