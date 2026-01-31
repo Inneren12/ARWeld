@@ -104,6 +104,7 @@ fun DrawingImportScreen(
     var isRunningContours by remember { mutableStateOf(false) }
     var contourCache by remember { mutableStateOf<List<ContourV1>>(emptyList()) }
     var quadSelectionResult by remember { mutableStateOf<PageQuadSelectionResult?>(null) }
+    var cornerOrderingResult by remember { mutableStateOf<OrderResult?>(null) }
     var quadSelectionError by remember { mutableStateOf<String?>(null) }
     var isSelectingQuad by remember { mutableStateOf(false) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
@@ -482,6 +483,7 @@ fun DrawingImportScreen(
                                                         isRunningContours = false
                                                         contourCache = emptyList()
                                                         quadSelectionResult = null
+                                                        cornerOrderingResult = null
                                                         quadSelectionError = null
                                                         isSelectingQuad = false
                                                         coroutineScope.launch(Dispatchers.Default) {
@@ -527,6 +529,7 @@ fun DrawingImportScreen(
                                                         isPreparingFrame = true
                                                         isRunningContours = true
                                                         quadSelectionResult = null
+                                                        cornerOrderingResult = null
                                                         quadSelectionError = null
                                                         isSelectingQuad = false
                                                         coroutineScope.launch(Dispatchers.Default) {
@@ -577,6 +580,7 @@ fun DrawingImportScreen(
                                                             return@Button
                                                         }
                                                         quadSelectionResult = null
+                                                        cornerOrderingResult = null
                                                         quadSelectionError = null
                                                         isPreparingFrame = true
                                                         isSelectingQuad = true
@@ -592,8 +596,12 @@ fun DrawingImportScreen(
                                                                     contourExtractor.extract(edges)
                                                                 }
                                                                 val result = quadSelector.select(contours, frame.width, frame.height)
-                                                                Triple(frame, contours, result)
-                                                            }.onSuccess { (frame, contours, result) ->
+                                                                val orderingResult = (result as? PageQuadSelectionResult.Success)?.let {
+                                                                    CornerOrderingV1.order(it.candidate.points)
+                                                                }
+                                                                Triple(frame, contours, result to orderingResult)
+                                                            }.onSuccess { (frame, contours, results) ->
+                                                                val (result, orderingResult) = results
                                                                 withContext(Dispatchers.Main) {
                                                                     pageDetectFrame = frame
                                                                     pageDetectInfo = PageDetectFrameInfo(
@@ -608,12 +616,14 @@ fun DrawingImportScreen(
                                                                         topContours = ContourStats.topByArea(contours, 3),
                                                                     )
                                                                     quadSelectionResult = result
+                                                                    cornerOrderingResult = orderingResult
                                                                     isPreparingFrame = false
                                                                     isSelectingQuad = false
                                                                 }
                                                             }.onFailure { error ->
                                                                 withContext(Dispatchers.Main) {
                                                                     quadSelectionError = error.message ?: "Failed to select page quad."
+                                                                    cornerOrderingResult = null
                                                                     isPreparingFrame = false
                                                                     isSelectingQuad = false
                                                                 }
@@ -687,6 +697,17 @@ fun DrawingImportScreen(
                                                     }
                                                 }
                                             }
+                                            cornerOrderingResult?.let { ordering ->
+                                                Text(
+                                                    text = formatCornerOrderingLabel(ordering),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = if (ordering is OrderResult.Failure) {
+                                                        MaterialTheme.colorScheme.error
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurface
+                                                    },
+                                                )
+                                            }
                                             quadSelectionError?.let { message ->
                                                 Text(
                                                     text = "Quad selection failed: $message",
@@ -744,6 +765,7 @@ fun DrawingImportScreen(
                                         isRunningContours = false
                                         contourCache = emptyList()
                                         quadSelectionResult = null
+                                        cornerOrderingResult = null
                                         quadSelectionError = null
                                         isSelectingQuad = false
                                         screenState = DrawingImportUiState.Ready
@@ -789,6 +811,7 @@ fun DrawingImportScreen(
                                         isRunningContours = false
                                         contourCache = emptyList()
                                         quadSelectionResult = null
+                                        cornerOrderingResult = null
                                         quadSelectionError = null
                                         isSelectingQuad = false
                                         logDiagnosticsEvent(
@@ -921,6 +944,7 @@ fun DrawingImportScreen(
                                     isRunningContours = false
                                     contourCache = emptyList()
                                     quadSelectionResult = null
+                                    cornerOrderingResult = null
                                     quadSelectionError = null
                                     isSelectingQuad = false
                                     screenState = DrawingImportUiState.Ready
@@ -982,6 +1006,20 @@ private fun formatQuadLabel(candidate: PageQuadCandidate): String {
     val score = "%.2f".format(Locale.US, candidate.score)
     val points = candidate.points.joinToString(prefix = "[", postfix = "]") { "(${it.x},${it.y})" }
     return "Quad area=$area • score=$score • points=$points"
+}
+
+private fun formatCornerOrderingLabel(result: OrderResult): String {
+    return when (result) {
+        is OrderResult.Success -> {
+            val ordered = result.ordered
+            val tl = "(${ordered.tl.x},${ordered.tl.y})"
+            val tr = "(${ordered.tr.x},${ordered.tr.y})"
+            val br = "(${ordered.br.x},${ordered.br.y})"
+            val bl = "(${ordered.bl.x},${ordered.bl.y})"
+            "Ordered TL=$tl TR=$tr BR=$br BL=$bl"
+        }
+        is OrderResult.Failure -> "Corner ordering failed: ${result.code.name}"
+    }
 }
 
 private fun formatFailureLabel(failure: PageDetectFailure): String {
