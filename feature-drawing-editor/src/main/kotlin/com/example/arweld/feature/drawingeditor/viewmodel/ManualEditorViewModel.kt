@@ -3,6 +3,9 @@ package com.example.arweld.feature.drawingeditor.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.arweld.core.domain.drawing2d.Drawing2DRepository
+import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
+import com.example.arweld.core.drawing2d.editor.v1.missingNodeReferences
+import com.example.arweld.feature.drawingeditor.diagnostics.EditorDiagnosticsLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,12 +17,14 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class ManualEditorViewModel @Inject constructor(
     private val drawing2DRepository: Drawing2DRepository,
+    private val editorDiagnosticsLogger: EditorDiagnosticsLogger,
 ) : ViewModel() {
 
     private val mutableUiState = MutableStateFlow(EditorState())
     val uiState: StateFlow<EditorState> = mutableUiState.asStateFlow()
 
     init {
+        editorDiagnosticsLogger.logEditorOpened()
         loadDrawing()
     }
 
@@ -29,6 +34,13 @@ class ManualEditorViewModel @Inject constructor(
             EditorIntent.LoadRequested -> loadDrawing()
             else -> reduce(intent)
         }
+    fun onToolSelected(tool: ManualEditorTool) {
+        val previousTool = mutableUiState.value.selectedTool
+        mutableUiState.update { it.copy(selectedTool = tool) }
+        editorDiagnosticsLogger.logToolChanged(
+            tool = tool.name,
+            previousTool = previousTool.name,
+        )
     }
 
     private fun loadDrawing() {

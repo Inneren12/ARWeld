@@ -1,9 +1,14 @@
 package com.example.arweld.feature.drawingeditor.viewmodel
 
+import com.example.arweld.core.domain.diagnostics.ArTelemetrySnapshot
+import com.example.arweld.core.domain.diagnostics.DeviceHealthSnapshot
+import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
+import com.example.arweld.core.domain.diagnostics.DiagnosticsSnapshot
 import com.example.arweld.core.domain.drawing2d.Drawing2DRepository
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Member2D
 import com.example.arweld.core.drawing2d.editor.v1.Node2D
+import com.example.arweld.feature.drawingeditor.diagnostics.EditorDiagnosticsLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -20,10 +25,22 @@ import org.junit.Test
 class ManualEditorViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+    private val recordedEvents = mutableListOf<Pair<String, Map<String, String>>>()
+    private val fakeRecorder = object : DiagnosticsRecorder {
+        override fun recordEvent(name: String, attributes: Map<String, String>) {
+            recordedEvents.add(name to attributes)
+        }
+        override fun updateArTelemetry(snapshot: ArTelemetrySnapshot) {}
+        override fun updateDeviceHealth(snapshot: DeviceHealthSnapshot) {}
+        override fun snapshot(maxEvents: Int): DiagnosticsSnapshot {
+            return DiagnosticsSnapshot(emptyList(), null, null)
+        }
+    }
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        recordedEvents.clear()
     }
 
     @After
@@ -47,7 +64,8 @@ class ManualEditorViewModelTest {
 
             override suspend fun saveCurrentDrawing(drawing: Drawing2D) = Unit
         }
-        val viewModel = ManualEditorViewModel(repository)
+        val logger = EditorDiagnosticsLogger(fakeRecorder)
+        val viewModel = ManualEditorViewModel(repository, logger)
 
         advanceUntilIdle()
 
@@ -56,5 +74,40 @@ class ManualEditorViewModelTest {
 
         viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.MEMBER))
         assertEquals(EditorTool.MEMBER, viewModel.uiState.value.tool)
+    }
+
+    @Test
+    fun `editor opened event is logged on init`() = runTest {
+        val repository = object : Drawing2DRepository {
+            override suspend fun getCurrentDrawing(): Drawing2D = Drawing2D(nodes = emptyList(), members = emptyList())
+        }
+        val logger = EditorDiagnosticsLogger(fakeRecorder)
+        ManualEditorViewModel(repository, logger)
+
+        advanceUntilIdle()
+
+        val openedEvent = recordedEvents.find { it.first == "editor_opened" }
+        assertEquals("editor_opened", openedEvent?.first)
+        assertEquals("drawing_editor", openedEvent?.second?.get("feature"))
+        assertEquals("lifecycle", openedEvent?.second?.get("phase"))
+    }
+
+    @Test
+    fun `tool changed event is logged with tool names`() = runTest {
+        val repository = object : Drawing2DRepository {
+            override suspend fun getCurrentDrawing(): Drawing2D = Drawing2D(nodes = emptyList(), members = emptyList())
+        }
+        val logger = EditorDiagnosticsLogger(fakeRecorder)
+        val viewModel = ManualEditorViewModel(repository, logger)
+
+        advanceUntilIdle()
+        recordedEvents.clear()
+
+        viewModel.onToolSelected(ManualEditorTool.NODE)
+
+        val toolChangedEvent = recordedEvents.find { it.first == "editor_tool_changed" }
+        assertEquals("editor_tool_changed", toolChangedEvent?.first)
+        assertEquals("NODE", toolChangedEvent?.second?.get("tool"))
+        assertEquals("SELECT", toolChangedEvent?.second?.get("previousTool"))
     }
 }
