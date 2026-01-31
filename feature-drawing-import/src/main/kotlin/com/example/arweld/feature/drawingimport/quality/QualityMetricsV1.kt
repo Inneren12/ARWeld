@@ -1,5 +1,6 @@
 package com.example.arweld.feature.drawingimport.quality
 
+import android.graphics.Bitmap
 import com.example.arweld.feature.drawingimport.preprocess.PointV1
 import kotlin.math.abs
 import kotlin.math.acos
@@ -18,6 +19,18 @@ data class SkewMetricsV1(
     val keystoneHeightRatio: Double,
     val pageFillRatio: Double,
     val status: MetricStatusV1 = MetricStatusV1.OK,
+)
+
+/**
+ * Exposure metrics computed from Rec.601 luma values in [0..255].
+ *
+ * Uses the same grayscale conversion as PageDetectPreprocessor:
+ *   luma = (77 * R + 150 * G + 29 * B) >> 8
+ */
+data class ExposureMetricsV1(
+    val meanY: Double,
+    val clipLowPct: Double,
+    val clipHighPct: Double,
 )
 
 enum class MetricStatusV1 {
@@ -85,6 +98,8 @@ data class OrderedCornersV1(
 
 object QualityMetricsV1 {
     private const val MIN_EDGE = 1e-6
+    const val SHADOW_CLIP_T = 8
+    const val HIGHLIGHT_CLIP_T = 247
 
     fun skewFromQuad(corners: OrderedCornersV1, imageW: Int, imageH: Int): SkewMetricsV1 {
         val imageArea = imageW.toDouble() * imageH.toDouble()
@@ -135,6 +150,45 @@ object QualityMetricsV1 {
         )
     }
 
+    fun exposure(bitmap: Bitmap): ExposureMetricsV1 {
+        val width = bitmap.width
+        val height = bitmap.height
+        val totalPixels = width * height
+        if (totalPixels <= 0) {
+            return ExposureMetricsV1(
+                meanY = 0.0,
+                clipLowPct = 0.0,
+                clipHighPct = 0.0,
+            )
+        }
+        val pixels = IntArray(totalPixels)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        var sumY = 0L
+        var lowCount = 0
+        var highCount = 0
+        for (pixel in pixels) {
+            val r = (pixel shr 16) and 0xFF
+            val g = (pixel shr 8) and 0xFF
+            val b = pixel and 0xFF
+            val luma = (77 * r + 150 * g + 29 * b) shr 8
+            sumY += luma.toLong()
+            if (luma <= SHADOW_CLIP_T) {
+                lowCount += 1
+            }
+            if (luma >= HIGHLIGHT_CLIP_T) {
+                highCount += 1
+            }
+        }
+        val meanY = sumY.toDouble() / totalPixels.toDouble()
+        val clipLowPct = lowCount.toDouble() * 100.0 / totalPixels.toDouble()
+        val clipHighPct = highCount.toDouble() * 100.0 / totalPixels.toDouble()
+        return ExposureMetricsV1(
+            meanY = meanY,
+            clipLowPct = clipLowPct,
+            clipHighPct = clipHighPct,
+        )
+    }
+
     private fun distance(a: CornerPointV1, b: CornerPointV1): Double {
         return hypot(a.x - b.x, a.y - b.y)
     }
@@ -177,4 +231,5 @@ data class DrawingImportPipelineResultV1(
     val imageWidth: Int,
     val imageHeight: Int,
     val skewMetrics: SkewMetricsV1,
+    val exposureMetrics: ExposureMetricsV1,
 )
