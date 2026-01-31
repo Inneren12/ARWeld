@@ -3,8 +3,7 @@ package com.example.arweld.feature.drawingeditor.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.arweld.core.domain.drawing2d.Drawing2DRepository
-import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
-import com.example.arweld.core.drawing2d.editor.v1.missingNodeReferences
+import com.example.arweld.core.drawing2d.editor.v1.ScaleInfo
 import com.example.arweld.feature.drawingeditor.diagnostics.EditorDiagnosticsLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -32,15 +31,19 @@ class ManualEditorViewModel @Inject constructor(
         when (intent) {
             EditorIntent.SaveRequested -> saveDrawing()
             EditorIntent.LoadRequested -> loadDrawing()
+            EditorIntent.ScaleApplyRequested -> applyScale()
+            EditorIntent.UndoRequested -> applyUndo()
+            EditorIntent.RedoRequested -> applyRedo()
+            is EditorIntent.ToolChanged -> {
+                val previousTool = mutableUiState.value.tool
+                reduce(intent)
+                editorDiagnosticsLogger.logToolChanged(
+                    tool = intent.tool.name,
+                    previousTool = previousTool.name,
+                )
+            }
             else -> reduce(intent)
         }
-    fun onToolSelected(tool: ManualEditorTool) {
-        val previousTool = mutableUiState.value.selectedTool
-        mutableUiState.update { it.copy(selectedTool = tool) }
-        editorDiagnosticsLogger.logToolChanged(
-            tool = tool.name,
-            previousTool = previousTool.name,
-        )
     }
 
     private fun loadDrawing() {
@@ -68,9 +71,94 @@ class ManualEditorViewModel @Inject constructor(
         }
     }
 
+    private fun applyScale() {
+        viewModelScope.launch {
+            reduce(EditorIntent.ScaleApplyRequested)
+            val state = mutableUiState.value
+            val draft = state.scaleDraft
+            val pointA = draft.pointA
+            val pointB = draft.pointB
+            if (pointA == null || pointB == null) {
+                reduce(EditorIntent.ScaleApplyFailed("Select two points before applying scale."))
+                return@launch
+            }
+            val parsedLength = parseStrictNumber(draft.inputText)
+            if (parsedLength == null) {
+                reduce(EditorIntent.ScaleApplyFailed("Enter a valid length in mm."))
+                return@launch
+            }
+            if (parsedLength <= 0.0) {
+                reduce(EditorIntent.ScaleApplyFailed("Length must be > 0 mm."))
+                return@launch
+            }
+            val distance = distanceBetween(pointA, pointB)
+            if (distance <= SCALE_DISTANCE_EPSILON) {
+                reduce(EditorIntent.ScaleApplyFailed("Points are too close to compute scale."))
+                return@launch
+            }
+            val updatedDrawing = state.drawing.copy(
+                scale = ScaleInfo(
+                    pointA = pointA,
+                    pointB = pointB,
+                    realLengthMm = parsedLength,
+                )
+            )
+            runCatching { drawing2DRepository.saveCurrentDrawing(updatedDrawing) }
+                .onSuccess {
+                    reduce(EditorIntent.ScaleApplied(updatedDrawing))
+                    editorDiagnosticsLogger.logScaleSet(
+                        realWorldLength = parsedLength,
+                        unit = "mm",
+                    )
+                }
+                .onFailure { error ->
+                    reduce(EditorIntent.ScaleApplyFailed(error.message ?: "Failed to save scale."))
+                }
+        }
+    }
+
+    private fun applyUndo() {
+        viewModelScope.launch {
+            val updated = reduceAndReturn(EditorIntent.UndoRequested)
+            if (updated != null) {
+                persistUpdatedDrawing(updated)
+            }
+        }
+    }
+
+    private fun applyRedo() {
+        viewModelScope.launch {
+            val updated = reduceAndReturn(EditorIntent.RedoRequested)
+            if (updated != null) {
+                persistUpdatedDrawing(updated)
+            }
+        }
+    }
+
+    private suspend fun persistUpdatedDrawing(updatedState: EditorState) {
+        runCatching { drawing2DRepository.saveCurrentDrawing(updatedState.drawing) }
+            .onFailure { error ->
+                reduce(EditorIntent.Error(error.message ?: "Failed to save drawing."))
+            }
+    }
+
     private fun reduce(intent: EditorIntent) {
         mutableUiState.update { current ->
             reduceEditorState(current, intent)
         }
+    }
+
+    private fun reduceAndReturn(intent: EditorIntent): EditorState? {
+        val current = mutableUiState.value
+        val updated = reduceEditorState(current, intent)
+        if (updated == current) {
+            return null
+        }
+        mutableUiState.value = updated
+        return updated
+    }
+
+    private companion object {
+        const val SCALE_DISTANCE_EPSILON = 1e-6
     }
 }

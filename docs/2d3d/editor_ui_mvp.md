@@ -13,6 +13,15 @@
 - When the **Scale** tool is active, taps create Point **A** and Point **B** in world space.
 - The canvas displays labeled markers **A/B** and a line between them while the draft is active.
 - If A and B are already set, the next tap resets the draft to a new **A** and clears **B**.
+
+## Scale Input (S3-14)
+- When points **A** and **B** are set, the bottom sheet shows **“Enter real length (mm)”** and an **Apply** button.
+- The UI shows the measured distance in drawing units and the derived `mmPerPx` preview when input is valid.
+- Applying the scale persists immediately to `drawing2d.json` and is undoable.
+
+## Undo/Redo (S3-14)
+- Undo/Redo controls are available in the bottom sheet for scale edits.
+- Undo restores the previous `Drawing2D` snapshot; Redo reapplies it.
 # Manual Editor UI MVP (2D3D)
 
 ## Purpose

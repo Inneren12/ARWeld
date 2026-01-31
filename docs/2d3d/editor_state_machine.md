@@ -15,12 +15,16 @@ from **side-effectful IO** (load/save).
 - **lastError**: Last error string (nullable).
 - **dirtyFlag**: Whether the drawing has unsaved edits (placeholder; no auto-save yet).
 - **viewTransform**: Placeholder for pan/zoom (scale + offset).
+- **scaleDraft**: Draft scale points + input text + validation messages.
+- **undoStack/redoStack**: In-memory history for undo/redo (Drawing2D snapshots).
 
 ### EditorIntent
 `EditorIntent` captures user and system intents:
 - Tool/selection: `ToolChanged`, `SelectEntity`, `ClearSelection`.
 - Load/save: `LoadRequested`, `Loaded`, `SaveRequested`, `Saved`.
 - Error: `Error(message)`.
+- Scale tool: `ScalePointSelected`, `ScaleLengthChanged`, `ScaleApplyRequested`, `ScaleApplied`, `ScaleApplyFailed`.
+- Undo/redo: `UndoRequested`, `RedoRequested`.
 
 ### Reducer (Pure)
 `reduceEditorState(state, intent)` is a pure function that:
@@ -40,6 +44,9 @@ The `ManualEditorViewModel` orchestrates effects:
   dispatching `Loaded` or `Error`.
 - **Save on request**: Dispatches `SaveRequested`, then calls
   `Drawing2DRepository.saveCurrentDrawing()`, dispatching `Saved` or `Error`.
+- **Scale apply**: Validates points + length input, computes scale, persists via
+  `Drawing2DRepository.saveCurrentDrawing()`, then dispatches `ScaleApplied` (or `ScaleApplyFailed`).
+- **Undo/redo**: Updates history stacks and persists the restored snapshot immediately.
 
 The UI only emits intents (e.g., tool toggles -> `ToolChanged`).
 
@@ -51,4 +58,4 @@ Future tool workflows plug in via:
 - Reducer branches for the new intents.
 - ViewModel effect handlers for tool-specific IO.
 
-Undo/redo is intentionally deferred to S3-12.
+Undo/redo is implemented for scale edits (S3-14).

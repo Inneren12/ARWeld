@@ -16,5 +16,10 @@ fun ManualEditorRoute(
     ManualEditorScreen(
         uiState = uiState,
         onToolSelected = { tool -> viewModel.onIntent(EditorIntent.ToolChanged(tool)) },
+        onScalePointSelected = { point -> viewModel.onIntent(EditorIntent.ScalePointSelected(point)) },
+        onScaleLengthChanged = { text -> viewModel.onIntent(EditorIntent.ScaleLengthChanged(text)) },
+        onScaleApply = { viewModel.onIntent(EditorIntent.ScaleApplyRequested) },
+        onUndo = { viewModel.onIntent(EditorIntent.UndoRequested) },
+        onRedo = { viewModel.onIntent(EditorIntent.RedoRequested) },
     )
 }
