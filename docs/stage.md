@@ -1617,6 +1617,7 @@ Event(
 **Note:** S3-08 adds the Manual Editor state machine (EditorState + intents + reducer + load/save effects).
 **Note:** S3-04 implements atomic load/save for `drawing2d.json` with safe missing-file defaults.
 **Note:** S3-15 adds the Manual Editor scale status indicator (top bar warning/indicator + actions). ✅ DONE
+**Note:** S3-12 adds a bounded snapshot-based undo/redo history manager for Drawing2D mutations, plus unit tests. ✅ DONE
 
 ### 3.1 QC Queue (feature:qc)
 

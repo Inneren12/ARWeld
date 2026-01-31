@@ -44,6 +44,8 @@ sealed interface EditorIntent {
 
     data class ScaleResetFailed(val message: String) : EditorIntent
 
+    data class DrawingMutationApplied(val drawing: Drawing2D) : EditorIntent
+
     data object UndoRequested : EditorIntent
 
     data object RedoRequested : EditorIntent

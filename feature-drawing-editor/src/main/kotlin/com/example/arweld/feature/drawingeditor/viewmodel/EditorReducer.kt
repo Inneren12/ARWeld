@@ -1,5 +1,7 @@
 package com.example.arweld.feature.drawingeditor.viewmodel
 
+import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
+
 fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = when (intent) {
     is EditorIntent.ToolChanged -> state.copy(
         tool = intent.tool,
@@ -64,13 +66,8 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         scaleDraft = state.scaleDraft.copy(applyError = null),
     )
     is EditorIntent.ScaleApplied -> state.copy(
-        drawing = intent.drawing,
-        dirtyFlag = false,
-        lastError = null,
         scaleDraft = ScaleDraft(),
-        undoStack = state.undoStack + state.drawing,
-        redoStack = emptyList(),
-    )
+    ).pushHistory(intent.drawing)
     is EditorIntent.ScaleApplyFailed -> state.copy(
         scaleDraft = state.scaleDraft.copy(applyError = intent.message),
     )
@@ -78,45 +75,51 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         scaleDraft = state.scaleDraft.copy(applyError = null),
     )
     is EditorIntent.ScaleResetApplied -> state.copy(
-        drawing = intent.drawing,
-        dirtyFlag = false,
-        lastError = null,
         scaleDraft = ScaleDraft(),
-        undoStack = state.undoStack + state.drawing,
-        redoStack = emptyList(),
-    )
+    ).pushHistory(intent.drawing)
     is EditorIntent.ScaleResetFailed -> state.copy(
         scaleDraft = state.scaleDraft.copy(applyError = intent.message),
     )
-    EditorIntent.UndoRequested -> {
-        if (state.undoStack.isEmpty()) {
-            state
-        } else {
-            val newDrawing = state.undoStack.last()
-            state.copy(
-                drawing = newDrawing,
-                undoStack = state.undoStack.dropLast(1),
-                redoStack = state.redoStack + state.drawing,
-                dirtyFlag = false,
-            )
-        }
-    }
-    EditorIntent.RedoRequested -> {
-        if (state.redoStack.isEmpty()) {
-            state
-        } else {
-            val newDrawing = state.redoStack.last()
-            state.copy(
-                drawing = newDrawing,
-                redoStack = state.redoStack.dropLast(1),
-                undoStack = state.undoStack + state.drawing,
-                dirtyFlag = false,
-            )
-        }
-    }
+    is EditorIntent.DrawingMutationApplied -> state.pushHistory(intent.drawing)
+    EditorIntent.UndoRequested -> state.applyHistoryUndo()
+    EditorIntent.RedoRequested -> state.applyHistoryRedo()
 }
 
 private const val SCALE_DISTANCE_EPSILON = 1e-6
+
+private fun EditorState.pushHistory(newDrawing: Drawing2D): EditorState {
+    val history = EditorHistory(undoStack = undoStack, redoStack = redoStack)
+    val updated = EditorHistoryManager.push(history, drawing)
+    return copy(
+        drawing = newDrawing,
+        undoStack = updated.undoStack,
+        redoStack = updated.redoStack,
+        dirtyFlag = false,
+        lastError = null,
+    )
+}
+
+private fun EditorState.applyHistoryUndo(): EditorState {
+    val history = EditorHistory(undoStack = undoStack, redoStack = redoStack)
+    val updated = EditorHistoryManager.undo(history, drawing) ?: return this
+    return copy(
+        drawing = updated.drawing,
+        undoStack = updated.history.undoStack,
+        redoStack = updated.history.redoStack,
+        dirtyFlag = false,
+    )
+}
+
+private fun EditorState.applyHistoryRedo(): EditorState {
+    val history = EditorHistory(undoStack = undoStack, redoStack = redoStack)
+    val updated = EditorHistoryManager.redo(history, drawing) ?: return this
+    return copy(
+        drawing = updated.drawing,
+        undoStack = updated.history.undoStack,
+        redoStack = updated.history.redoStack,
+        dirtyFlag = false,
+    )
+}
 
 private fun recomputeScaleDraft(draft: ScaleDraft): ScaleDraft {
     val pointA = draft.pointA
