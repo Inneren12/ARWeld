@@ -2,6 +2,8 @@ package com.example.arweld.feature.drawingimport.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import java.io.ByteArrayOutputStream
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
@@ -48,6 +50,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
+import com.example.arweld.core.drawing2d.artifacts.layout.v1.ProjectLayoutV1
 import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
 import com.example.arweld.core.drawing2d.artifacts.io.v1.ManifestWriterV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
@@ -58,13 +61,14 @@ import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorCo
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorMapper
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLogger
+import com.example.arweld.feature.drawingimport.overlay.CornerOverlayRendererV1
 import com.example.arweld.feature.drawingimport.preprocess.ContourStats
 import com.example.arweld.feature.drawingimport.preprocess.ContourV1
 import com.example.arweld.feature.drawingimport.preprocess.CornerOrderingV1
 import com.example.arweld.feature.drawingimport.preprocess.CornerRefinerV1
-import com.example.arweld.feature.drawingimport.preprocess.OrderedCornersV1
+import com.example.arweld.feature.drawingimport.preprocess.OrderedCornersV1 as PreprocessOrderedCornersV1
 import com.example.arweld.feature.drawingimport.quality.DrawingImportPipelineResultV1
-import com.example.arweld.feature.drawingimport.quality.OrderedCornersV1
+import com.example.arweld.feature.drawingimport.quality.OrderedCornersV1 as QualityOrderedCornersV1
 import com.example.arweld.feature.drawingimport.quality.QualityMetricsV1
 import com.example.arweld.feature.drawingimport.quality.SkewMetricsV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectFailure
@@ -77,7 +81,6 @@ import com.example.arweld.feature.drawingimport.preprocess.PageDetectPreprocesso
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadCandidate
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelectionResult
 import com.example.arweld.feature.drawingimport.preprocess.PageQuadSelector
-import com.example.arweld.feature.drawingimport.preprocess.OrderedCornersV1
 import com.example.arweld.feature.drawingimport.preprocess.PageDetectOutcomeV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifiedSizeV1
 import com.example.arweld.feature.drawingimport.preprocess.RectifySizeParamsV1
@@ -121,8 +124,9 @@ fun DrawingImportScreen(
     var quadSelectionResult by remember { mutableStateOf<PageQuadSelectionResult?>(null) }
     var quadSelectionError by remember { mutableStateOf<String?>(null) }
     var isSelectingQuad by remember { mutableStateOf(false) }
+    var isSavingOverlay by remember { mutableStateOf(false) }
     var rectifiedSizeOutcome by remember { mutableStateOf<PageDetectOutcomeV1<RectifiedSizeV1>?>(null) }
-    var orderedCorners by remember { mutableStateOf<OrderedCornersV1?>(null) }
+    var orderedCorners by remember { mutableStateOf<PreprocessOrderedCornersV1?>(null) }
     var refineResult by remember { mutableStateOf<RefineResultV1?>(null) }
     var refineError by remember { mutableStateOf<String?>(null) }
     var pipelineResult by remember { mutableStateOf<DrawingImportPipelineResultV1?>(null) }
@@ -379,6 +383,10 @@ fun DrawingImportScreen(
                                     val manifestEntry = captureState.session.artifacts.firstOrNull {
                                         it.kind == ArtifactKindV1.MANIFEST_JSON
                                     }
+                                    val overlayRelPath = ProjectLayoutV1.overlay("corners")
+                                    val overlayEntry = captureState.session.artifacts.firstOrNull {
+                                        it.kind == ArtifactKindV1.OVERLAY && it.relPath == overlayRelPath
+                                    }
                                     val rawFile = rawEntry?.let {
                                         File(captureState.session.projectDir, it.relPath)
                                     }
@@ -476,8 +484,107 @@ fun DrawingImportScreen(
                                             relPath = manifestEntry?.relPath ?: "Missing",
                                             sha256 = manifestEntry?.sha256 ?: "--",
                                         )
+                                        overlayEntry?.let { entry ->
+                                            ArtifactSummaryRow(
+                                                label = "Corners overlay",
+                                                relPath = entry.relPath,
+                                                sha256 = entry.sha256,
+                                            )
+                                        }
                                     }
                                     if (BuildConfig.DEBUG) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            Text(
+                                                text = "Overlay output",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                            )
+                                            Button(
+                                                onClick = {
+                                                    val frame = pageDetectFrame
+                                                    val ordered = orderedCorners
+                                                    if (frame == null || ordered == null) {
+                                                        coroutineScope.launch {
+                                                            snackbarHostState.showSnackbar(
+                                                                "Run quad selection before saving the overlay.",
+                                                            )
+                                                        }
+                                                        return@Button
+                                                    }
+                                                    if (isSavingOverlay) return@Button
+                                                    isSavingOverlay = true
+                                                    coroutineScope.launch(Dispatchers.Default) {
+                                                        runCatching {
+                                                            val baseBitmap = frameToBitmap(frame)
+                                                            val overlayBitmap = CornerOverlayRendererV1().render(
+                                                                baseBitmap = baseBitmap,
+                                                                ordered = ordered,
+                                                                refined = refineResult?.corners,
+                                                            )
+                                                            val pngBytes = encodePng(overlayBitmap)
+                                                            baseBitmap.recycle()
+                                                            overlayBitmap.recycle()
+                                                            val store = FileArtifactStoreV1(
+                                                                captureState.session.projectDir,
+                                                            )
+                                                            val overlayResult = store.writeBytes(
+                                                                kind = ArtifactKindV1.OVERLAY,
+                                                                relPath = overlayRelPath,
+                                                                bytes = pngBytes,
+                                                                mime = "image/png",
+                                                            )
+                                                            val artifactsWithoutManifest = captureState.session.artifacts
+                                                                .filter { it.kind != ArtifactKindV1.MANIFEST_JSON }
+                                                                .filterNot {
+                                                                    it.kind == ArtifactKindV1.OVERLAY &&
+                                                                        it.relPath == overlayRelPath
+                                                                }
+                                                            val updatedArtifacts = artifactsWithoutManifest + overlayResult
+                                                            val newManifest = ManifestWriterV1().write(
+                                                                captureState.session.projectDir,
+                                                                DrawingImportArtifacts.buildManifest(
+                                                                    projectId = captureState.session.projectId,
+                                                                    artifacts = updatedArtifacts,
+                                                                ),
+                                                            )
+                                                            val finalArtifacts = updatedArtifacts + newManifest
+                                                            withContext(Dispatchers.Main) {
+                                                                screenState = DrawingImportUiState.Saved(
+                                                                    captureState.session.copy(
+                                                                        artifacts = finalArtifacts,
+                                                                    ),
+                                                                )
+                                                                snackbarHostState.showSnackbar(
+                                                                    "Corners overlay saved",
+                                                                )
+                                                            }
+                                                        }.onFailure { error ->
+                                                            withContext(Dispatchers.Main) {
+                                                                snackbarHostState.showSnackbar(
+                                                                    error.message
+                                                                        ?: "Failed to save corners overlay.",
+                                                                )
+                                                            }
+                                                        }
+                                                        withContext(Dispatchers.Main) {
+                                                            isSavingOverlay = false
+                                                        }
+                                                    }
+                                                },
+                                                enabled = !isSavingOverlay,
+                                            ) {
+                                                Text(
+                                                    text = if (isSavingOverlay) {
+                                                        "Saving overlay..."
+                                                    } else {
+                                                        "Save corners overlay"
+                                                    },
+                                                )
+                                            }
+                                        }
                                         Spacer(modifier = Modifier.height(16.dp))
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -629,7 +736,9 @@ fun DrawingImportScreen(
                                                                 val result = quadSelector.select(contours, frame.width, frame.height)
                                                                 val sizeOutcome = when (result) {
                                                                     is PageQuadSelectionResult.Success -> {
-                                                                        val orderedCorners = OrderedCornersV1.fromPoints(result.candidate.points)
+                                                                        val orderedCorners = QualityOrderedCornersV1.fromPoints(
+                                                                            result.candidate.points,
+                                                                        )
                                                                         if (orderedCorners == null) {
                                                                             PageDetectOutcomeV1.Failure(
                                                                                 PageDetectFailure(
@@ -669,7 +778,9 @@ fun DrawingImportScreen(
                                                                     rectifiedSizeOutcome = sizeOutcome
                                                                     pipelineResult = when (result) {
                                                                         is PageQuadSelectionResult.Success -> {
-                                                                            val orderedCorners = OrderedCornersV1.fromPoints(result.candidate.points)
+                                                                            val orderedCorners = QualityOrderedCornersV1.fromPoints(
+                                                                                result.candidate.points,
+                                                                            )
                                                                             orderedCorners?.let { corners ->
                                                                                 val metrics = QualityMetricsV1.skewFromQuad(
                                                                                     corners,
@@ -1095,6 +1206,7 @@ fun DrawingImportScreen(
                                     quadSelectionResult = null
                                     quadSelectionError = null
                                     isSelectingQuad = false
+                                    isSavingOverlay = false
                                     orderedCorners = null
                                     refineResult = null
                                     refineError = null
@@ -1168,6 +1280,8 @@ private fun formatQuadLabel(candidate: PageQuadCandidate): String {
 
 private fun formatRectifiedSizeLabel(size: RectifiedSizeV1): String {
     return "Rectified size=${size.width}x${size.height}"
+}
+
 private fun formatSkewMetrics(metrics: SkewMetricsV1): String {
     val angleMax = "%.2f".format(Locale.US, metrics.angleMaxAbsDeg)
     val angleMean = "%.2f".format(Locale.US, metrics.angleMeanAbsDeg)
@@ -1186,10 +1300,34 @@ private fun formatRectifiedFailureLabel(failure: PageDetectFailure): String {
     return "Rectified size: ${failure.code.name} • ${failure.message}"
 }
 
-private fun formatOrderedCornersLabel(corners: OrderedCornersV1): String {
+private fun formatOrderedCornersLabel(corners: PreprocessOrderedCornersV1): String {
     val points = corners.toList()
         .joinToString(prefix = "[", postfix = "]") { "(${it.x.formatPx()},${it.y.formatPx()})" }
     return "Ordered corners (TL/TR/BR/BL): $points"
+}
+
+private fun frameToBitmap(frame: PageDetectFrame): Bitmap {
+    val expectedSize = frame.width * frame.height
+    require(frame.gray.size == expectedSize) {
+        "Frame gray data mismatch: expected $expectedSize bytes, got ${frame.gray.size}."
+    }
+    val pixels = IntArray(expectedSize)
+    for (i in 0 until expectedSize) {
+        val gray = frame.gray[i].toInt() and 0xFF
+        pixels[i] = 0xFF000000.toInt() or (gray shl 16) or (gray shl 8) or gray
+    }
+    return Bitmap.createBitmap(
+        pixels,
+        frame.width,
+        frame.height,
+        Bitmap.Config.ARGB_8888,
+    )
+}
+
+private fun encodePng(bitmap: Bitmap): ByteArray {
+    val stream = ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+    return stream.toByteArray()
 }
 
 private fun formatRefineLabel(result: RefineResultV1): String {
