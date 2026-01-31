@@ -47,6 +47,7 @@ class RectifiedArtifactWriterV1Test {
         val store = FileArtifactStoreV1(projectDir)
         val session = DrawingImportSession(
             projectId = "test-project",
+            artifactsRoot = projectDir.parentFile,
             projectDir = projectDir,
             artifacts = emptyList(),
         )

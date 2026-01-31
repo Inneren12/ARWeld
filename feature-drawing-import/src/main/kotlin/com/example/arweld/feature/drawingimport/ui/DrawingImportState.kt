@@ -14,6 +14,7 @@ data class RectifiedImageInfo(
 
 data class DrawingImportSession(
     val projectId: String,
+    val artifactsRoot: File,
     val projectDir: File,
     val artifacts: List<ArtifactEntryV1>,
     val rectifiedImageInfo: RectifiedImageInfo? = null,

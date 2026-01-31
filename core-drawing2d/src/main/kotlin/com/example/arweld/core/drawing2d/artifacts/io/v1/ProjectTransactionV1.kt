@@ -12,12 +12,13 @@ import java.util.logging.Logger
 class ProjectTransactionV1(
     private val artifactsRoot: File,
     private val projectId: String,
+    private val policy: ArtifactsRootPolicyV1 = ArtifactsRootPolicyV1(),
     private val storeFactory: (File) -> ArtifactStoreV1 = ::FileArtifactStoreV1,
 ) {
     private val logger = Logger.getLogger(ProjectTransactionV1::class.java.name)
 
     val stagingDir: File = File(File(artifactsRoot, ".staging"), projectId)
-    val finalDir: File = File(artifactsRoot, projectId)
+    val finalDir: File = File(File(artifactsRoot, policy.subdir), projectId)
 
     fun open(): ArtifactStoreV1 {
         logger.info("ProjectTransactionV1 open projectId=$projectId staging=${stagingDir.path}")
@@ -27,6 +28,7 @@ class ProjectTransactionV1(
         if (!stagingDir.exists() && !stagingDir.mkdirs()) {
             throw IOException("Failed to create staging directory: ${stagingDir.path}")
         }
+        StagingLockV1.touch(stagingDir)
         if (finalDir.exists()) {
             copyDirectory(finalDir.toPath(), stagingDir.toPath())
         }
@@ -37,6 +39,12 @@ class ProjectTransactionV1(
         logger.info("ProjectTransactionV1 commit projectId=$projectId from=${stagingDir.path} to=${finalDir.path}")
         if (!stagingDir.exists()) {
             throw IOException("Staging directory missing: ${stagingDir.path}")
+        }
+        StagingLockV1.clear(stagingDir)
+        finalDir.parentFile?.let { parent ->
+            if (!parent.exists() && !parent.mkdirs()) {
+                throw IOException("Failed to create final directory parent: ${parent.path}")
+            }
         }
         try {
             Files.move(
@@ -61,6 +69,7 @@ class ProjectTransactionV1(
 
     fun rollback() {
         logger.info("ProjectTransactionV1 rollback projectId=$projectId staging=${stagingDir.path}")
+        StagingLockV1.clear(stagingDir)
         if (stagingDir.exists() && !stagingDir.deleteRecursively()) {
             throw IOException("Failed to delete staging directory: ${stagingDir.path}")
         }

@@ -34,6 +34,7 @@ class CaptureMetaWriterV1Test {
         val store = FileArtifactStoreV1(projectDir)
         val session = DrawingImportSession(
             projectId = "project-123",
+            artifactsRoot = projectDir.parentFile,
             projectDir = projectDir,
             artifacts = emptyList(),
         )

@@ -21,7 +21,7 @@ class ProjectTransactionV1Test {
 
         transaction.commit()
 
-        val finalDir = File(root, "project-123")
+        val finalDir = File(File(root, "projects"), "project-123")
         val stagingDir = File(File(root, ".staging"), "project-123")
         assertTrue(finalDir.exists())
         assertTrue(File(finalDir, "manifest.json").exists())
@@ -54,7 +54,7 @@ class ProjectTransactionV1Test {
             transaction.rollback()
         }
 
-        val finalDir = File(root, "project-rollback")
+        val finalDir = File(File(root, "projects"), "project-rollback")
         val stagingDir = File(File(root, ".staging"), "project-rollback")
         assertFalse(finalDir.exists())
         assertFalse(stagingDir.exists())

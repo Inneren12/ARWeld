@@ -94,7 +94,7 @@ class DrawingImportPipelineV1Test {
 
     private fun testSession(): DrawingImportSession {
         val rootDir = createTempDir(prefix = "pipeline-artifacts")
-        val projectDir = File(rootDir, "project-1")
+        val projectDir = File(File(rootDir, "projects"), "project-1")
         val rawFile = File(projectDir, "raw/raw.jpg")
         rawFile.parentFile?.mkdirs()
         rawFile.writeBytes(ByteArray(1))
@@ -107,6 +107,7 @@ class DrawingImportPipelineV1Test {
         )
         return DrawingImportSession(
             projectId = "project-1",
+            artifactsRoot = rootDir,
             projectDir = projectDir,
             artifacts = listOf(rawEntry),
         )
