@@ -17,6 +17,8 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/ui/DrawingImportScreen.kt` — Drawing Import UI with raw capture and structured diagnostics events.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/diagnostics/DrawingImportDiagnostics.kt` — Event + error code catalog and structured logging helpers for drawing import.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/artifacts/ProjectFolderManagerV1.kt` — Centralized project folder policy (`<filesDir>/artifacts/projects/<projectId>` + staging at `<filesDir>/artifacts/.staging/<projectId>`), safe delete helpers, and retention-aware cleanup entry point.
+- `core-domain/src/main/kotlin/com/example/arweld/core/domain/drawing2d/Project2D3DWorkspace.kt` — 2D3D editor workspace contract (stable filenames, relative paths, default underlay naming).
+- `core-data/src/main/kotlin/com/example/arweld/core/data/drawing2d/Project2D3DWorkspaceResolver.kt` — Android storage helpers for the 2D3D workspace (File/Uri/DocumentFile).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectPreprocessor.kt` — Deterministic preprocessing pipeline that decodes raw captures, applies EXIF rotation, downscales to a fixed max side, and emits grayscale buffers for page detection (S2-PR07).
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/DrawingImportGuardrailsV1.kt` — Performance guardrails (MAX_DECODE_PIXELS/MAX_DECODE_SIDE/MAX_RECTIFIED_PIXELS/MAX_RECTIFIED_SIDE/PIPELINE_MAX_MS) used for safe decode, rectified caps, and time budgeting.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/SafeBitmapDecodeV1.kt` — Bounds-first decode helper that computes deterministic inSampleSize, enforces decode caps, applies EXIF rotation, and returns stable failure codes (INPUT_TOO_LARGE/OOM_RISK).
@@ -1240,6 +1242,8 @@ androidTestImplementation(libs.androidx.junit)
 | Drawing2D patch event schema | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/patch/DrawingPatchEvent.kt` |
 | Drawing2D artifact manifest schema | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/v1/` |
 | Drawing2D artifact bundle IO | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/` |
+| 2D3D workspace contract | `core-domain/src/main/kotlin/com/example/arweld/core/domain/drawing2d/Project2D3DWorkspace.kt` |
+| 2D3D workspace docs | `docs/2d3d/project_workspace.md` |
 | Drawing2D spec docs | `docs/drawing/DRAWING2D_V1.md` |
 | Drawing import pipeline spec | `docs/drawing/IMPORT_PIPELINE_V1.md` |
 | Drawing2D schema evolution | `docs/drawing/SCHEMA_EVOLUTION.md` |

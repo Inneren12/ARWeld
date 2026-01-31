@@ -1614,6 +1614,7 @@ Event(
 **Note:** S3-01 also introduces the Drawing2D v1 manual editor schema in `core-drawing2d`.
 **Note:** S3-02 adds deterministic ID allocation and canonical save ordering for Drawing2D editor exports.
 **Note:** S3-07 adds the Manual Editor screen shell (toolbar + canvas + bottom sheet) wired to the Drawing2D repository.
+**Note:** S3-04 implements atomic load/save for `drawing2d.json` with safe missing-file defaults.
 
 ### 3.1 QC Queue (feature:qc)
 

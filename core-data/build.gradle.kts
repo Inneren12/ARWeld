@@ -53,6 +53,7 @@ dependencies {
 
     // AndroidX
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.documentfile)
 
     // Room
     implementation(libs.androidx.room.runtime)

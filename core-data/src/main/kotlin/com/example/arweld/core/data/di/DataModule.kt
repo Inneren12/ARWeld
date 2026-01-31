@@ -14,6 +14,7 @@ import com.example.arweld.core.data.db.dao.SyncQueueDao
 import com.example.arweld.core.data.db.dao.UserDao
 import com.example.arweld.core.data.db.dao.WorkItemDao
 import com.example.arweld.core.data.auth.AuthRepositoryImpl
+import com.example.arweld.core.data.drawing2d.Drawing2DRepository
 import com.example.arweld.core.data.drawing2d.Drawing2DRepositoryImpl
 import com.example.arweld.core.data.system.AndroidDeviceInfoProvider
 import com.example.arweld.core.data.system.DefaultTimeProvider
