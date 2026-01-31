@@ -1916,6 +1916,7 @@ mapOf(
 - Closeout doc: `docs/sprints/S4_CLOSEOUT.md`
 - Filters/search tests: `feature-supervisor/src/test/kotlin/com/example/arweld/feature/supervisor/viewmodel/SupervisorWorkListFilterTest.kt`
 - Timeline ordering tests: `feature-supervisor/src/test/kotlin/com/example/arweld/feature/supervisor/usecase/GetWorkItemDetailUseCaseTest.kt`, `feature-supervisor/src/test/kotlin/com/example/arweld/feature/supervisor/ui/TimelineListTest.kt`
+- ✅ S4-22 — Golden tests wired into CI with guardrails and artifacts
 
 ### 4.1 Supervisor Dashboard v1 (feature:supervisor)
 

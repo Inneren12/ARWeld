@@ -21,6 +21,16 @@ val aggregationType = Class.forName("kotlinx.kover.gradle.plugin.dsl.Aggregation
     .enumConstants
     .first { (it as Enum<*>).name == "COVERED_PERCENTAGE" }
 
+val updateGoldenProperty = providers.gradleProperty("updateGolden").orNull
+val updateGoldenEnv = System.getenv("UPDATE_GOLDEN")
+val updateGolden = listOf(updateGoldenProperty, updateGoldenEnv).any { value ->
+    value?.equals("true", ignoreCase = true) == true
+}
+val isCi = System.getenv("CI")?.equals("true", ignoreCase = true) == true
+if (isCi && updateGolden) {
+    throw GradleException("updateGolden is not allowed in CI. Remove -PupdateGolden=true or UPDATE_GOLDEN.")
+}
+
 extensions.findByName("kover")?.withGroovyBuilder {
     "merge" {
         "allProjects"()
@@ -49,6 +59,12 @@ extensions.findByName("kover")?.withGroovyBuilder {
                 }
             }
         }
+    }
+}
+
+subprojects {
+    tasks.withType<Test>().configureEach {
+        systemProperty("updateGolden", updateGolden.toString())
     }
 }
 
@@ -127,6 +143,7 @@ tasks.register("s1QualityGate") {
     dependsOn(
         "verifyCoreArBoundaries",
         "verifyArViewDebugLogging",
+        "goldenTest",
         ":app:assembleDebug",
         ":app:assembleRelease",
         ":app:testDebugUnitTest",
@@ -140,10 +157,20 @@ tasks.register("s2QualityGate") {
     dependsOn(
         "verifyCoreArBoundaries",
         "verifyArViewDebugLogging",
+        "goldenTest",
         ":app:assembleDebug",
         ":app:assembleRelease",
         ":app:testDebugUnitTest",
         ":app:lintDebug"
+    )
+}
+
+tasks.register("goldenTest") {
+    group = "verification"
+    description = "Runs golden tests used as CI gate."
+    dependsOn(
+        ":core-ar:test",
+        ":feature-supervisor:testDebugUnitTest",
     )
 }
 

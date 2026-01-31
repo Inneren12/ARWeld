@@ -1,7 +1,8 @@
 package com.example.arweld.feature.supervisor.export
 
-import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Test
+import java.io.File
 
 class JsonExporterGoldenTest {
 
@@ -81,15 +82,25 @@ class JsonExporterGoldenTest {
             ),
         )
 
-        val expected = readResource("golden/export_report.json")
-        val actual = JsonExporter().exportToString(report)
+        val actual = JsonExporter().exportToString(report).trim()
+        val updateGolden = System.getProperty("updateGolden")?.toBoolean() == true
+        val goldenFile = File("src/test/resources/golden/export_report.json")
 
-        assertEquals(expected.trim(), actual.trim())
-    }
+        if (updateGolden) {
+            goldenFile.writeText(actual + "\n")
+            return
+        }
 
-    private fun readResource(path: String): String {
-        val url = javaClass.classLoader?.getResource(path)
-            ?: error("Missing resource: $path")
-        return url.readText()
+        val expected = goldenFile.readText().trim()
+
+        if (expected != actual) {
+            val outputDir = File("build/outputs/golden_actual")
+            outputDir.mkdirs()
+            File(outputDir, "export_report_actual.json").writeText(actual + "\n")
+            fail(
+                "Golden mismatch for export_report.json. " +
+                    "See build/outputs/golden_actual/export_report_actual.json for actual output.",
+            )
+        }
     }
 }
