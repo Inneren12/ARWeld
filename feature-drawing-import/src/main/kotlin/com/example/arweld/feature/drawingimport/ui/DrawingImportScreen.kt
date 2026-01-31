@@ -388,6 +388,11 @@ fun DrawingImportScreen(
                                     val overlayEntry = captureState.session.artifacts.firstOrNull {
                                         it.kind == ArtifactKindV1.OVERLAY && it.relPath == overlayRelPath
                                     }
+                                    val rectifiedEntry = captureState.session.artifacts.firstOrNull {
+                                        it.kind == ArtifactKindV1.RECTIFIED_IMAGE &&
+                                            it.relPath == ProjectLayoutV1.RECTIFIED_IMAGE_PNG
+                                    }
+                                    val rectifiedInfo = captureState.session.rectifiedImageInfo
                                     val rawFile = rawEntry?.let {
                                         File(captureState.session.projectDir, it.relPath)
                                     }
@@ -480,6 +485,18 @@ fun DrawingImportScreen(
                                             relPath = rawEntry?.relPath ?: "Missing",
                                             sha256 = rawEntry?.sha256 ?: "--",
                                         )
+                                        rectifiedEntry?.let { entry ->
+                                            val sizeLabel = rectifiedInfo?.let { info ->
+                                                "${info.width}x${info.height}"
+                                            }
+                                            ArtifactSummaryRow(
+                                                label = "Rectified",
+                                                relPath = entry.relPath,
+                                                sha256 = entry.sha256,
+                                                pixelSha256 = entry.pixelSha256,
+                                                sizeLabel = sizeLabel,
+                                            )
+                                        }
                                         ArtifactSummaryRow(
                                             label = "Manifest",
                                             relPath = manifestEntry?.relPath ?: "Missing",
@@ -1524,6 +1541,8 @@ private fun ArtifactSummaryRow(
     label: String,
     relPath: String,
     sha256: String,
+    pixelSha256: String? = null,
+    sizeLabel: String? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -1543,6 +1562,20 @@ private fun ArtifactSummaryRow(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground,
         )
+        pixelSha256?.let { pixelSha ->
+            Text(
+                text = "Pixel SHA: ${shortenSha(pixelSha)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        sizeLabel?.let { size ->
+            Text(
+                text = "Size: $size",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        }
     }
 }
 
