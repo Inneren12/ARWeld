@@ -6,7 +6,9 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.os.SystemClock
 import com.example.arweld.core.drawing2d.artifacts.io.v1.ArtifactStoreV1
+import com.example.arweld.core.drawing2d.artifacts.io.v1.FinalizeOutcomeV1
 import com.example.arweld.core.drawing2d.artifacts.io.v1.ProjectTransactionV1
+import com.example.arweld.core.drawing2d.artifacts.io.v1.ProjectFinalizerV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactEntryV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
 import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetaV1
@@ -65,6 +67,7 @@ class DrawingImportPipelineV1(
     private val transactionFactory: (File, String) -> ProjectTransactionV1 = { root, id ->
         ProjectTransactionV1(root, id)
     },
+    private val finalizer: ProjectFinalizerV1 = ProjectFinalizerV1(),
 ) {
     private var pipelineStartMs: Long = 0L
 
@@ -92,7 +95,17 @@ class DrawingImportPipelineV1(
                 is PageDetectOutcomeV1.Success -> {
                     try {
                         transaction.commit()
-                        outcome
+                        val finalization = finalizer.finalize(transaction.finalDir, outcome.value.artifacts)
+                        val finalArtifacts = when (finalization) {
+                            is FinalizeOutcomeV1.Success -> finalization.artifacts
+                            is FinalizeOutcomeV1.Failure -> outcome.value.artifacts
+                        }
+                        PageDetectOutcomeV1.Success(
+                            outcome.value.copy(
+                                artifacts = finalArtifacts,
+                                finalization = finalization,
+                            ),
+                        )
                     } catch (error: Throwable) {
                         runCatching { transaction.rollback() }
                         failure(
@@ -529,6 +542,7 @@ data class PipelineResultV1(
     val rectifiedSize: RectifiedSizeV1,
     val artifacts: List<ArtifactEntryV1>,
     val rectifiedQualityMetrics: RectifiedQualityMetricsV1? = null,
+    val finalization: FinalizeOutcomeV1? = null,
 )
 
 data class DrawingImportPipelineParamsV1(

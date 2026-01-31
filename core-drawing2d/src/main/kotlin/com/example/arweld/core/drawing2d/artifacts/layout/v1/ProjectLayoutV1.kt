@@ -6,6 +6,7 @@ object ProjectLayoutV1 {
     const val DRAWING2D_JSON = "drawing2d/drawing2d.json"
     const val MODEL_JSON = "model/model.json"
     const val CAPTURE_META_JSON = "meta/capture_meta.json"
+    const val PROJECT_COMPLETE_JSON = "meta/project_complete.json"
     const val MANIFEST_JSON = "manifest.json"
     const val CHECKSUMS_SHA256 = "checksums.sha256"
 

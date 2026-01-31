@@ -26,6 +26,7 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/preprocess/PageDetectContractsV1.kt` — Unified page detection outcome contract (stage + failure code + debug message) for preprocess/edges/contours/quad/order/refine.
 - `feature-drawing-import/src/main/kotlin/com/example/arweld/feature/drawingimport/pipeline/DrawingImportPipelineV1.kt` — End-to-end deterministic pipeline orchestrator (upright load → preprocess → detect → order/refine → size → rectify → save) with stage logging.
 - `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/ProjectTransactionV1.kt` — Atomic output transaction: write artifacts to `<artifactsRoot>/.staging/<projectId>` and commit to `<artifactsRoot>/<projectId>` on success.
+- `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/ProjectFinalizerV1.kt` — Finalization step that rewrites deterministic `manifest.json`, generates `checksums.sha256`, verifies hashes, and writes `meta/project_complete.json`.
 - `overlays/corners.png` — Debug corner overlay artifact saved via `ProjectLayoutV1.overlay("corners")` after ordering/refining corners.
 - `app/src/main/kotlin/com/example/arweld/ui/drawingimport/DrawingImportRoute.kt` — App-level navigation wrapper for Drawing Import.
 

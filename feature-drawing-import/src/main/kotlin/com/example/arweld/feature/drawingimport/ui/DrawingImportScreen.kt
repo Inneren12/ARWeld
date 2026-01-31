@@ -58,6 +58,7 @@ import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.core.drawing2d.Drawing2DJson
 import com.example.arweld.core.drawing2d.artifacts.layout.v1.ProjectLayoutV1
 import com.example.arweld.core.drawing2d.artifacts.io.v1.FileArtifactStoreV1
+import com.example.arweld.core.drawing2d.artifacts.io.v1.FinalizeOutcomeV1
 import com.example.arweld.core.drawing2d.artifacts.io.v1.ManifestWriterV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
 import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetaV1
@@ -668,12 +669,32 @@ fun DrawingImportScreen(
                                                 )
                                             }
                                             is DrawingImportProcessState.Success -> {
+                                                val finalization = current.result.finalization
+                                                val finalizationLabel = when (finalization) {
+                                                    is FinalizeOutcomeV1.Success -> "Finalized: YES"
+                                                    is FinalizeOutcomeV1.Failure -> "Finalized: NO"
+                                                    null -> "Finalized: --"
+                                                }
                                                 Text(
                                                     text = "Process complete. Rectified size: " +
                                                         "${current.result.rectifiedSize.width}x${current.result.rectifiedSize.height}",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.primary,
                                                 )
+                                                Text(
+                                                    text = finalizationLabel,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                                if (finalization is FinalizeOutcomeV1.Failure) {
+                                                    val relPath = finalization.failure.relPath
+                                                    val suffix = relPath?.let { " ($it)" } ?: ""
+                                                    Text(
+                                                        text = "Finalize failure: ${finalization.failure.code}$suffix",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.error,
+                                                    )
+                                                }
                                             }
                                             is DrawingImportProcessState.Failure -> {
                                                 Text(

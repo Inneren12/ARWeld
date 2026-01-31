@@ -14,6 +14,7 @@ enum class ArtifactKindV1 {
     PATCH_JSON,
     MODEL_JSON,
     CAPTURE_META,
+    PROJECT_COMPLETE,
     MANIFEST_JSON,
     CHECKSUMS_SHA256
 }
