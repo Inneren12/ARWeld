@@ -30,11 +30,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +66,7 @@ import com.example.arweld.feature.drawingeditor.render.resolveAllMemberEndpoints
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorSelection
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorState
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorTool
+import com.example.arweld.feature.drawingeditor.viewmodel.EditorErrorCode
 import com.example.arweld.feature.drawingeditor.viewmodel.MemberDraft
 import com.example.arweld.feature.drawingeditor.viewmodel.Point2
 import com.example.arweld.feature.drawingeditor.viewmodel.NodeEditDraft
@@ -133,6 +137,15 @@ fun ManualEditorScreen(
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val errorCode = uiState.lastErrorCode
+    val errorSequence = uiState.lastErrorSequence
+    LaunchedEffect(errorCode, errorSequence) {
+        if (errorCode != null) {
+            snackbarHostState.showSnackbar(memberErrorMessage(errorCode))
+        }
+    }
+
     Scaffold(
         topBar = {
             Column {
@@ -155,6 +168,7 @@ fun ManualEditorScreen(
                 )
             }
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
             val selectedNodeId = (uiState.selection as? EditorSelection.Node)?.id
             val selectedNode = selectedNodeId?.let { id ->
@@ -227,6 +241,11 @@ fun ManualEditorScreen(
             }
         }
     }
+}
+
+private fun memberErrorMessage(code: EditorErrorCode): String = when (code) {
+    EditorErrorCode.MemberSameNode -> "Member endpoints must be two different nodes."
+    EditorErrorCode.MemberDuplicate -> "That member already exists between these nodes."
 }
 
 @Composable

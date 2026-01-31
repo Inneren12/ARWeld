@@ -24,6 +24,7 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         } else {
             MemberDraft()
         },
+        lastErrorCode = null,
     )
     is EditorIntent.SelectEntity -> {
         val synced = syncNodeEditState(intent.selection, state.drawing)
@@ -55,6 +56,7 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         isLoading = false,
         drawing = intent.drawing,
         lastError = null,
+        lastErrorCode = null,
         dirtyFlag = false,
         nodeDragState = null,
         undoStack = emptyList(),
@@ -65,10 +67,12 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
     EditorIntent.SaveRequested -> state.copy(
         isLoading = true,
         lastError = null,
+        lastErrorCode = null,
     )
     EditorIntent.Saved -> state.copy(
         isLoading = false,
         lastError = null,
+        lastErrorCode = null,
         dirtyFlag = false,
         nodeDragState = null,
     )
@@ -250,22 +254,33 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         if (state.tool != EditorTool.MEMBER) {
             state
         } else if (state.memberDraft.nodeAId == null) {
-            state.copy(memberDraft = MemberDraft(nodeAId = intent.nodeId))
-        } else {
-            val allocation = Drawing2DIdAllocator.allocateMemberId(state.drawing)
-            val endpoints = canonicalizeMemberEndpoints(state.memberDraft.nodeAId, intent.nodeId)
-            val newMember = Member2D(
-                id = allocation.id,
-                aNodeId = endpoints.first,
-                bNodeId = endpoints.second,
-            )
-            val updatedDrawing = allocation.drawing
-                .copy(members = allocation.drawing.members + newMember)
-                .canonicalize()
             state.copy(
-                selection = EditorSelection.Member(newMember.id),
-                memberDraft = MemberDraft(),
-            ).pushHistory(updatedDrawing)
+                memberDraft = MemberDraft(nodeAId = intent.nodeId),
+                lastErrorCode = null,
+            )
+        } else {
+            val nodeAId = state.memberDraft.nodeAId ?: return state
+            if (isSameNode(nodeAId, intent.nodeId)) {
+                state.withMemberError(EditorErrorCode.MemberSameNode)
+            } else if (isDuplicateMember(state.drawing.members, nodeAId, intent.nodeId)) {
+                state.withMemberError(EditorErrorCode.MemberDuplicate)
+            } else {
+                val allocation = Drawing2DIdAllocator.allocateMemberId(state.drawing)
+                val endpoints = canonicalizeMemberEndpoints(nodeAId, intent.nodeId)
+                val newMember = Member2D(
+                    id = allocation.id,
+                    aNodeId = endpoints.first,
+                    bNodeId = endpoints.second,
+                )
+                val updatedDrawing = allocation.drawing
+                    .copy(members = allocation.drawing.members + newMember)
+                    .canonicalize()
+                state.copy(
+                    selection = EditorSelection.Member(newMember.id),
+                    memberDraft = MemberDraft(),
+                    lastErrorCode = null,
+                ).pushHistory(updatedDrawing)
+            }
         }
     }
     EditorIntent.UndoRequested -> state.applyHistoryUndo()
@@ -288,6 +303,11 @@ private fun EditorState.pushHistory(newDrawing: Drawing2D): EditorState {
         nodeEditDraft = synced.draft,
     )
 }
+
+private fun EditorState.withMemberError(code: EditorErrorCode): EditorState = copy(
+    lastErrorCode = code,
+    lastErrorSequence = lastErrorSequence + 1,
+)
 
 private fun EditorState.pushHistoryFrom(previousDrawing: Drawing2D, newDrawing: Drawing2D): EditorState {
     val history = EditorHistory(undoStack = undoStack, redoStack = redoStack)
@@ -442,6 +462,20 @@ private fun canonicalizeMemberEndpoints(nodeAId: String, nodeBId: String): Pair<
         nodeAId to nodeBId
     } else {
         nodeBId to nodeAId
+    }
+}
+
+private fun isSameNode(nodeAId: String, nodeBId: String): Boolean = nodeAId == nodeBId
+
+private fun isDuplicateMember(
+    existingMembers: List<Member2D>,
+    nodeAId: String,
+    nodeBId: String,
+): Boolean {
+    val (candidateA, candidateB) = canonicalizeMemberEndpoints(nodeAId, nodeBId)
+    return existingMembers.any { member ->
+        val (memberA, memberB) = canonicalizeMemberEndpoints(member.aNodeId, member.bNodeId)
+        memberA == candidateA && memberB == candidateB
     }
 }
 

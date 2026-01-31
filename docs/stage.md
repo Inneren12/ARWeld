@@ -1838,6 +1838,11 @@ data class ArScreenshotMetadata(
 - Draft highlights node A and shows a bottom-sheet hint while awaiting the second node.
 - Member creation is a single undoable snapshot and auto-saves via the editor repository.
 - Added reducer tests for draft selection, deterministic allocation, and canonical endpoint storage.
+
+**S3-23 — Members tool invalid guards ✅ DONE:**
+- Member creation blocks same-node and duplicate endpoints (direction-insensitive) with explicit UI feedback.
+- Invalid attempts keep the draft anchored on node A, do not mutate the drawing, and do not push undo history.
+- Added reducer tests to enforce same-node and duplicate rejection behavior.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**

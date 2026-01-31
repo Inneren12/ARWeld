@@ -165,4 +165,53 @@ class EditorReducerTest {
         assertEquals(EditorSelection.Member("M000001"), result.selection)
         assertEquals(null, result.memberDraft.nodeAId)
     }
+
+    @Test
+    fun `member tool rejects same-node selection without mutation`() {
+        val initial = EditorState(
+            tool = EditorTool.MEMBER,
+            drawing = Drawing2D(
+                nodes = listOf(Node2D(id = "N1", x = 0.0, y = 0.0)),
+                members = emptyList(),
+            ),
+            memberDraft = MemberDraft(nodeAId = "N1"),
+            undoStack = listOf(Drawing2D(nodes = emptyList(), members = emptyList())),
+            isLoading = false,
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.MemberNodeTapped("N1"))
+
+        assertEquals(0, result.drawing.members.size)
+        assertEquals(initial.drawing, result.drawing)
+        assertEquals(EditorErrorCode.MemberSameNode, result.lastErrorCode)
+        assertEquals(1, result.lastErrorSequence)
+        assertEquals("N1", result.memberDraft.nodeAId)
+        assertEquals(initial.undoStack, result.undoStack)
+    }
+
+    @Test
+    fun `member tool rejects duplicate member without mutation`() {
+        val initial = EditorState(
+            tool = EditorTool.MEMBER,
+            drawing = Drawing2D(
+                nodes = listOf(
+                    Node2D(id = "N1", x = 0.0, y = 0.0),
+                    Node2D(id = "N2", x = 10.0, y = 0.0),
+                ),
+                members = listOf(Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2")),
+            ),
+            memberDraft = MemberDraft(nodeAId = "N2"),
+            undoStack = listOf(Drawing2D(nodes = emptyList(), members = emptyList())),
+            isLoading = false,
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.MemberNodeTapped("N1"))
+
+        assertEquals(1, result.drawing.members.size)
+        assertEquals(initial.drawing, result.drawing)
+        assertEquals(EditorErrorCode.MemberDuplicate, result.lastErrorCode)
+        assertEquals(1, result.lastErrorSequence)
+        assertEquals("N2", result.memberDraft.nodeAId)
+        assertEquals(initial.undoStack, result.undoStack)
+    }
 }

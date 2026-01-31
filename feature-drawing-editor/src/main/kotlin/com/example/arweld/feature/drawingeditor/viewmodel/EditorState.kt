@@ -70,12 +70,19 @@ data class MemberDraft(
     val nodeAId: String? = null,
 )
 
+enum class EditorErrorCode {
+    MemberSameNode,
+    MemberDuplicate,
+}
+
 data class EditorState(
     val tool: EditorTool = EditorTool.SELECT,
     val selection: EditorSelection = EditorSelection.None,
     val drawing: Drawing2D = Drawing2D(nodes = emptyList(), members = emptyList()),
     val isLoading: Boolean = true,
     val lastError: String? = null,
+    val lastErrorCode: EditorErrorCode? = null,
+    val lastErrorSequence: Int = 0,
     val dirtyFlag: Boolean = false,
     val viewTransform: ViewTransform = ViewTransform(),
     /** Underlay image state (if workspace has an underlay configured). */
