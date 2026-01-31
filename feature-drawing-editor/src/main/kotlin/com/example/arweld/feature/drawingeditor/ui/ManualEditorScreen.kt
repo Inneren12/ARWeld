@@ -4,8 +4,6 @@ import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -29,29 +28,33 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.core.drawing2d.editor.v1.missingNodeReferences
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorState
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorTool
-import com.example.arweld.feature.drawingeditor.viewmodel.ScaleDraft
-import com.example.arweld.feature.drawingeditor.viewmodel.ViewTransform
-import java.util.Locale
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import com.example.arweld.feature.drawingeditor.viewmodel.Point2
+import com.example.arweld.feature.drawingeditor.viewmodel.ScaleDraft
+import com.example.arweld.feature.drawingeditor.viewmodel.ScaleStatus
+import com.example.arweld.feature.drawingeditor.viewmodel.ScaleStatusDisplay
 import com.example.arweld.feature.drawingeditor.viewmodel.ViewTransform
+import com.example.arweld.feature.drawingeditor.viewmodel.deriveScaleStatus
+import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleLengthMm
+import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleMmPerPx
+import com.example.arweld.feature.drawingeditor.viewmodel.formatScaleValue
 import com.example.arweld.feature.drawingeditor.viewmodel.worldToScreen
 
 @Composable
@@ -62,6 +65,7 @@ fun ManualEditorScreen(
     onScalePointSelected: (Point2D) -> Unit,
     onScaleLengthChanged: (String) -> Unit,
     onScaleApply: () -> Unit,
+    onScaleReset: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
@@ -77,6 +81,15 @@ fun ManualEditorScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+                val scaleStatus = deriveScaleStatus(uiState.drawing.scale)
+                ScaleStatusIndicator(
+                    scaleStatus = scaleStatus,
+                    onSetScale = { onToolSelected(EditorTool.SCALE) },
+                    onResetScale = onScaleReset,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
                 )
             }
         },
@@ -126,6 +139,7 @@ fun ManualEditorScreen(
                     EditorCanvas(
                         uiState = uiState,
                         onScalePointSelected = onScalePointSelected,
+                        onTransformGesture = onTransformGesture,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -138,6 +152,7 @@ fun ManualEditorScreen(
 private fun EditorCanvas(
     uiState: EditorState,
     onScalePointSelected: (Point2D) -> Unit,
+    onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val draft = uiState.scaleDraft
@@ -155,23 +170,22 @@ private fun EditorCanvas(
     labelPaint.color = MaterialTheme.colorScheme.onSurface.toArgb()
 
     Box(
-        modifier = modifier
-            .pointerInput(uiState.tool, scale, offsetX, offsetY) {
-                detectTapGestures { offset ->
-                    if (uiState.tool == EditorTool.SCALE) {
-                        onScalePointSelected(screenToWorld(offset, uiState.viewTransform))
-                    }
-                    DrawingCanvas(
-                        drawing = uiState.drawing,
-                        viewTransform = uiState.viewTransform,
-                        onTransformGesture = onTransformGesture,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                    )
+        modifier = modifier.pointerInput(uiState.tool, scale, offsetX, offsetY) {
+            detectTapGestures { offset ->
+                if (uiState.tool == EditorTool.SCALE) {
+                    onScalePointSelected(screenToWorld(offset, uiState.viewTransform))
                 }
             }
+        }
     ) {
+        DrawingCanvas(
+            drawing = uiState.drawing,
+            viewTransform = uiState.viewTransform,
+            onTransformGesture = onTransformGesture,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+        )
         Canvas(modifier = Modifier.fillMaxSize()) {
             val pointA = draft.pointA
             val pointB = draft.pointB
@@ -253,6 +267,67 @@ private fun ToolSelectorRow(
 }
 
 @Composable
+private fun ScaleStatusIndicator(
+    scaleStatus: ScaleStatusDisplay,
+    onSetScale: () -> Unit,
+    onResetScale: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val (background, content) = when (scaleStatus.status) {
+        ScaleStatus.Missing -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        ScaleStatus.Invalid -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        ScaleStatus.Set -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+    }
+    Surface(
+        color = background,
+        contentColor = content,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            val statusText = when (scaleStatus.status) {
+                ScaleStatus.Missing -> "Scale: not set"
+                ScaleStatus.Invalid -> "Scale: invalid"
+                ScaleStatus.Set -> {
+                    val mmPerPx = scaleStatus.mmPerPx?.let { formatScaleMmPerPx(it) } ?: "?"
+                    val refText = scaleStatus.referenceLengthMm?.let { "Ref ${formatScaleLengthMm(it)} mm" }
+                    if (refText != null) {
+                        "Scale: $mmPerPx mm/px • $refText"
+                    } else {
+                        "Scale: $mmPerPx mm/px"
+                    }
+                }
+            }
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            when (scaleStatus.status) {
+                ScaleStatus.Missing -> {
+                    TextButton(onClick = onSetScale) {
+                        Text(text = "Set")
+                    }
+                }
+                ScaleStatus.Invalid -> {
+                    TextButton(onClick = onResetScale) {
+                        Text(text = "Reset")
+                    }
+                }
+                ScaleStatus.Set -> Unit
+            }
+        }
+    }
+}
+
+@Composable
 private fun BottomSheetContent(
     selectedTool: EditorTool,
     summaryText: String,
@@ -328,8 +403,8 @@ private fun BottomSheetContent(
                 }
                 if (scaleDraft.pendingDistancePx != null) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    val distanceText = formatNumber(scaleDraft.pendingDistancePx)
-                    val mmPerPxText = scaleDraft.pendingMmPerPx?.let { formatNumber(it) }
+                    val distanceText = formatScaleValue(scaleDraft.pendingDistancePx, 3)
+                    val mmPerPxText = scaleDraft.pendingMmPerPx?.let { formatScaleMmPerPx(it) }
                     Text(
                         text = if (mmPerPxText != null) {
                             "Distance: $distanceText units • mm/px: $mmPerPxText"
@@ -373,7 +448,11 @@ private fun toolLabel(tool: EditorTool): String = when (tool) {
 
 private fun buildSummaryText(drawing: Drawing2D): String {
     val missingRefs = drawing.missingNodeReferences()
-    val scaleStatus = if (drawing.scale != null) "Scale calibrated" else "Scale not set"
+    val scaleStatus = when (deriveScaleStatus(drawing.scale).status) {
+        ScaleStatus.Missing -> "Scale not set"
+        ScaleStatus.Invalid -> "Scale invalid"
+        ScaleStatus.Set -> "Scale calibrated"
+    }
     return "Nodes: ${drawing.nodes.size} • Members: ${drawing.members.size} • " +
         "Missing refs: ${missingRefs.size} • $scaleStatus"
 }
@@ -394,7 +473,6 @@ private fun worldToScreen(point: Point2D, transform: ViewTransform): Offset {
     )
 }
 
-private fun formatNumber(value: Double): String = String.format(Locale.US, "%.4f", value)
 @Composable
 private fun DrawingCanvas(
     drawing: Drawing2D,
@@ -458,7 +536,7 @@ private fun DrawingCanvas(
                 .padding(12.dp)
         ) {
             Text(
-                text = "Scale: ${"%.2f".format(viewTransform.scale)}",
+                text = "Scale: ${formatScaleValue(viewTransform.scale.toDouble(), 2)}",
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
