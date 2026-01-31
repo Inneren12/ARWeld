@@ -1820,6 +1820,12 @@ data class ArScreenshotMetadata(
 - Reducer removes the node and cascades deletion to connected members to prevent dangling refs.
 - Delete clears selection, pushes a single undo snapshot, and persists once per delete.
 - Added reducer + undo/redo tests for delete behavior.
+
+**S3-20 — Node hit-testing tolerance + accessibility sizing ✅ DONE:**
+- Centralized UI constants for node hit radius, member hit tolerance, and node render radius (dp-based).
+- Hit-testing uses a screen-space tolerance derived from dp and density, then mapped to world space via `viewTransform.scale`.
+- Node drag start and selection now share the same tolerance logic to avoid zoom-dependent discrepancies.
+- Added tests to keep tie-break behavior deterministic and validate zoom-independent tolerance behavior.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**

@@ -10,7 +10,8 @@ for selecting nodes and members.
 - Tolerance is stable across zoom levels by defining it in **screen space**.
 
 ## Tolerance (screen space)
-- Default tolerance: **16dp**.
+- Hit tolerance is defined in dp constants (`EditorUiConstants.NODE_HIT_RADIUS_DP`, optionally `MEMBER_HIT_TOLERANCE_DP`).
+- Default node hit radius: **16dp**.
 - Converted to pixels at runtime using `LocalDensity`.
 - Convert to world distance using the view transform:
 
@@ -50,4 +51,4 @@ Selection is derived by:
 2. Falling back to member hit-test if no node is hit.
 3. Clearing selection if nothing is within tolerance.
 
-This ensures nodes are always prioritized over members when both are in range.
+This ensures nodes are always prioritized over members when both are in range. Tie-breaks are deterministic by **lowest id**.

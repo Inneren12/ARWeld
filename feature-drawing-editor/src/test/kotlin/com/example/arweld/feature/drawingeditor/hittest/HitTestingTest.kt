@@ -114,4 +114,31 @@ class HitTestingTest {
 
         assertEquals(EditorSelection.Node("N1"), selection)
     }
+
+    @Test
+    fun `hitTestNode tolerance stays consistent across zoom`() {
+        val nodes = listOf(Node2D(id = "N1", x = 0.0, y = 0.0))
+        val tolerancePx = 10f
+        val tapScreenPx = 8f
+        val zoomedIn = ViewTransform(scale = 2f, offsetX = 0f, offsetY = 0f)
+
+        val tapWorldAtScale1 = Point2D(tapScreenPx.toDouble(), 0.0)
+        val tapWorldAtScale2 = Point2D((tapScreenPx / 2f).toDouble(), 0.0)
+
+        val hitAtScale1 = hitTestNode(
+            worldTap = tapWorldAtScale1,
+            nodes = nodes,
+            tolerancePx = tolerancePx,
+            viewTransform = defaultTransform,
+        )
+        val hitAtScale2 = hitTestNode(
+            worldTap = tapWorldAtScale2,
+            nodes = nodes,
+            tolerancePx = tolerancePx,
+            viewTransform = zoomedIn,
+        )
+
+        assertEquals("N1", hitAtScale1)
+        assertEquals("N1", hitAtScale2)
+    }
 }

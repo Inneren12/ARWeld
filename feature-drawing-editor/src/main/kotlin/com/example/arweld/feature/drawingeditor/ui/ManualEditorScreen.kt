@@ -81,7 +81,6 @@ import java.util.Locale
  */
 private object RenderConfig {
     // Node rendering
-    const val NODE_RADIUS = 8f
     const val NODE_STROKE_WIDTH = 2f
     val NODE_FILL_COLOR = Color(0xFFFFC107)          // Amber
     val NODE_STROKE_COLOR = Color(0xFFFF8F00)        // Dark amber
@@ -103,8 +102,6 @@ private object RenderConfig {
     const val ORIGIN_MARKER_RADIUS = 4f
     val ORIGIN_MARKER_COLOR = Color(0xFFE91E63)      // Pink
 }
-
-private val HIT_TEST_TOLERANCE_DP = 16.dp
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -242,7 +239,10 @@ private fun EditorCanvas(
     }
     labelPaint.color = MaterialTheme.colorScheme.onSurface.toArgb()
 
-    val tolerancePx = with(LocalDensity.current) { HIT_TEST_TOLERANCE_DP.toPx() }
+    val density = LocalDensity.current
+    val tolerancePx = with(density) { EditorUiConstants.NODE_HIT_RADIUS_DP.toPx() }
+    val nodeRadiusPx = with(density) { EditorUiConstants.NODE_RENDER_RADIUS_DP.toPx() }
+    val nodeRadiusWorld = nodeRadiusPx / scale.coerceAtLeast(0.001f)
 
     Box(
         modifier = modifier.pointerInput(uiState.tool, uiState.drawing, scale, offsetX, offsetY, tolerancePx) {
@@ -310,6 +310,7 @@ private fun EditorCanvas(
             selection = uiState.selection,
             allowTransformGestures = uiState.nodeDragState == null,
             onTransformGesture = onTransformGesture,
+            nodeRadiusWorld = nodeRadiusWorld,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
@@ -643,6 +644,7 @@ private fun DrawingCanvasWithUnderlay(
     selection: EditorSelection,
     allowTransformGestures: Boolean,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
+    nodeRadiusWorld: Float,
     modifier: Modifier = Modifier,
 ) {
     // Pre-compute resolved members to avoid per-frame allocations
@@ -701,7 +703,7 @@ private fun DrawingCanvasWithUnderlay(
                 drawMembers(resolvedMembers, selection)
 
                 // Draw nodes as circles
-                drawNodes(drawing, selection)
+                drawNodes(drawing, selection, nodeRadiusWorld)
             }
 
             // Draw origin marker in screen space (always visible reference)
@@ -862,6 +864,7 @@ private fun DrawScope.drawMembers(
 private fun DrawScope.drawNodes(
     drawing: Drawing2D,
     selection: EditorSelection,
+    nodeRadiusWorld: Float,
 ) {
     drawing.nodes.forEach { node ->
         val isSelected = selection is EditorSelection.Node && selection.id == node.id
@@ -876,9 +879,9 @@ private fun DrawScope.drawNodes(
             RenderConfig.NODE_STROKE_COLOR
         }
         val radius = if (isSelected) {
-            RenderConfig.NODE_RADIUS * 1.25f
+            nodeRadiusWorld * 1.25f
         } else {
-            RenderConfig.NODE_RADIUS
+            nodeRadiusWorld
         }
 
         val center = Offset(node.x.toFloat(), node.y.toFloat())
