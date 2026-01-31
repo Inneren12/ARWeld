@@ -38,6 +38,16 @@ Inline errors are shown for invalid input or degenerate point selections.
 - Switching **away from SCALE** clears the draft.
 - Switching **to SCALE** keeps the current draft (if any).
 
+## Scale Status Indicator
+- The editor top bar shows a compact scale status chip:
+  - **Scale not set** → warning + **Set** action (switches tool to SCALE).
+  - **Scale invalid** → warning + **Reset** action (clears stored scale and returns to “not set”).
+  - **Scale set** → “Scale: {mm/px} mm/px • Ref {length} mm”.
+- Deterministic formatting:
+  - `mm/px` formatted with 3 decimals using `Locale.US`.
+  - Reference length formatted with 1 decimal using `Locale.US`.
+  - No locale-dependent commas or separators.
+
 ## Coordinate Space
 - Scale points are stored in **world/drawing coordinates**, matching the Drawing2D model space.
 - Input taps convert from screen space to world space using the current `viewTransform`.

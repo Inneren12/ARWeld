@@ -32,6 +32,7 @@ class ManualEditorViewModel @Inject constructor(
             EditorIntent.SaveRequested -> saveDrawing()
             EditorIntent.LoadRequested -> loadDrawing()
             EditorIntent.ScaleApplyRequested -> applyScale()
+            EditorIntent.ScaleResetRequested -> resetScale()
             EditorIntent.UndoRequested -> applyUndo()
             EditorIntent.RedoRequested -> applyRedo()
             is EditorIntent.ToolChanged -> {
@@ -113,6 +114,23 @@ class ManualEditorViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     reduce(EditorIntent.ScaleApplyFailed(error.message ?: "Failed to save scale."))
+                }
+        }
+    }
+
+    private fun resetScale() {
+        viewModelScope.launch {
+            reduce(EditorIntent.ScaleResetRequested)
+            val state = mutableUiState.value
+            if (state.drawing.scale == null) {
+                reduce(EditorIntent.ScaleResetFailed("Scale is already cleared."))
+                return@launch
+            }
+            val updatedDrawing = state.drawing.copy(scale = null)
+            runCatching { drawing2DRepository.saveCurrentDrawing(updatedDrawing) }
+                .onSuccess { reduce(EditorIntent.ScaleResetApplied(updatedDrawing)) }
+                .onFailure { error ->
+                    reduce(EditorIntent.ScaleResetFailed(error.message ?: "Failed to reset scale."))
                 }
         }
     }

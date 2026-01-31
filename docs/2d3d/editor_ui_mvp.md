@@ -37,6 +37,12 @@ layout for toolbar, canvas, and bottom sheet sections.
 - Title: **Manual Editor**
 - Tool selector buttons (placeholders): **Select**, **Scale**, **Node**, **Member**
 - Selection only updates local UI state (no editing actions yet)
+- Scale status chip:
+  - **Missing:** shows “Scale: not set” with a **Set** action that switches to the SCALE tool.
+  - **Set:** shows “Scale: {mm/px} mm/px • Ref {length} mm” using deterministic formatting.
+  - **Invalid:** shows “Scale: invalid” with a **Reset** action to clear the saved scale.
+  - Formatting rules: `mm/px` uses 3 decimals, reference length uses 1 decimal, dot decimal (Locale.US).
+  - Screenshot placeholder: `scale_status_indicator.png` (top bar chip/badge)
 
 ### Canvas
 - Placeholder surface for the 2D drawing area
@@ -49,6 +55,7 @@ layout for toolbar, canvas, and bottom sheet sections.
 ### Bottom Sheet
 - Placeholder panel for context details
 - Echoes current tool and the same `Drawing2D` summary
+- The Scale tool panel continues to show the measured distance + derived `mm/px` preview using the same deterministic formatting rules.
 
 ## Data Wiring
 - `ManualEditorViewModel` loads the current `Drawing2D` via `Drawing2DRepository`.
