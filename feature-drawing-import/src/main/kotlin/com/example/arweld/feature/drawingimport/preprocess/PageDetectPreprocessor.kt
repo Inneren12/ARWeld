@@ -19,8 +19,8 @@ class PageDetectPreprocessor {
         val decodeLimits = params.effectiveDecodeLimits()
         val decodeOutcome = SafeBitmapDecodeV1.decodeUprightWithInfo(
             rawFile = input.rawImageFile,
-            maxPixels = decodeLimits.maxPixels,
-            maxSide = decodeLimits.maxSide,
+            maxPixels = decodeLimits.decodeMaxPixels,
+            maxSide = decodeLimits.decodeMaxSide,
         )
         val decodeResult = when (decodeOutcome) {
             is PageDetectOutcomeV1.Success -> decodeOutcome.value

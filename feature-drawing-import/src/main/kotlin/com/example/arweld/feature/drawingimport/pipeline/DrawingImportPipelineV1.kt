@@ -614,8 +614,8 @@ interface DrawingImportPipelineStagesV1 {
             val decodeLimits = params.pageDetectParams.effectiveDecodeLimits()
             val decodeOutcome = SafeBitmapDecodeV1.decodeUprightWithInfo(
                 rawFile = rawFile,
-                maxPixels = decodeLimits.maxPixels,
-                maxSide = decodeLimits.maxSide,
+                maxPixels = decodeLimits.decodeMaxPixels,
+                maxSide = decodeLimits.decodeMaxSide,
             )
             val decodeResult = when (decodeOutcome) {
                 is PageDetectOutcomeV1.Success -> decodeOutcome.value

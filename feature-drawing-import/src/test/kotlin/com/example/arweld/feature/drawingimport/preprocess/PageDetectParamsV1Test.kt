@@ -13,7 +13,7 @@ class PageDetectParamsV1Test {
 
         val limits = params.effectiveDecodeLimits()
 
-        assertEquals(512, limits.maxSide)
+        assertEquals(512, limits.decodeMaxSide)
     }
 
     @Test
@@ -25,18 +25,30 @@ class PageDetectParamsV1Test {
 
         val limits = params.effectiveDecodeLimits()
 
-        assertEquals(512, limits.maxSide)
+        assertEquals(512, limits.decodeMaxSide)
+    }
+
+    @Test
+    fun `effective decode limits preserve decode guardrails`() {
+        val params = PageDetectParamsV1(
+            maxSide = 12_000,
+            maxDecodeSide = DrawingImportGuardrailsV1.MAX_DECODE_SIDE,
+        )
+
+        val limits = params.effectiveDecodeLimits()
+
+        assertEquals(DrawingImportGuardrailsV1.MAX_DECODE_SIDE, limits.decodeMaxSide)
     }
 
     @Test
     fun `effective decode limits honor caller maxPixels`() {
         val params = PageDetectParamsV1(
             maxPixels = 1_000_000,
-            maxDecodePixels = 5_000_000,
+            maxDecodePixels = DrawingImportGuardrailsV1.MAX_DECODE_PIXELS,
         )
 
         val limits = params.effectiveDecodeLimits()
 
-        assertEquals(1_000_000, limits.maxPixels)
+        assertEquals(1_000_000, limits.decodeMaxPixels)
     }
 }
