@@ -1762,6 +1762,13 @@ data class ArScreenshotMetadata(
 - `QcStartViewModel` runs `QcEvidencePolicy.check(...)` after loading events + evidence and surfaces `canCompleteQc` + reasons.
 - `QcStartScreen` disables PASS/FAIL buttons until `canCompleteQc` is true and shows “требуются AR-скрин и фото” next to the buttons when requirements are missing.
 
+### 3.4.1 2D3D Editor — Scale Tool
+
+**S3-13 — Scale tool (pick A/B points + draft overlay) ✅ COMPLETED:**
+- When tool = SCALE, the first tap stores Point A (world/drawing space).
+- The second tap stores Point B; markers A/B and a connecting line are rendered on the canvas.
+- A third tap resets the draft (A becomes the new tap point, B clears).
+
 ### 3.5 QC Checklist v1
 
 **Minimal Checklist:**
