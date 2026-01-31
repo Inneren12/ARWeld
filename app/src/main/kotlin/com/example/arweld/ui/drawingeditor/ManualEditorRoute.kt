@@ -16,5 +16,16 @@ fun ManualEditorRoute(
     ManualEditorScreen(
         uiState = uiState,
         onToolSelected = { tool -> viewModel.onIntent(EditorIntent.ToolChanged(tool)) },
+        onTransformGesture = { panX, panY, zoomFactor, focalX, focalY ->
+            viewModel.onIntent(
+                EditorIntent.ViewTransformGesture(
+                    panX = panX,
+                    panY = panY,
+                    zoomFactor = zoomFactor,
+                    focalX = focalX,
+                    focalY = focalY,
+                )
+            )
+        },
     )
 }

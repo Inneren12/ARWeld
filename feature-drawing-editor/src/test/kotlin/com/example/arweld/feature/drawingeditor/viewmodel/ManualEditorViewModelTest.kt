@@ -103,7 +103,7 @@ class ManualEditorViewModelTest {
         advanceUntilIdle()
         recordedEvents.clear()
 
-        viewModel.onToolSelected(ManualEditorTool.NODE)
+        viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.NODE))
 
         val toolChangedEvent = recordedEvents.find { it.first == "editor_tool_changed" }
         assertEquals("editor_tool_changed", toolChangedEvent?.first)

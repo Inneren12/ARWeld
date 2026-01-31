@@ -9,6 +9,14 @@ sealed interface EditorIntent {
 
     data object ClearSelection : EditorIntent
 
+    data class ViewTransformGesture(
+        val panX: Float,
+        val panY: Float,
+        val zoomFactor: Float,
+        val focalX: Float,
+        val focalY: Float,
+    ) : EditorIntent
+
     data object LoadRequested : EditorIntent
 
     data class Loaded(val drawing: Drawing2D) : EditorIntent
