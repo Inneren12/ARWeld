@@ -1227,6 +1227,7 @@ androidTestImplementation(libs.androidx.junit)
 | Drawing2D validation entrypoint | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/validation/DrawingValidatorV1.kt` |
 | Drawing2D validation codes | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/validation/CodesV1.kt` |
 | Drawing2D v1 root schema | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/Drawing2D.kt` |
+| Drawing2D manual editor schema (v1) | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/editor/v1/Drawing2DEditorV1.kt` |
 | Drawing2D patch event schema | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/v1/patch/DrawingPatchEvent.kt` |
 | Drawing2D artifact manifest schema | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/v1/` |
 | Drawing2D artifact bundle IO | `core-drawing2d/src/main/kotlin/com/example/arweld/core/drawing2d/artifacts/io/v1/` |

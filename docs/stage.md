@@ -1611,6 +1611,7 @@ Event(
 ## Sprint 3 (Weeks 5–6): QC Workflow with Evidence Gate
 
 **Result:** QC inspector can accept/reject WorkItems and cannot do so without required evidence.
+**Note:** S3-01 also introduces the Drawing2D v1 manual editor schema in `core-drawing2d`.
 
 ### 3.1 QC Queue (feature:qc)
 
