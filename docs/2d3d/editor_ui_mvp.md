@@ -14,6 +14,8 @@
 - The canvas displays labeled markers **A/B** and a line between them while the draft is active.
 - If A and B are already set, the next tap resets the draft to a new **A** and clears **B**.
 
+---
+
 ## Scale Input (S3-14)
 - When points **A** and **B** are set, the bottom sheet shows **“Enter real length (mm)”** and an **Apply** button.
 - The UI shows the measured distance in drawing units and the derived `mmPerPx` preview when input is valid.
@@ -67,7 +69,97 @@ layout for toolbar, canvas, and bottom sheet sections.
 - Repository interface: `core-domain/src/main/kotlin/com/example/arweld/core/domain/drawing2d/Drawing2DRepository.kt`
 - Repository implementation: `core-data/src/main/kotlin/com/example/arweld/core/data/drawing2d/CurrentDrawing2DRepositoryImpl.kt`
 
+---
+
+## Render Pipeline (S3-10)
+
+The canvas renderer implements a layered drawing pipeline that respects the `viewTransform` for world-to-screen mapping.
+
+### Render Order (back to front)
+
+1. **Underlay Image** (optional)
+   - Loaded via Coil `SubcomposeAsyncImage` for efficient async loading
+   - Rendered at world origin (0,0) with `viewTransform` applied
+   - Policy: fit at origin; image pixel coordinates map 1:1 to world units
+
+2. **Coordinate Axes**
+   - X axis: green horizontal line (world space)
+   - Y axis: blue vertical line (world space)
+   - Drawn with fixed stroke width within the transform
+
+3. **Members** (lines between nodes)
+   - Resolved via `resolveAllMemberEndpoints()` helper
+   - Gracefully skips members with missing node references (debug logged)
+   - Selected members render with thicker stroke and highlight color
+
+4. **Nodes** (circles/markers)
+   - Drawn as filled circles with stroke outline
+   - Selected nodes render larger with highlight colors
+   - Radius and colors defined in `RenderConfig`
+
+5. **Origin Marker**
+   - Small pink circle in screen space (always visible reference point)
+
+### Underlay State
+
+The editor tracks underlay image state via `UnderlayState` sealed interface:
+
+```kotlin
+sealed interface UnderlayState {
+    data object None : UnderlayState           // No underlay configured
+    data object Loading : UnderlayState        // Underlay is loading
+    data class Loaded(val file: File)          // Underlay ready to render
+    data class Missing(val path: String)       // File not found
+}
+```
+
+### Member Endpoint Resolution
+
+Members reference nodes by ID (`aNodeId`, `bNodeId`). The render pipeline resolves these before drawing:
+
+```kotlin
+// Build lookup once, resolve all members
+val nodeLookup = buildNodeLookup(drawing)
+val resolvedMembers = resolveAllMemberEndpoints(drawing)
+```
+
+Resolution results:
+- `MemberEndpointResult.Resolved`: Both nodes found, ready to draw
+- `MemberEndpointResult.MissingNodes`: One or both nodes missing (skipped with debug log)
+
+### Performance Considerations
+
+- **Pre-computed resolution**: `resolveAllMemberEndpoints()` is memoized via `remember(drawing)` to avoid per-frame allocations
+- **Constant render config**: Colors and dimensions are pre-defined constants
+- **Coil caching**: Underlay image loading benefits from Coil's built-in memory and disk caching
+- **Transform reuse**: `withTransform` block batches all world-space primitives
+
+### Render Configuration
+
+Defined in `RenderConfig` object:
+
+| Primitive | Property | Value |
+|-----------|----------|-------|
+| Node | radius | 8f |
+| Node | stroke width | 2f |
+| Node | fill color | Amber (#FFC107) |
+| Node (selected) | fill color | Blue (#2196F3) |
+| Member | stroke width | 3f |
+| Member | color | Blue Grey (#607D8B) |
+| Member (selected) | color | Blue (#2196F3) |
+| Axis | length | 500f |
+| Axis | stroke width | 1.5f |
+
+### Code Locations (Render Pipeline)
+
+- Render helpers: `feature-drawing-editor/src/main/kotlin/com/example/arweld/feature/drawingeditor/render/DrawingRenderHelpers.kt`
+- Canvas composable: `ManualEditorScreen.kt` → `DrawingCanvasWithUnderlay()`
+- Unit tests: `feature-drawing-editor/src/test/kotlin/com/example/arweld/feature/drawingeditor/render/DrawingRenderHelpersTest.kt`
+
+---
+
 ## Next Steps (Out of Scope)
-- Gesture handling, node/member editing tools
+
+- Gesture handling, node/member editing tools (Pack D/E)
 - Scale calibration workflow
 - Drawing persistence + save/export logic

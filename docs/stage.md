@@ -1777,6 +1777,18 @@ data class ArScreenshotMetadata(
 - The second tap stores Point B; markers A/B and a connecting line are rendered on the canvas.
 - A third tap resets the draft (A becomes the new tap point, B clears).
 
+**S3-10 — Render pipeline (underlay + overlay primitives) ✅ COMPLETED:**
+- Implemented layered canvas rendering pipeline respecting `viewTransform` from S3-09.
+- **Underlay image**: Optional underlay loaded via Coil `SubcomposeAsyncImage`; renders at world origin with transform applied.
+- **Overlay primitives**:
+  - Members: Drawn as lines between nodes using `resolveAllMemberEndpoints()` helper.
+  - Nodes: Drawn as filled circles with stroke outline; selected nodes get highlight colors.
+  - Graceful handling: Members with missing node references are skipped with debug logging.
+- Added `UnderlayState` sealed interface to `EditorState` (None/Loading/Loaded/Missing).
+- Performance: Member resolution memoized via `remember(drawing)`; render config uses pre-defined constants.
+- Unit tests: `DrawingRenderHelpersTest` covers endpoint resolution and missing node handling.
+- Documentation: Updated `docs/2d3d/editor_ui_mvp.md` with render layer details.
+
 **S3-14 — Scale tool (enter length + apply + persist + undo/redo) ✅ COMPLETED:**
 - Bottom sheet shows a real-length (mm) input once A/B are selected.
 - Valid input computes `mmPerPx = realLengthMm / distance(A, B)` and previews it.
