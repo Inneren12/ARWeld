@@ -75,6 +75,21 @@ Node coordinate editing is covered with reducer + undo tests:
 ./gradlew :feature-drawing-editor:test --tests "*NodeEditReducerTest" --tests "*EditorReducerUndoRedoTest"
 ```
 
+## Member Tool Validation Tests
+
+Member creation validation is covered with reducer tests:
+
+- **Same-node rejection:** selecting A == B shows an error and does not mutate the drawing.
+- **Duplicate rejection:** selecting an existing A/B pair (direction-insensitive) shows an error and does not mutate.
+- **Undo stack:** invalid attempts do not push history snapshots.
+
+### How to Run
+
+```bash
+# Member tool reducer validation
+./gradlew :feature-drawing-editor:test --tests "*EditorReducerTest"
+```
+
 ## Smoke Tests
 
 The smoke test suite (`Drawing2DEditorSmokeTest`) provides minimal coverage to catch basic wiring regressions in the 2D3D editor foundations without requiring full UI.

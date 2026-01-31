@@ -9,6 +9,15 @@ always anchored to existing nodes (no free-floating endpoints).
 2. Tap a node to select **A** (draft starts).
 3. Tap a second node to select **B** and create the member.
 
+## Invalid Member Attempts
+- **Same node (A == B):** blocked with an explicit error message.
+- **Duplicate member:** blocked with an explicit error message when a member already exists between
+  the same two nodes (direction-insensitive; `A→B` and `B→A` are treated as the same pair).
+
+### Draft Policy on Invalid Attempts
+- The member draft **keeps node A selected** so the user can pick a different second node.
+- Invalid attempts do **not** mutate the drawing or push undo history.
+
 ## Draft Visualization
 - While **A** is selected and **B** is pending, the canvas highlights node **A**.
 - The bottom sheet displays a hint: “Member tool: select the second node.”
