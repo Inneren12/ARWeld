@@ -1616,6 +1616,7 @@ Event(
 **Note:** S3-07 adds the Manual Editor screen shell (toolbar + canvas + bottom sheet) wired to the Drawing2D repository.
 **Note:** S3-08 adds the Manual Editor state machine (EditorState + intents + reducer + load/save effects).
 **Note:** S3-04 implements atomic load/save for `drawing2d.json` with safe missing-file defaults.
+**Note:** S3-15 adds the Manual Editor scale status indicator (top bar warning/indicator + actions). ✅ DONE
 
 ### 3.1 QC Queue (feature:qc)
 

@@ -19,6 +19,7 @@ fun ManualEditorRoute(
         onScalePointSelected = { point -> viewModel.onIntent(EditorIntent.ScalePointSelected(point)) },
         onScaleLengthChanged = { text -> viewModel.onIntent(EditorIntent.ScaleLengthChanged(text)) },
         onScaleApply = { viewModel.onIntent(EditorIntent.ScaleApplyRequested) },
+        onScaleReset = { viewModel.onIntent(EditorIntent.ScaleResetRequested) },
         onUndo = { viewModel.onIntent(EditorIntent.UndoRequested) },
         onRedo = { viewModel.onIntent(EditorIntent.RedoRequested) },
         onTransformGesture = { panX, panY, zoomFactor, focalX, focalY ->

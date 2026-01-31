@@ -74,6 +74,20 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
     is EditorIntent.ScaleApplyFailed -> state.copy(
         scaleDraft = state.scaleDraft.copy(applyError = intent.message),
     )
+    EditorIntent.ScaleResetRequested -> state.copy(
+        scaleDraft = state.scaleDraft.copy(applyError = null),
+    )
+    is EditorIntent.ScaleResetApplied -> state.copy(
+        drawing = intent.drawing,
+        dirtyFlag = false,
+        lastError = null,
+        scaleDraft = ScaleDraft(),
+        undoStack = state.undoStack + state.drawing,
+        redoStack = emptyList(),
+    )
+    is EditorIntent.ScaleResetFailed -> state.copy(
+        scaleDraft = state.scaleDraft.copy(applyError = intent.message),
+    )
     EditorIntent.UndoRequested -> {
         if (state.undoStack.isEmpty()) {
             state
