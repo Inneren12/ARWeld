@@ -19,10 +19,11 @@ class TestProjectRunnerV1(
         assetName: String,
         projectId: String = "smoke-${UUID.randomUUID()}",
     ): TestProjectRunResult {
-        val projectDir = File(artifactsRoot, projectId)
+        val projectDir = File(File(artifactsRoot, "projects"), projectId)
         val rawEntry = writeRawImage(projectDir, assetName)
         val session = DrawingImportSession(
             projectId = projectId,
+            artifactsRoot = artifactsRoot,
             projectDir = projectDir,
             artifacts = listOf(rawEntry),
         )

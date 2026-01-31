@@ -63,7 +63,9 @@ import com.example.arweld.core.drawing2d.artifacts.io.v1.ManifestWriterV1
 import com.example.arweld.core.drawing2d.artifacts.v1.ArtifactKindV1
 import com.example.arweld.core.drawing2d.artifacts.v1.CaptureMetaV1
 import com.example.arweld.feature.drawingimport.BuildConfig
+import com.example.arweld.feature.drawingimport.artifacts.DeleteOutcomeV1
 import com.example.arweld.feature.drawingimport.artifacts.DrawingImportArtifacts
+import com.example.arweld.feature.drawingimport.artifacts.ProjectFolderManagerV1
 import com.example.arweld.feature.drawingimport.camera.CameraSession
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorCode
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorMapper
@@ -118,6 +120,7 @@ fun DrawingImportScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraSession = remember { CameraSession(context) }
+    val projectFolderManager = remember(context) { ProjectFolderManagerV1(context) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var previewView: PreviewView? by remember { mutableStateOf(null) }
@@ -218,7 +221,7 @@ fun DrawingImportScreen(
             loadedCaptureMeta = null
             return@LaunchedEffect
         }
-        val projectDir = File(DrawingImportArtifacts.artifactsRoot(context), projectId)
+        val projectDir = projectFolderManager.finalDir(projectId)
         val metaFile = File(projectDir, ProjectLayoutV1.CAPTURE_META_JSON)
         val meta = withContext(Dispatchers.IO) {
             if (!metaFile.exists()) {
@@ -1501,7 +1504,7 @@ fun DrawingImportScreen(
                                                 lastErrorCode = null
                                             },
                                         )
-                                        session?.projectDir?.deleteRecursively()
+                                        session?.let { projectFolderManager.deleteProject(it.projectId) }
                                         activeProjectId = null
                                         imageError = false
                                         pageDetectInfo = null
@@ -1547,6 +1550,51 @@ fun DrawingImportScreen(
                                     ),
                                 ) {
                                     Text(text = "Continue")
+                                }
+                            }
+                            if (BuildConfig.DEBUG) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Button(
+                                        modifier = Modifier.weight(1f),
+                                        onClick = {
+                                            val session = (screenState as? DrawingImportUiState.Saved)?.session
+                                            if (session == null) return@Button
+                                            coroutineScope.launch {
+                                                val outcome = projectFolderManager.deleteProject(session.projectId)
+                                                val message = when (outcome) {
+                                                    is DeleteOutcomeV1.Success -> "Deleted ${outcome.projectId}"
+                                                    is DeleteOutcomeV1.NotFound -> "Project ${outcome.projectId} not found"
+                                                    is DeleteOutcomeV1.Rejected -> "Delete rejected: ${outcome.reason}"
+                                                    is DeleteOutcomeV1.Failure -> "Delete failed: ${outcome.reason}"
+                                                }
+                                                snackbarHostState.showSnackbar(message)
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.secondary,
+                                            contentColor = MaterialTheme.colorScheme.onSecondary,
+                                        ),
+                                    ) {
+                                        Text(text = "Delete project")
+                                    }
+                                    Button(
+                                        modifier = Modifier.weight(1f),
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                val report = projectFolderManager.cleanupOrphans()
+                                                val message = "Cleanup staging: " +
+                                                    "${report.stagingDeletedCount} deleted, " +
+                                                    "retention: ${report.retentionDeletedCount} deleted"
+                                                snackbarHostState.showSnackbar(message)
+                                            }
+                                        },
+                                    ) {
+                                        Text(text = "Cleanup staging")
+                                    }
                                 }
                             }
                         } else {
@@ -1613,10 +1661,8 @@ fun DrawingImportScreen(
                                             return@launch
                                         }
                                         try {
-                                            val projectDir = File(
-                                                DrawingImportArtifacts.artifactsRoot(context),
-                                                captureProjectId,
-                                            )
+                                            val artifactsRoot = projectFolderManager.artifactsRoot()
+                                            val projectDir = projectFolderManager.finalDir(captureProjectId)
                                             val store = FileArtifactStoreV1(projectDir)
                                             val rawEntry = store.writeBytes(
                                                 kind = ArtifactKindV1.RAW_IMAGE,
@@ -1635,6 +1681,7 @@ fun DrawingImportScreen(
                                             screenState = DrawingImportUiState.Saved(
                                                 DrawingImportSession(
                                                     projectId = captureProjectId,
+                                                    artifactsRoot = artifactsRoot,
                                                     projectDir = projectDir,
                                                     artifacts = listOf(rawEntry, manifestEntry),
                                                 )

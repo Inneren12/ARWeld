@@ -72,7 +72,7 @@ class DrawingImportPipelineV1(
     private var pipelineStartMs: Long = 0L
 
     suspend fun run(session: DrawingImportSession): PageDetectOutcomeV1<PipelineResultV1> {
-        val artifactsRoot = session.projectDir.parentFile
+        val artifactsRoot = session.artifactsRoot
             ?: return failure(
                 PageDetectStageV1.SAVE,
                 PageDetectFailureCodeV1.OUTPUT_OPEN_FAILED,
