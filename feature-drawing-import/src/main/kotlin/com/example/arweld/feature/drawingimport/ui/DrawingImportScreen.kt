@@ -63,6 +63,8 @@ import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportErrorMa
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEvent
 import com.example.arweld.feature.drawingimport.diagnostics.DrawingImportEventLogger
 import com.example.arweld.feature.drawingimport.overlay.CornerOverlayRendererV1
+import com.example.arweld.feature.drawingimport.pipeline.DrawingImportPipelineParamsV1
+import com.example.arweld.feature.drawingimport.pipeline.DrawingImportPipelineV1
 import com.example.arweld.feature.drawingimport.preprocess.ContourStats
 import com.example.arweld.feature.drawingimport.preprocess.ContourV1
 import com.example.arweld.feature.drawingimport.preprocess.CornerOrderingV1
@@ -93,6 +95,7 @@ import java.io.File
 import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -133,6 +136,8 @@ fun DrawingImportScreen(
     var refineOutcome by remember { mutableStateOf<PageDetectOutcomeV1<RefineResultV1>?>(null) }
     var refineFailure by remember { mutableStateOf<PageDetectFailureV1?>(null) }
     var pipelineResult by remember { mutableStateOf<DrawingImportPipelineResultV1?>(null) }
+    var processState by remember { mutableStateOf<DrawingImportProcessState>(DrawingImportProcessState.Idle) }
+    var pipelineJob by remember { mutableStateOf<Job?>(null) }
     val diagnosticsLogger = remember(diagnosticsRecorder) {
         DrawingImportEventLogger(diagnosticsRecorder)
     }
@@ -198,6 +203,12 @@ fun DrawingImportScreen(
             hasLoggedCameraReady = false
         }
         onDispose { }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            pipelineJob?.cancel()
+        }
     }
 
     DisposableEffect(shouldBindCamera, lifecycleOwner, previewView) {
@@ -398,6 +409,9 @@ fun DrawingImportScreen(
                                     val rawFile = rawEntry?.let {
                                         File(captureState.session.projectDir, it.relPath)
                                     }
+                                    val rectifiedFile = rectifiedEntry?.let {
+                                        File(captureState.session.projectDir, it.relPath)
+                                    }
 
                                     Text(
                                         text = "Capture saved",
@@ -473,6 +487,43 @@ fun DrawingImportScreen(
                                             }
                                         }
                                     }
+                                    if (rectifiedFile != null) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Card(
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.surface
+                                            ),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(12.dp),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Rectified preview",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .heightIn(min = 180.dp, max = 260.dp)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    AsyncImage(
+                                                        model = ImageRequest.Builder(context)
+                                                            .data(rectifiedFile)
+                                                            .crossfade(true)
+                                                            .build(),
+                                                        contentDescription = "Rectified drawing preview",
+                                                        modifier = Modifier.fillMaxSize(),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -510,6 +561,113 @@ fun DrawingImportScreen(
                                                 relPath = entry.relPath,
                                                 sha256 = entry.sha256,
                                             )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text(
+                                            text = "Process",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                        when (val current = processState) {
+                                            DrawingImportProcessState.Idle -> {
+                                                Text(
+                                                    text = "Run the deterministic pipeline to produce a rectified image.",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                            is DrawingImportProcessState.Running -> {
+                                                Text(
+                                                    text = "Processing: ${formatStageLabel(current.stage)}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                )
+                                            }
+                                            is DrawingImportProcessState.Success -> {
+                                                Text(
+                                                    text = "Process complete. Rectified size: " +
+                                                        "${current.result.rectifiedSize.width}x${current.result.rectifiedSize.height}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                )
+                                            }
+                                            is DrawingImportProcessState.Failure -> {
+                                                Text(
+                                                    text = "Failed at ${current.failure.stage} • ${current.failure.code}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error,
+                                                )
+                                                Text(
+                                                    text = "Hint: try a steady capture with clear edges and even lighting.",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                        }
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        ) {
+                                            val isRunning = processState is DrawingImportProcessState.Running
+                                            Button(
+                                                onClick = {
+                                                    if (isRunning) return@Button
+                                                    val session = captureState.session
+                                                    pipelineJob?.cancel()
+                                                    processState = DrawingImportProcessState.Running(PageDetectStageV1.LOAD_UPRIGHT)
+                                                    pipelineJob = coroutineScope.launch(Dispatchers.Default) {
+                                                        val pipeline = DrawingImportPipelineV1(
+                                                            params = DrawingImportPipelineParamsV1(),
+                                                            eventLogger = diagnosticsLogger,
+                                                            stageListener = { stage ->
+                                                                coroutineScope.launch {
+                                                                    processState = DrawingImportProcessState.Running(stage)
+                                                                }
+                                                            },
+                                                            cancellationContext = coroutineContext,
+                                                        )
+                                                        val result = pipeline.run(session)
+                                                        withContext(Dispatchers.Main) {
+                                                            when (result) {
+                                                                is PageDetectOutcomeV1.Success -> {
+                                                                    val updatedSession = session.copy(
+                                                                        artifacts = result.value.artifacts,
+                                                                        rectifiedImageInfo = RectifiedImageInfo(
+                                                                            width = result.value.rectifiedSize.width,
+                                                                            height = result.value.rectifiedSize.height,
+                                                                        ),
+                                                                    )
+                                                                    screenState = DrawingImportUiState.Saved(updatedSession)
+                                                                    processState = DrawingImportProcessState.Success(result.value)
+                                                                }
+                                                                is PageDetectOutcomeV1.Failure -> {
+                                                                    processState = DrawingImportProcessState.Failure(result.failure)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                enabled = !isRunning,
+                                            ) {
+                                                Text(text = if (isRunning) "Processing..." else "Process")
+                                            }
+                                            if (isRunning) {
+                                                Button(
+                                                    onClick = {
+                                                        pipelineJob?.cancel()
+                                                        processState = DrawingImportProcessState.Idle
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.secondary,
+                                                        contentColor = MaterialTheme.colorScheme.onSecondary,
+                                                    ),
+                                                ) {
+                                                    Text(text = "Cancel")
+                                                }
+                                            }
                                         }
                                     }
                                     if (BuildConfig.DEBUG) {
@@ -880,26 +1038,20 @@ fun DrawingImportScreen(
                                                             val quadOutcome = quadSelector.select(contours, frame.width, frame.height)
                                                             val sizeOutcome = when (quadOutcome) {
                                                                 is PageDetectOutcomeV1.Success -> {
-                                                                    val orderedCorners = QualityOrderedCornersV1.fromPoints(
-                                                                        quadOutcome.value.points,
-                                                                    )
-                                                                    if (orderedCorners == null) {
-                                                                        PageDetectOutcomeV1.Failure(
-                                                                            PageDetectFailureV1(
-                                                                                stage = PageDetectStageV1.ORDER,
-                                                                                code = PageDetectFailureCodeV1.ORDER_DEGENERATE,
-                                                                                debugMessage = "Unable to order quad corners.",
-                                                                            ),
-                                                                        )
-                                                                    } else {
-                                                                        RectifySizePolicyV1.compute(
-                                                                            orderedCorners,
-                                                                            RectifySizeParamsV1(
-                                                                                maxSide = 2048,
-                                                                                minSide = 256,
-                                                                                enforceEven = true,
-                                                                            ),
-                                                                        )
+                                                                    when (val orderedOutcome = CornerOrderingV1.order(quadOutcome.value.points)) {
+                                                                        is PageDetectOutcomeV1.Success -> {
+                                                                            RectifySizePolicyV1.compute(
+                                                                                orderedOutcome.value,
+                                                                                RectifySizeParamsV1(
+                                                                                    maxSide = 2048,
+                                                                                    minSide = 256,
+                                                                                    enforceEven = true,
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                        is PageDetectOutcomeV1.Failure -> {
+                                                                            PageDetectOutcomeV1.Failure(orderedOutcome.failure)
+                                                                        }
                                                                     }
                                                                 }
                                                                 is PageDetectOutcomeV1.Failure -> null
@@ -1247,6 +1399,8 @@ fun DrawingImportScreen(
                                         refineOutcome = null
                                         refineFailure = null
                                         pipelineResult = null
+                                        pipelineJob?.cancel()
+                                        processState = DrawingImportProcessState.Idle
                                         screenState = DrawingImportUiState.Ready
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -1297,6 +1451,8 @@ fun DrawingImportScreen(
                                         orderedCorners = null
                                         refineOutcome = null
                                         refineFailure = null
+                                        pipelineJob?.cancel()
+                                        processState = DrawingImportProcessState.Idle
                                         logDiagnosticsEvent(
                                             logger = diagnosticsLogger,
                                             event = DrawingImportEvent.CAPTURE_START,
@@ -1434,6 +1590,8 @@ fun DrawingImportScreen(
                                     orderedCorners = null
                                     refineOutcome = null
                                     refineFailure = null
+                                    pipelineJob?.cancel()
+                                    processState = DrawingImportProcessState.Idle
                                     screenState = DrawingImportUiState.Ready
                                 },
                                 colors = ButtonDefaults.buttonColors(
@@ -1541,6 +1699,21 @@ private fun formatFailureLabel(label: String, failure: PageDetectFailureV1): Str
 
 private fun formatRectifiedFailureLabel(failure: PageDetectFailureV1): String {
     return formatFailureLabel("Rectified size", failure)
+}
+
+private fun formatStageLabel(stage: PageDetectStageV1): String {
+    return when (stage) {
+        PageDetectStageV1.LOAD_UPRIGHT -> "Load upright bitmap"
+        PageDetectStageV1.PREPROCESS -> "Preprocess"
+        PageDetectStageV1.EDGES -> "Detect edges"
+        PageDetectStageV1.CONTOURS -> "Extract contours"
+        PageDetectStageV1.QUAD_SELECT -> "Select quad"
+        PageDetectStageV1.ORDER -> "Order corners"
+        PageDetectStageV1.REFINE -> "Refine corners"
+        PageDetectStageV1.RECTIFY_SIZE -> "Rectified size"
+        PageDetectStageV1.RECTIFY -> "Rectify bitmap"
+        PageDetectStageV1.SAVE -> "Save artifacts"
+    }
 }
 
 private fun formatOrderedCornersLabel(corners: PreprocessOrderedCornersV1): String {

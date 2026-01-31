@@ -10,6 +10,10 @@ enum class PageDetectStageV1 {
     QUAD_SELECT,
     ORDER,
     REFINE,
+    LOAD_UPRIGHT,
+    RECTIFY_SIZE,
+    RECTIFY,
+    SAVE,
 }
 
 /**

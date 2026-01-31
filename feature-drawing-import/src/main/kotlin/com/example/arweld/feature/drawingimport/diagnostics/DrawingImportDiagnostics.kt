@@ -12,6 +12,11 @@ enum class DrawingImportEvent(val eventName: String, val phase: String) {
     CAPTURE_START("drawing_import_capture_start", "capture"),
     CAPTURE_SAVED("drawing_import_capture_saved", "capture"),
     SESSION_RESET("drawing_import_session_reset", "session"),
+    PIPELINE_START("drawing_import_pipeline_start", "pipeline"),
+    STAGE_START("drawing_import_pipeline_stage_start", "pipeline"),
+    STAGE_OK("drawing_import_pipeline_stage_ok", "pipeline"),
+    STAGE_FAIL("drawing_import_pipeline_stage_fail", "pipeline"),
+    PIPELINE_OK("drawing_import_pipeline_ok", "pipeline"),
     ERROR("drawing_import_error", "error"),
 }
 
