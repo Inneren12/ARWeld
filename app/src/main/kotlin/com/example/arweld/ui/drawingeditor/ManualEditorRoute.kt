@@ -21,6 +21,8 @@ fun ManualEditorRoute(
         onScaleApply = { viewModel.onIntent(EditorIntent.ScaleApplyRequested) },
         onUndo = { viewModel.onIntent(EditorIntent.UndoRequested) },
         onRedo = { viewModel.onIntent(EditorIntent.RedoRequested) },
+        onSelectEntity = { selection -> viewModel.onIntent(EditorIntent.SelectEntity(selection)) },
+        onClearSelection = { viewModel.onIntent(EditorIntent.ClearSelection) },
         onTransformGesture = { panX, panY, zoomFactor, focalX, focalY ->
             viewModel.onIntent(
                 EditorIntent.ViewTransformGesture(
