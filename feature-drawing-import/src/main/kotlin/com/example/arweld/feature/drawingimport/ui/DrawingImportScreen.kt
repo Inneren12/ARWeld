@@ -75,6 +75,8 @@ import com.example.arweld.feature.drawingimport.preprocess.OrderedCornersV1 as P
 import com.example.arweld.feature.drawingimport.quality.DrawingImportPipelineResultV1
 import com.example.arweld.feature.drawingimport.quality.ExposureMetricsV1
 import com.example.arweld.feature.drawingimport.quality.OrderedCornersV1 as QualityOrderedCornersV1
+import com.example.arweld.feature.drawingimport.quality.QualityGateResultV1
+import com.example.arweld.feature.drawingimport.quality.QualityGateV1
 import com.example.arweld.feature.drawingimport.quality.QualityMetricsV1
 import com.example.arweld.feature.drawingimport.quality.RectifiedQualityMetricsV1
 import com.example.arweld.feature.drawingimport.quality.SkewMetricsV1
@@ -1153,19 +1155,25 @@ fun DrawingImportScreen(
                                                                             ?: ExposureMetricsV1(
                                                                                 meanY = 0.0,
                                                                                 clipLowPct = 0.0,
-                                                                                    clipHighPct = 0.0,
-                                                                                )
-                                                                            DrawingImportPipelineResultV1(
-                                                                                orderedCorners = corners,
-                                                                                refinedCorners = null,
-                                                                                imageWidth = frame.width,
-                                                                                imageHeight = frame.height,
-                                                                                skewMetrics = metrics,
-                                                                                blurVariance = blurVariance,
-                                                                                exposureMetrics = exposure,
+                                                                                clipHighPct = 0.0,
                                                                             )
-                                                                        }
+                                                                        val qualityGate = QualityGateV1.evaluate(
+                                                                            blurVariance = blurVariance,
+                                                                            exposure = exposure,
+                                                                            skew = metrics,
+                                                                        )
+                                                                        DrawingImportPipelineResultV1(
+                                                                            orderedCorners = corners,
+                                                                            refinedCorners = null,
+                                                                            imageWidth = frame.width,
+                                                                            imageHeight = frame.height,
+                                                                            skewMetrics = metrics,
+                                                                            blurVariance = blurVariance,
+                                                                            exposureMetrics = exposure,
+                                                                            qualityGate = qualityGate,
+                                                                        )
                                                                     }
+                                                                }
                                                                     is PageDetectOutcomeV1.Failure -> null
                                                                 }
                                                                 isPreparingFrame = false
@@ -1353,6 +1361,16 @@ fun DrawingImportScreen(
                                                     text = formatExposureMetrics(result.exposureMetrics),
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
+                                                result.qualityGate?.let { gate ->
+                                                    Text(
+                                                        text = formatQualityGateDecision(gate),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                    )
+                                                    Text(
+                                                        text = formatQualityGateReasons(gate),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                    )
+                                                }
                                             }
                                             quadSelectionFailure?.let { failure ->
                                                 Text(
@@ -1741,6 +1759,23 @@ private fun formatExposureMetrics(metrics: ExposureMetricsV1): String {
     val clipLow = "%.2f".format(Locale.US, metrics.clipLowPct)
     val clipHigh = "%.2f".format(Locale.US, metrics.clipHighPct)
     return "Mean Y: $meanY • Clipped low: $clipLow% • Clipped high: $clipHigh%"
+}
+
+private fun formatQualityGateDecision(result: QualityGateResultV1): String {
+    return "Quality: ${result.decision.name}"
+}
+
+private fun formatQualityGateReasons(result: QualityGateResultV1): String {
+    if (result.reasons.isEmpty()) return "Reasons: —"
+    val formatted = result.reasons.joinToString { code ->
+        val hint = QualityGateV1.hintFor(code)
+        if (hint == null) {
+            code.name
+        } else {
+            "${code.name} ($hint)"
+        }
+    }
+    return "Reasons: $formatted"
 }
 
 private fun formatFailureLabel(label: String, failure: PageDetectFailureV1): String {
