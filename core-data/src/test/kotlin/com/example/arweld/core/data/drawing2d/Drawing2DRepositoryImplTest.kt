@@ -3,6 +3,8 @@ package com.example.arweld.core.data.drawing2d
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Member2D
 import com.example.arweld.core.drawing2d.editor.v1.Node2D
+import com.example.arweld.core.drawing2d.editor.v1.Point2D
+import com.example.arweld.core.drawing2d.editor.v1.ScaleInfo
 import com.example.arweld.core.drawing2d.editor.v1.canonicalize
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.runBlocking
@@ -64,6 +66,14 @@ class Drawing2DRepositoryImplTest {
             Member2D(id = "M000002", aNodeId = "N000002", bNodeId = "N000001"),
             Member2D(id = "M000001", aNodeId = "N000001", bNodeId = "N000002")
         )
-        return Drawing2D(nodes = nodes, members = members)
+        return Drawing2D(
+            nodes = nodes,
+            members = members,
+            scale = ScaleInfo(
+                pointA = Point2D(10.0, 10.0),
+                pointB = Point2D(20.0, 10.0),
+                realLengthMm = 500.0,
+            )
+        )
     }
 }

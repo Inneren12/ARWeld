@@ -14,6 +14,25 @@ The 2D3D editor testing is organized into multiple layers:
 | ViewModel | JVM Unit | `feature-drawing-editor` | ManualEditorViewModel state management |
 | Diagnostics | JVM Unit | `feature-drawing-editor` | EditorDiagnosticsLogger event emission |
 
+## Scale Tool Tests
+
+The scale tool has dedicated regression coverage to keep calibration deterministic and safe:
+
+- **Math + validation:** mmPerPx calculation, tiny/zero distance rejection, and non-positive length validation.
+- **Reducer/ViewModel flow:** A/B taps + length entry apply scale and surface error states.
+- **Persistence:** save/load round trips preserve `Drawing2D.scale`, and repeated saves emit identical JSON.
+- **Undo/Redo:** scale apply can undo/redo and clears redo on new apply.
+
+### How to Run
+
+```bash
+# Scale tool reducer + ViewModel tests
+./gradlew :feature-drawing-editor:test --tests "*ScaleDraftReducerTest" --tests "*ManualEditorScaleTest" --tests "*EditorReducerUndoRedoTest" --tests "*ScaleStatusTest"
+
+# Persistence coverage (drawing2d.json save/load determinism)
+./gradlew :core-data:test --tests "*Drawing2DRepositoryImplTest"
+```
+
 ## Smoke Tests
 
 The smoke test suite (`Drawing2DEditorSmokeTest`) provides minimal coverage to catch basic wiring regressions in the 2D3D editor foundations without requiring full UI.

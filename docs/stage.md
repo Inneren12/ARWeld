@@ -1802,6 +1802,11 @@ data class ArScreenshotMetadata(
 - Valid input computes `mmPerPx = realLengthMm / distance(A, B)` and previews it.
 - Apply persists `Drawing2D.scale` via `Drawing2DRepository.saveCurrentDrawing()` with explicit validation errors.
 - Undo/redo restores scale set/unset deterministically.
+
+**S3-16 — Scale tool tests ✅ COMPLETED:**
+- Added deterministic math/validation tests for mmPerPx, non-positive length, and tiny distances.
+- Added reducer/ViewModel regression coverage for apply flow, error states, undo/redo, and redo invalidation.
+- Added persistence coverage for scale save/load and stable JSON output.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**
