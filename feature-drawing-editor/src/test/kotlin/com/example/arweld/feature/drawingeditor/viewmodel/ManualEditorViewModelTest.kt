@@ -44,6 +44,8 @@ class ManualEditorViewModelTest {
         )
         val repository = object : Drawing2DRepository {
             override suspend fun getCurrentDrawing(): Drawing2D = drawing
+
+            override suspend fun saveCurrentDrawing(drawing: Drawing2D) = Unit
         }
         val viewModel = ManualEditorViewModel(repository)
 

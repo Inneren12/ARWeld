@@ -1769,6 +1769,13 @@ data class ArScreenshotMetadata(
 - The second tap stores Point B; markers A/B and a connecting line are rendered on the canvas.
 - A third tap resets the draft (A becomes the new tap point, B clears).
 
+### 3.4.2 2D3D Editor — Node Tool
+
+**S3-17 — Node tool (tap to add/select nodes) ✅ COMPLETED:**
+- When tool = NODE, tapping empty space creates a new node at the world tap location.
+- Tapping within the node hit radius selects the existing node (no new node created).
+- New nodes use deterministic IDs and are auto-selected after creation.
+
 ### 3.5 QC Checklist v1
 
 **Minimal Checklist:**

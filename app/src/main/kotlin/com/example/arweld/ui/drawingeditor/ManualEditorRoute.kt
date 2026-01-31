@@ -15,5 +15,6 @@ fun ManualEditorRoute(
     ManualEditorScreen(
         uiState = uiState,
         onToolSelected = viewModel::onToolSelected,
+        onCanvasTap = viewModel::onCanvasTap,
     )
 }

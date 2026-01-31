@@ -8,6 +8,7 @@
 - **Select:** Pick or move entities.
 - **Pan:** Navigate the view.
 - **Scale (Stage 1):** Tap to pick calibration points.
+- **Node (Stage 1):** Tap empty space to create a node and auto-select it; tapping near a node selects it instead.
 
 ## Scale Draft Overlay (S3-13)
 - When the **Scale** tool is active, taps create Point **A** and Point **B** in world space.
