@@ -17,10 +17,12 @@ from **side-effectful IO** (load/save).
 - **viewTransform**: Placeholder for pan/zoom (scale + offset).
 - **scaleDraft**: Draft scale points + input text + validation messages.
 - **undoStack/redoStack**: In-memory history for undo/redo (Drawing2D snapshots).
+- **viewTransform**: Pan/zoom transform (scale + offset) for mapping between world and screen.
 
 ### EditorIntent
 `EditorIntent` captures user and system intents:
 - Tool/selection: `ToolChanged`, `SelectEntity`, `ClearSelection`.
+- View: `ViewTransformGesture` (pan + zoom around a focal point).
 - Load/save: `LoadRequested`, `Loaded`, `SaveRequested`, `Saved`.
 - Error: `Error(message)`.
 - Scale tool: `ScalePointSelected`, `ScaleLengthChanged`, `ScaleApplyRequested`, `ScaleApplied`, `ScaleApplyFailed`.
@@ -33,6 +35,7 @@ from **side-effectful IO** (load/save).
 - Applies the `Drawing2D` snapshot on `Loaded` and clears `isLoading`/`lastError`.
 - Sets `lastError` on `Error` and clears `isLoading`.
 - Clears selection on `ClearSelection`.
+- Applies pan/zoom deterministically on `ViewTransformGesture`.
 - Marks `isLoading` for `LoadRequested` / `SaveRequested`.
 
 This reducer performs **no IO** and is unit-tested.

@@ -4,6 +4,9 @@ import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +38,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
@@ -45,6 +50,9 @@ import com.example.arweld.feature.drawingeditor.viewmodel.ScaleDraft
 import com.example.arweld.feature.drawingeditor.viewmodel.ViewTransform
 import java.util.Locale
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import com.example.arweld.feature.drawingeditor.viewmodel.Point2
+import com.example.arweld.feature.drawingeditor.viewmodel.ViewTransform
+import com.example.arweld.feature.drawingeditor.viewmodel.worldToScreen
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,6 +64,7 @@ fun ManualEditorScreen(
     onScaleApply: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -152,6 +161,14 @@ private fun EditorCanvas(
                     if (uiState.tool == EditorTool.SCALE) {
                         onScalePointSelected(screenToWorld(offset, uiState.viewTransform))
                     }
+                    DrawingCanvas(
+                        drawing = uiState.drawing,
+                        viewTransform = uiState.viewTransform,
+                        onTransformGesture = onTransformGesture,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                    )
                 }
             }
     ) {
@@ -378,3 +395,77 @@ private fun worldToScreen(point: Point2D, transform: ViewTransform): Offset {
 }
 
 private fun formatNumber(value: Double): String = String.format(Locale.US, "%.4f", value)
+@Composable
+private fun DrawingCanvas(
+    drawing: Drawing2D,
+    viewTransform: ViewTransform,
+    onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTransformGestures { centroid, pan, zoom, _ ->
+                        if (pan != Offset.Zero || zoom != 1f) {
+                            onTransformGesture(
+                                panX = pan.x,
+                                panY = pan.y,
+                                zoomFactor = zoom,
+                                focalX = centroid.x,
+                                focalY = centroid.y,
+                            )
+                        }
+                    }
+                }
+        ) {
+            val originScreen = worldToScreen(viewTransform, Point2(0f, 0f))
+            withTransform({
+                translate(viewTransform.offsetX, viewTransform.offsetY)
+                scale(viewTransform.scale, viewTransform.scale)
+            }) {
+                drawLine(
+                    color = Color(0xFF4CAF50),
+                    start = Offset(-500f, 0f),
+                    end = Offset(500f, 0f),
+                    strokeWidth = 2f
+                )
+                drawLine(
+                    color = Color(0xFF2196F3),
+                    start = Offset(0f, -500f),
+                    end = Offset(0f, 500f),
+                    strokeWidth = 2f
+                )
+                drawing.nodes.forEach { node ->
+                    drawCircle(
+                        color = Color(0xFFFFC107),
+                        radius = 6f,
+                        center = Offset(node.x.toFloat(), node.y.toFloat())
+                    )
+                }
+            }
+            drawCircle(
+                color = Color(0xFFE91E63),
+                radius = 6f,
+                center = Offset(originScreen.x, originScreen.y)
+            )
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                .padding(12.dp)
+        ) {
+            Text(
+                text = "Scale: ${"%.2f".format(viewTransform.scale)}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                text = buildSummaryText(drawing),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}

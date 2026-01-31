@@ -12,6 +12,16 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
     )
     is EditorIntent.SelectEntity -> state.copy(selection = intent.selection)
     EditorIntent.ClearSelection -> state.copy(selection = EditorSelection.None)
+    is EditorIntent.ViewTransformGesture -> state.copy(
+        viewTransform = applyViewTransformGesture(
+            transform = state.viewTransform,
+            panX = intent.panX,
+            panY = intent.panY,
+            zoomFactor = intent.zoomFactor,
+            focalX = intent.focalX,
+            focalY = intent.focalY,
+        )
+    )
     EditorIntent.LoadRequested -> state.copy(
         isLoading = true,
         lastError = null,

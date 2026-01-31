@@ -1765,6 +1765,12 @@ data class ArScreenshotMetadata(
 
 ### 3.4.1 2D3D Editor — Scale Tool
 
+**S3-09 — Canvas coordinate system + pan/zoom ✅ COMPLETED:**
+- Added deterministic view transform math for world↔screen mapping with scale clamping.
+- Wired editor state + reducer intents for pan/zoom gestures.
+- Added minimal canvas gestures (pan + pinch zoom) and overlay HUD for scale.
+- Documented coordinate spaces and transform formulas in `docs/2d3d/coordinates_and_transform.md`.
+
 **S3-13 — Scale tool (pick A/B points + draft overlay) ✅ COMPLETED:**
 - When tool = SCALE, the first tap stores Point A (world/drawing space).
 - The second tap stores Point B; markers A/B and a connecting line are rendered on the canvas.
@@ -1775,6 +1781,13 @@ data class ArScreenshotMetadata(
 - Valid input computes `mmPerPx = realLengthMm / distance(A, B)` and previews it.
 - Apply persists `Drawing2D.scale` via `Drawing2DRepository.saveCurrentDrawing()` with explicit validation errors.
 - Undo/redo restores scale set/unset deterministically.
+### 3.4.2 2D3D Editor — Smoke Test
+
+**S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**
+- Added `Drawing2DEditorSmokeTest` JVM tests in `core-drawing2d` module.
+- Tests verify: empty drawing serialization roundtrip, missing node reference validation, schema version persistence, meta state preservation, save/load cycle, minimal JSON structure.
+- Created `docs/2d3d/testing.md` documenting test coverage and how to run tests.
+- Runs in `./gradlew test` CI task (included in S1/S2 quality gates).
 
 ### 3.5 QC Checklist v1
 
