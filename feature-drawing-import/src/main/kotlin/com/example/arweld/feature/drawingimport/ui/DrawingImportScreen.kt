@@ -69,6 +69,7 @@ import com.example.arweld.feature.drawingimport.preprocess.CornerOrderingV1
 import com.example.arweld.feature.drawingimport.preprocess.CornerRefinerV1
 import com.example.arweld.feature.drawingimport.preprocess.OrderedCornersV1 as PreprocessOrderedCornersV1
 import com.example.arweld.feature.drawingimport.quality.DrawingImportPipelineResultV1
+import com.example.arweld.feature.drawingimport.quality.ExposureMetricsV1
 import com.example.arweld.feature.drawingimport.quality.OrderedCornersV1 as QualityOrderedCornersV1
 import com.example.arweld.feature.drawingimport.quality.QualityMetricsV1
 import com.example.arweld.feature.drawingimport.quality.SkewMetricsV1
@@ -389,6 +390,11 @@ fun DrawingImportScreen(
                                     val overlayEntry = captureState.session.artifacts.firstOrNull {
                                         it.kind == ArtifactKindV1.OVERLAY && it.relPath == overlayRelPath
                                     }
+                                    val rectifiedEntry = captureState.session.artifacts.firstOrNull {
+                                        it.kind == ArtifactKindV1.RECTIFIED_IMAGE &&
+                                            it.relPath == ProjectLayoutV1.RECTIFIED_IMAGE_PNG
+                                    }
+                                    val rectifiedInfo = captureState.session.rectifiedImageInfo
                                     val rawFile = rawEntry?.let {
                                         File(captureState.session.projectDir, it.relPath)
                                     }
@@ -481,6 +487,18 @@ fun DrawingImportScreen(
                                             relPath = rawEntry?.relPath ?: "Missing",
                                             sha256 = rawEntry?.sha256 ?: "--",
                                         )
+                                        rectifiedEntry?.let { entry ->
+                                            val sizeLabel = rectifiedInfo?.let { info ->
+                                                "${info.width}x${info.height}"
+                                            }
+                                            ArtifactSummaryRow(
+                                                label = "Rectified",
+                                                relPath = entry.relPath,
+                                                sha256 = entry.sha256,
+                                                pixelSha256 = entry.pixelSha256,
+                                                sizeLabel = sizeLabel,
+                                            )
+                                        }
                                         ArtifactSummaryRow(
                                             label = "Manifest",
                                             relPath = manifestEntry?.relPath ?: "Missing",
@@ -892,6 +910,14 @@ fun DrawingImportScreen(
                                                                 }
                                                                 is PageDetectOutcomeV1.Failure -> null
                                                             }
+                                                            val exposureMetrics = runCatching {
+                                                                val bitmap = frameToBitmap(frame)
+                                                                try {
+                                                                    QualityMetricsV1.exposure(bitmap)
+                                                                } finally {
+                                                                    bitmap.recycle()
+                                                                }
+                                                            }.getOrNull()
                                                             withContext(Dispatchers.Main) {
                                                                 pageDetectFrame = frame
                                                                 pageDetectInfo = PageDetectFrameInfo(
@@ -928,6 +954,12 @@ fun DrawingImportScreen(
                                                                                     ),
                                                                                 )
                                                                             }
+                                                                            val exposure = exposureMetrics
+                                                                                ?: ExposureMetricsV1(
+                                                                                    meanY = 0.0,
+                                                                                    clipLowPct = 0.0,
+                                                                                    clipHighPct = 0.0,
+                                                                                )
                                                                             DrawingImportPipelineResultV1(
                                                                                 orderedCorners = corners,
                                                                                 refinedCorners = null,
@@ -935,6 +967,7 @@ fun DrawingImportScreen(
                                                                                 imageHeight = frame.height,
                                                                                 skewMetrics = metrics,
                                                                                 blurVariance = blurVariance,
+                                                                                exposureMetrics = exposure,
                                                                             )
                                                                         }
                                                                     }
@@ -1115,6 +1148,7 @@ fun DrawingImportScreen(
                                                 )
                                                 Text(
                                                     text = formatBlurVarianceLabel(result.blurVariance),
+                                                    text = formatExposureMetrics(result.exposureMetrics),
                                                     style = MaterialTheme.typography.bodySmall,
                                                 )
                                             }
@@ -1491,6 +1525,11 @@ private fun computeRectifiedBlurVariance(projectDir: File): Double? {
     } finally {
         bitmap.recycle()
     }
+private fun formatExposureMetrics(metrics: ExposureMetricsV1): String {
+    val meanY = "%.1f".format(Locale.US, metrics.meanY)
+    val clipLow = "%.2f".format(Locale.US, metrics.clipLowPct)
+    val clipHigh = "%.2f".format(Locale.US, metrics.clipHighPct)
+    return "Mean Y: $meanY • Clipped low: $clipLow% • Clipped high: $clipHigh%"
 }
 
 private fun formatFailureLabel(label: String, failure: PageDetectFailureV1): String {
@@ -1556,6 +1595,8 @@ private fun ArtifactSummaryRow(
     label: String,
     relPath: String,
     sha256: String,
+    pixelSha256: String? = null,
+    sizeLabel: String? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -1575,6 +1616,20 @@ private fun ArtifactSummaryRow(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground,
         )
+        pixelSha256?.let { pixelSha ->
+            Text(
+                text = "Pixel SHA: ${shortenSha(pixelSha)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        sizeLabel?.let { size ->
+            Text(
+                text = "Size: $size",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+        }
     }
 }
 
