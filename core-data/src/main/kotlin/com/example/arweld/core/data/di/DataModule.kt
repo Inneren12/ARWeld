@@ -14,8 +14,7 @@ import com.example.arweld.core.data.db.dao.SyncQueueDao
 import com.example.arweld.core.data.db.dao.UserDao
 import com.example.arweld.core.data.db.dao.WorkItemDao
 import com.example.arweld.core.data.auth.AuthRepositoryImpl
-import com.example.arweld.core.data.drawing2d.Drawing2DRepository
-import com.example.arweld.core.data.drawing2d.Drawing2DRepositoryImpl
+import com.example.arweld.core.data.drawing2d.CurrentDrawing2DRepositoryImpl
 import com.example.arweld.core.data.system.AndroidDeviceInfoProvider
 import com.example.arweld.core.data.system.DefaultTimeProvider
 import com.example.arweld.core.data.work.ClaimWorkUseCaseImpl
@@ -220,7 +219,7 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindDrawing2DRepository(
-        impl: Drawing2DRepositoryImpl
+        impl: CurrentDrawing2DRepositoryImpl
     ): Drawing2DRepository
 
     @Binds

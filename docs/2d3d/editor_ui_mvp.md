@@ -49,7 +49,7 @@ layout for toolbar, canvas, and bottom sheet sections.
 - Screen UI: `feature-drawing-editor/src/main/kotlin/com/example/arweld/feature/drawingeditor/ui/ManualEditorScreen.kt`
 - ViewModel + state: `feature-drawing-editor/src/main/kotlin/com/example/arweld/feature/drawingeditor/viewmodel/`
 - Repository interface: `core-domain/src/main/kotlin/com/example/arweld/core/domain/drawing2d/Drawing2DRepository.kt`
-- Repository implementation: `core-data/src/main/kotlin/com/example/arweld/core/data/drawing2d/Drawing2DRepositoryImpl.kt`
+- Repository implementation: `core-data/src/main/kotlin/com/example/arweld/core/data/drawing2d/CurrentDrawing2DRepositoryImpl.kt`
 
 ## Next Steps (Out of Scope)
 - Gesture handling, node/member editing tools

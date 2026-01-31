@@ -1,0 +1,61 @@
+package com.example.arweld.feature.drawingeditor.viewmodel
+
+import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
+import com.example.arweld.core.drawing2d.editor.v1.Member2D
+import com.example.arweld.core.drawing2d.editor.v1.Node2D
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class EditorReducerTest {
+
+    @Test
+    fun `tool change updates tool and clears selection`() {
+        val initial = EditorState(
+            tool = EditorTool.SELECT,
+            selection = EditorSelection.Node("N1"),
+            isLoading = false,
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.ToolChanged(EditorTool.SCALE))
+
+        assertEquals(EditorTool.SCALE, result.tool)
+        assertEquals(EditorSelection.None, result.selection)
+    }
+
+    @Test
+    fun `loaded updates drawing and clears loading and error`() {
+        val drawing = Drawing2D(
+            nodes = listOf(Node2D(id = "N1", x = 0.0, y = 0.0)),
+            members = listOf(Member2D(id = "M1", aNodeId = "N1", bNodeId = "N1")),
+        )
+        val initial = EditorState(
+            isLoading = true,
+            lastError = "Previous error",
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.Loaded(drawing))
+
+        assertEquals(false, result.isLoading)
+        assertEquals(null, result.lastError)
+        assertEquals(drawing, result.drawing)
+    }
+
+    @Test
+    fun `select entity updates selection`() {
+        val initial = EditorState(selection = EditorSelection.None, isLoading = false)
+
+        val result = reduceEditorState(initial, EditorIntent.SelectEntity(EditorSelection.Member("M1")))
+
+        assertEquals(EditorSelection.Member("M1"), result.selection)
+    }
+
+    @Test
+    fun `error sets error and clears loading`() {
+        val initial = EditorState(isLoading = true)
+
+        val result = reduceEditorState(initial, EditorIntent.Error("Load failed"))
+
+        assertEquals(false, result.isLoading)
+        assertEquals("Load failed", result.lastError)
+    }
+}

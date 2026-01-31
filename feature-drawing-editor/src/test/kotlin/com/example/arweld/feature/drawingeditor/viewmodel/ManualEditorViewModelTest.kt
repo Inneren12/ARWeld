@@ -49,7 +49,7 @@ class ManualEditorViewModelTest {
     }
 
     @Test
-    fun `tool selection updates state and summary loads`() = runTest {
+    fun `tool selection updates state and drawing loads`() = runTest {
         val drawing = Drawing2D(
             nodes = listOf(
                 Node2D(id = "N1", x = 0.0, y = 0.0),
@@ -61,17 +61,19 @@ class ManualEditorViewModelTest {
         )
         val repository = object : Drawing2DRepository {
             override suspend fun getCurrentDrawing(): Drawing2D = drawing
+
+            override suspend fun saveCurrentDrawing(drawing: Drawing2D) = Unit
         }
         val logger = EditorDiagnosticsLogger(fakeRecorder)
         val viewModel = ManualEditorViewModel(repository, logger)
 
         advanceUntilIdle()
 
-        assertEquals(2, viewModel.uiState.value.summary.nodeCount)
-        assertEquals(1, viewModel.uiState.value.summary.memberCount)
+        assertEquals(2, viewModel.uiState.value.drawing.nodes.size)
+        assertEquals(1, viewModel.uiState.value.drawing.members.size)
 
-        viewModel.onToolSelected(ManualEditorTool.MEMBER)
-        assertEquals(ManualEditorTool.MEMBER, viewModel.uiState.value.selectedTool)
+        viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.MEMBER))
+        assertEquals(EditorTool.MEMBER, viewModel.uiState.value.tool)
     }
 
     @Test
