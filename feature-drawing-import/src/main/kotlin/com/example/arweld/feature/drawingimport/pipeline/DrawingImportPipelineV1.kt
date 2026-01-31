@@ -611,10 +611,11 @@ interface DrawingImportPipelineStagesV1 {
         private val artifactWriter: RectifiedArtifactWriterV1 = RectifiedArtifactWriterV1(),
     ) : DrawingImportPipelineStagesV1 {
         override fun loadUpright(rawFile: File): PageDetectOutcomeV1<UprightBitmapV1> {
+            val decodeLimits = params.pageDetectParams.effectiveDecodeLimits()
             val decodeOutcome = SafeBitmapDecodeV1.decodeUprightWithInfo(
                 rawFile = rawFile,
-                maxPixels = params.pageDetectParams.maxDecodePixels,
-                maxSide = params.pageDetectParams.maxDecodeSide,
+                maxPixels = decodeLimits.maxPixels,
+                maxSide = decodeLimits.maxSide,
             )
             val decodeResult = when (decodeOutcome) {
                 is PageDetectOutcomeV1.Success -> decodeOutcome.value
