@@ -1843,6 +1843,12 @@ data class ArScreenshotMetadata(
 - Member creation blocks same-node and duplicate endpoints (direction-insensitive) with explicit UI feedback.
 - Invalid attempts keep the draft anchored on node A, do not mutate the drawing, and do not push undo history.
 - Added reducer tests to enforce same-node and duplicate rejection behavior.
+
+**S3-24 — Member selection + delete (bottom sheet) ✅ DONE:**
+- Select tool hit-testing now selects members when no node is within tolerance (nodes still prioritized).
+- Bottom sheet shows selected member ID + endpoints with a Delete member action.
+- Delete removes only the member, clears selection, persists immediately, and pushes a single undo snapshot.
+- Added reducer + undo/redo tests covering member deletion and restoration.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**
