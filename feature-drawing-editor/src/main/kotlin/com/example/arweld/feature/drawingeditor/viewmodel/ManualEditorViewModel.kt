@@ -3,10 +3,15 @@ package com.example.arweld.feature.drawingeditor.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.arweld.core.domain.drawing2d.Drawing2DRepository
+import com.example.arweld.core.domain.structural.ProfileCatalogQuery
+import com.example.arweld.core.domain.structural.normalizeProfileRef
 import com.example.arweld.core.drawing2d.editor.v1.ScaleInfo
+import com.example.arweld.core.drawing2d.editor.v1.canonicalize
 import com.example.arweld.feature.drawingeditor.diagnostics.EditorDiagnosticsLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,10 +22,12 @@ import kotlinx.coroutines.launch
 class ManualEditorViewModel @Inject constructor(
     private val drawing2DRepository: Drawing2DRepository,
     private val editorDiagnosticsLogger: EditorDiagnosticsLogger,
+    private val profileCatalogQuery: ProfileCatalogQuery,
 ) : ViewModel() {
 
     private val mutableUiState = MutableStateFlow(EditorState())
     val uiState: StateFlow<EditorState> = mutableUiState.asStateFlow()
+    private var profileSearchJob: Job? = null
 
     init {
         editorDiagnosticsLogger.logEditorOpened()
@@ -44,6 +51,11 @@ class ManualEditorViewModel @Inject constructor(
             is EditorIntent.MemberDeleteRequested -> handleMemberDelete(intent)
             is EditorIntent.NodeEditApplyRequested -> handleNodeEditApply(intent)
             is EditorIntent.MemberNodeTapped -> handleMemberNodeTap(intent)
+            is EditorIntent.ProfilePickerOpen -> handleProfilePickerOpen(intent)
+            EditorIntent.ProfilePickerClose -> handleProfilePickerClose()
+            is EditorIntent.ProfileQueryChanged -> handleProfileQueryChanged(intent)
+            is EditorIntent.ProfileSelected -> handleProfileSelected(intent)
+            EditorIntent.ProfileCleared -> handleProfileCleared()
             is EditorIntent.ToolChanged -> {
                 val previousTool = mutableUiState.value.tool
                 reduce(intent)
@@ -246,6 +258,89 @@ class ManualEditorViewModel @Inject constructor(
         }
     }
 
+    private fun handleProfilePickerOpen(intent: EditorIntent.ProfilePickerOpen) {
+        reduce(intent)
+        requestProfileSearch(query = "", debounce = false)
+    }
+
+    private fun handleProfilePickerClose() {
+        profileSearchJob?.cancel()
+        reduce(EditorIntent.ProfilePickerClose)
+    }
+
+    private fun handleProfileQueryChanged(intent: EditorIntent.ProfileQueryChanged) {
+        reduce(intent)
+        requestProfileSearch(query = intent.text, debounce = true)
+    }
+
+    private fun handleProfileSelected(intent: EditorIntent.ProfileSelected) {
+        viewModelScope.launch {
+            val state = mutableUiState.value
+            val memberId = state.profilePicker.memberId
+            if (memberId == null) {
+                reduce(EditorIntent.ProfileSelectionFailed("No member selected for profile assignment."))
+                return@launch
+            }
+            val member = state.drawing.members.firstOrNull { it.id == memberId }
+            if (member == null) {
+                reduce(EditorIntent.ProfileSelectionFailed("Selected member not found."))
+                return@launch
+            }
+            val canonicalRef = normalizeProfileRef(intent.profileRef) ?: intent.profileRef
+            val resolvedProfile = runCatching { profileCatalogQuery.lookup(canonicalRef) }.getOrNull()
+            if (resolvedProfile == null) {
+                reduce(EditorIntent.ProfileSelectionFailed("Profile not found in catalog."))
+                return@launch
+            }
+            if (member.profileRef == resolvedProfile.profileRef) {
+                handleProfilePickerClose()
+                return@launch
+            }
+            val updatedDrawing = state.drawing.copy(
+                members = state.drawing.members.map { existing ->
+                    if (existing.id == memberId) {
+                        existing.copy(profileRef = resolvedProfile.profileRef)
+                    } else {
+                        existing
+                    }
+                }
+            ).canonicalize()
+            val updatedState = reduceAndReturn(EditorIntent.ProfileSelectionApplied(updatedDrawing)) ?: return@launch
+            persistUpdatedDrawing(updatedState)
+        }
+    }
+
+    private fun handleProfileCleared() {
+        viewModelScope.launch {
+            val state = mutableUiState.value
+            val memberId = state.profilePicker.memberId
+            if (memberId == null) {
+                reduce(EditorIntent.ProfileSelectionFailed("No member selected for profile assignment."))
+                return@launch
+            }
+            val member = state.drawing.members.firstOrNull { it.id == memberId }
+            if (member == null) {
+                reduce(EditorIntent.ProfileSelectionFailed("Selected member not found."))
+                return@launch
+            }
+            if (member.profileRef == null) {
+                handleProfilePickerClose()
+                return@launch
+            }
+            val updatedDrawing = state.drawing.copy(
+                members = state.drawing.members.map { existing ->
+                    if (existing.id == memberId) {
+                        existing.copy(profileRef = null)
+                    } else {
+                        existing
+                    }
+                }
+            ).canonicalize()
+            val updatedState = reduceAndReturn(EditorIntent.ProfileSelectionApplied(updatedDrawing)) ?: return@launch
+            persistUpdatedDrawing(updatedState)
+        }
+    }
+
     private fun handleNodeEditApply(intent: EditorIntent.NodeEditApplyRequested) {
         viewModelScope.launch {
             reduce(intent)
@@ -303,6 +398,30 @@ class ManualEditorViewModel @Inject constructor(
             }
     }
 
+    private fun requestProfileSearch(query: String, debounce: Boolean) {
+        profileSearchJob?.cancel()
+        profileSearchJob = viewModelScope.launch {
+            if (debounce) {
+                delay(PROFILE_SEARCH_DEBOUNCE_MS)
+            }
+            val currentPicker = mutableUiState.value.profilePicker
+            if (!currentPicker.isOpen || currentPicker.queryText != query) {
+                return@launch
+            }
+            reduce(EditorIntent.ProfileSearchRequested(query))
+            runCatching { profileCatalogQuery.search(query, PROFILE_SEARCH_LIMIT) }
+                .onSuccess { results ->
+                    val latestPicker = mutableUiState.value.profilePicker
+                    if (latestPicker.isOpen && latestPicker.queryText == query) {
+                        reduce(EditorIntent.ProfileSearchSucceeded(results))
+                    }
+                }
+                .onFailure { error ->
+                    reduce(EditorIntent.ProfileSearchFailed(error.message ?: "Failed to search profiles."))
+                }
+        }
+    }
+
     private fun reduce(intent: EditorIntent) {
         mutableUiState.update { current ->
             reduceEditorState(current, intent)
@@ -321,5 +440,7 @@ class ManualEditorViewModel @Inject constructor(
 
     private companion object {
         const val SCALE_DISTANCE_EPSILON = 1e-6
+        const val PROFILE_SEARCH_LIMIT = 120
+        const val PROFILE_SEARCH_DEBOUNCE_MS = 250L
     }
 }

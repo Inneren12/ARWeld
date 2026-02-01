@@ -5,6 +5,8 @@ import com.example.arweld.core.domain.diagnostics.DeviceHealthSnapshot
 import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.core.domain.diagnostics.DiagnosticsSnapshot
 import com.example.arweld.core.domain.drawing2d.Drawing2DRepository
+import com.example.arweld.core.domain.structural.ProfileCatalogQuery
+import com.example.arweld.core.domain.structural.ProfileItem
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.feature.drawingeditor.diagnostics.EditorDiagnosticsLogger
@@ -26,7 +28,11 @@ class ManualEditorScaleTest {
     @Test
     fun `apply scale updates drawing and persists`() = runTest {
         val repository = FakeDrawing2DRepository()
-        val viewModel = ManualEditorViewModel(repository, EditorDiagnosticsLogger(FakeDiagnosticsRecorder()))
+        val viewModel = ManualEditorViewModel(
+            repository,
+            EditorDiagnosticsLogger(FakeDiagnosticsRecorder()),
+            fakeProfileCatalogQuery(),
+        )
         advanceUntilIdle()
 
         viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.SCALE))
@@ -50,7 +56,11 @@ class ManualEditorScaleTest {
     @Test
     fun `scale apply fails on zero distance`() = runTest {
         val repository = FakeDrawing2DRepository()
-        val viewModel = ManualEditorViewModel(repository, EditorDiagnosticsLogger(FakeDiagnosticsRecorder()))
+        val viewModel = ManualEditorViewModel(
+            repository,
+            EditorDiagnosticsLogger(FakeDiagnosticsRecorder()),
+            fakeProfileCatalogQuery(),
+        )
         advanceUntilIdle()
 
         viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.SCALE))
@@ -71,7 +81,11 @@ class ManualEditorScaleTest {
     @Test
     fun `scale apply fails on tiny distance`() = runTest {
         val repository = FakeDrawing2DRepository()
-        val viewModel = ManualEditorViewModel(repository, EditorDiagnosticsLogger(FakeDiagnosticsRecorder()))
+        val viewModel = ManualEditorViewModel(
+            repository,
+            EditorDiagnosticsLogger(FakeDiagnosticsRecorder()),
+            fakeProfileCatalogQuery(),
+        )
         advanceUntilIdle()
 
         viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.SCALE))
@@ -92,7 +106,11 @@ class ManualEditorScaleTest {
     @Test
     fun `scale apply fails on non-positive length`() = runTest {
         val repository = FakeDrawing2DRepository()
-        val viewModel = ManualEditorViewModel(repository, EditorDiagnosticsLogger(FakeDiagnosticsRecorder()))
+        val viewModel = ManualEditorViewModel(
+            repository,
+            EditorDiagnosticsLogger(FakeDiagnosticsRecorder()),
+            fakeProfileCatalogQuery(),
+        )
         advanceUntilIdle()
 
         viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.SCALE))
@@ -135,5 +153,15 @@ class ManualEditorScaleTest {
             deviceHealth = null,
             recentEvents = emptyList(),
         )
+    }
+
+    private fun fakeProfileCatalogQuery(): ProfileCatalogQuery {
+        return object : ProfileCatalogQuery {
+            override suspend fun listAll(): List<ProfileItem> = emptyList()
+
+            override suspend fun search(query: String, limit: Int): List<ProfileItem> = emptyList()
+
+            override suspend fun lookup(profileRef: String): ProfileItem? = null
+        }
     }
 }

@@ -5,10 +5,13 @@ import com.example.arweld.core.domain.diagnostics.DeviceHealthSnapshot
 import com.example.arweld.core.domain.diagnostics.DiagnosticsRecorder
 import com.example.arweld.core.domain.diagnostics.DiagnosticsSnapshot
 import com.example.arweld.core.domain.drawing2d.Drawing2DRepository
+import com.example.arweld.core.domain.structural.ProfileCatalogQuery
+import com.example.arweld.core.domain.structural.ProfileItem
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Member2D
 import com.example.arweld.core.drawing2d.editor.v1.Node2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
+import com.example.arweld.core.structural.profiles.ProfileType
 import com.example.arweld.feature.drawingeditor.diagnostics.EditorDiagnosticsLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,6 +30,7 @@ class ManualEditorViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val recordedEvents = mutableListOf<Pair<String, Map<String, String>>>()
+    private val defaultProfileCatalogQuery = fakeProfileCatalogQuery()
     private val fakeRecorder = object : DiagnosticsRecorder {
         override fun recordEvent(name: String, attributes: Map<String, String>) {
             recordedEvents.add(name to attributes)
@@ -66,7 +70,7 @@ class ManualEditorViewModelTest {
             override suspend fun saveCurrentDrawing(drawing: Drawing2D) = Unit
         }
         val logger = EditorDiagnosticsLogger(fakeRecorder)
-        val viewModel = ManualEditorViewModel(repository, logger)
+        val viewModel = ManualEditorViewModel(repository, logger, defaultProfileCatalogQuery)
 
         advanceUntilIdle()
 
@@ -85,7 +89,7 @@ class ManualEditorViewModelTest {
             override suspend fun saveCurrentDrawing(drawing: Drawing2D) = Unit
         }
         val logger = EditorDiagnosticsLogger(fakeRecorder)
-        ManualEditorViewModel(repository, logger)
+        ManualEditorViewModel(repository, logger, defaultProfileCatalogQuery)
 
         advanceUntilIdle()
 
@@ -103,7 +107,7 @@ class ManualEditorViewModelTest {
             override suspend fun saveCurrentDrawing(drawing: Drawing2D) = Unit
         }
         val logger = EditorDiagnosticsLogger(fakeRecorder)
-        val viewModel = ManualEditorViewModel(repository, logger)
+        val viewModel = ManualEditorViewModel(repository, logger, defaultProfileCatalogQuery)
 
         advanceUntilIdle()
         recordedEvents.clear()
@@ -129,7 +133,7 @@ class ManualEditorViewModelTest {
             }
         }
         val logger = EditorDiagnosticsLogger(fakeRecorder)
-        val viewModel = ManualEditorViewModel(repository, logger)
+        val viewModel = ManualEditorViewModel(repository, logger, defaultProfileCatalogQuery)
 
         advanceUntilIdle()
 
@@ -157,7 +161,7 @@ class ManualEditorViewModelTest {
             }
         }
         val logger = EditorDiagnosticsLogger(fakeRecorder)
-        val viewModel = ManualEditorViewModel(repository, logger)
+        val viewModel = ManualEditorViewModel(repository, logger, defaultProfileCatalogQuery)
 
         advanceUntilIdle()
         viewModel.onIntent(EditorIntent.ToolChanged(EditorTool.NODE))
@@ -170,5 +174,50 @@ class ManualEditorViewModelTest {
         viewModel.onIntent(EditorIntent.NodeDragEnd(Point2D(x = 4.0, y = 6.0)))
         advanceUntilIdle()
         assertEquals(1, saveCount)
+    }
+
+    @Test
+    fun `profile search results propagate to picker state`() = runTest {
+        val drawing = Drawing2D(
+            nodes = listOf(Node2D(id = "N1", x = 0.0, y = 0.0), Node2D(id = "N2", x = 1.0, y = 1.0)),
+            members = listOf(Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2")),
+        )
+        val repository = object : Drawing2DRepository {
+            override suspend fun getCurrentDrawing(): Drawing2D = drawing
+
+            override suspend fun saveCurrentDrawing(drawing: Drawing2D) = Unit
+        }
+        val searchResults = listOf(
+            ProfileItem(profileRef = "W310x39", displayName = "W310x39", type = ProfileType.W),
+            ProfileItem(profileRef = "HSS 203x203x6.4", displayName = "HSS 203x203x6.4", type = ProfileType.HSS),
+        )
+        val logger = EditorDiagnosticsLogger(fakeRecorder)
+        val viewModel = ManualEditorViewModel(
+            repository,
+            logger,
+            fakeProfileCatalogQuery(searchResults = searchResults),
+        )
+
+        advanceUntilIdle()
+
+        viewModel.onIntent(EditorIntent.ProfilePickerOpen("M1"))
+        advanceUntilIdle()
+
+        val pickerState = viewModel.uiState.value.profilePicker
+        assertEquals(true, pickerState.isOpen)
+        assertEquals(listOf("W310x39", "HSS 203x203x6.4"), pickerState.results.map { it.profileRef })
+    }
+
+    private fun fakeProfileCatalogQuery(
+        searchResults: List<ProfileItem> = emptyList(),
+        lookupResult: ProfileItem? = null,
+    ): ProfileCatalogQuery {
+        return object : ProfileCatalogQuery {
+            override suspend fun listAll(): List<ProfileItem> = searchResults
+
+            override suspend fun search(query: String, limit: Int): List<ProfileItem> = searchResults.take(limit)
+
+            override suspend fun lookup(profileRef: String): ProfileItem? = lookupResult
+        }
     }
 }

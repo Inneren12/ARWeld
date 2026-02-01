@@ -47,6 +47,11 @@ fun ManualEditorRoute(
         onNodeEditXChanged = { text -> viewModel.onIntent(EditorIntent.NodeEditXChanged(text)) },
         onNodeEditYChanged = { text -> viewModel.onIntent(EditorIntent.NodeEditYChanged(text)) },
         onNodeEditApply = { nodeId -> viewModel.onIntent(EditorIntent.NodeEditApplyRequested(nodeId)) },
+        onProfilePickerOpen = { memberId -> viewModel.onIntent(EditorIntent.ProfilePickerOpen(memberId)) },
+        onProfilePickerClose = { viewModel.onIntent(EditorIntent.ProfilePickerClose) },
+        onProfileQueryChanged = { text -> viewModel.onIntent(EditorIntent.ProfileQueryChanged(text)) },
+        onProfileSelected = { profileRef -> viewModel.onIntent(EditorIntent.ProfileSelected(profileRef)) },
+        onProfileCleared = { viewModel.onIntent(EditorIntent.ProfileCleared) },
         onTransformGesture = { panX, panY, zoomFactor, focalX, focalY ->
             viewModel.onIntent(
                 EditorIntent.ViewTransformGesture(

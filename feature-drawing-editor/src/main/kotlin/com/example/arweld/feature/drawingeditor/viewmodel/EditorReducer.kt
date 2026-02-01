@@ -24,6 +24,7 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         } else {
             MemberDraft()
         },
+        profilePicker = ProfilePickerState(),
         lastErrorCode = null,
     )
     is EditorIntent.SelectEntity -> {
@@ -31,12 +32,14 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         state.copy(
             selection = synced.selection,
             nodeEditDraft = synced.draft,
+            profilePicker = ProfilePickerState(),
         )
     }
     EditorIntent.ClearSelection -> state.copy(
         selection = EditorSelection.None,
         nodeDragState = null,
         nodeEditDraft = NodeEditDraft(),
+        profilePicker = ProfilePickerState(),
     )
     is EditorIntent.ViewTransformGesture -> state.copy(
         viewTransform = applyViewTransformGesture(
@@ -63,6 +66,7 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
         redoStack = emptyList(),
         nodeEditDraft = NodeEditDraft(),
         memberDraft = MemberDraft(),
+        profilePicker = ProfilePickerState(),
     )
     EditorIntent.SaveRequested -> state.copy(
         isLoading = true,
@@ -295,6 +299,51 @@ fun reduceEditorState(state: EditorState, intent: EditorIntent): EditorState = w
             }
         }
     }
+    is EditorIntent.ProfilePickerOpen -> state.copy(
+        profilePicker = ProfilePickerState(
+            isOpen = true,
+            memberId = intent.memberId,
+            isLoading = true,
+        ),
+    )
+    EditorIntent.ProfilePickerClose -> state.copy(
+        profilePicker = ProfilePickerState(),
+    )
+    is EditorIntent.ProfileQueryChanged -> state.copy(
+        profilePicker = state.profilePicker.copy(
+            queryText = intent.text,
+            isLoading = true,
+            lastError = null,
+        ),
+    )
+    is EditorIntent.ProfileSearchRequested -> state.copy(
+        profilePicker = state.profilePicker.copy(
+            isLoading = true,
+            lastError = null,
+        ),
+    )
+    is EditorIntent.ProfileSearchSucceeded -> state.copy(
+        profilePicker = state.profilePicker.copy(
+            results = intent.results,
+            isLoading = false,
+            lastError = null,
+        ),
+    )
+    is EditorIntent.ProfileSearchFailed -> state.copy(
+        profilePicker = state.profilePicker.copy(
+            isLoading = false,
+            lastError = intent.message,
+        ),
+    )
+    is EditorIntent.ProfileSelectionApplied -> state.copy(
+        profilePicker = ProfilePickerState(),
+    ).pushHistory(intent.drawing)
+    is EditorIntent.ProfileSelectionFailed -> state.copy(
+        profilePicker = state.profilePicker.copy(
+            isLoading = false,
+            lastError = intent.message,
+        ),
+    )
     EditorIntent.UndoRequested -> state.applyHistoryUndo()
     EditorIntent.RedoRequested -> state.applyHistoryRedo()
 }
