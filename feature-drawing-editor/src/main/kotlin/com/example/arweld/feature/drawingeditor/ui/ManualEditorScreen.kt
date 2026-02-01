@@ -3,6 +3,7 @@ package com.example.arweld.feature.drawingeditor.ui
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
@@ -20,6 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -27,6 +30,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -71,6 +77,7 @@ import com.example.arweld.feature.drawingeditor.viewmodel.EditorTool
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorErrorCode
 import com.example.arweld.feature.drawingeditor.viewmodel.MemberEndpointResolution
 import com.example.arweld.feature.drawingeditor.viewmodel.MemberDraft
+import com.example.arweld.feature.drawingeditor.viewmodel.ProfilePickerState
 import com.example.arweld.feature.drawingeditor.viewmodel.Point2
 import com.example.arweld.feature.drawingeditor.viewmodel.NodeEditDraft
 import com.example.arweld.feature.drawingeditor.viewmodel.ScaleDraft
@@ -142,6 +149,11 @@ fun ManualEditorScreen(
     onNodeEditXChanged: (String) -> Unit,
     onNodeEditYChanged: (String) -> Unit,
     onNodeEditApply: (String) -> Unit,
+    onProfilePickerOpen: (String) -> Unit,
+    onProfilePickerClose: () -> Unit,
+    onProfileQueryChanged: (String) -> Unit,
+    onProfileSelected: (String) -> Unit,
+    onProfileCleared: () -> Unit,
     onTransformGesture: (panX: Float, panY: Float, zoomFactor: Float, focalX: Float, focalY: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -207,6 +219,7 @@ fun ManualEditorScreen(
                 onNodeEditXChanged = onNodeEditXChanged,
                 onNodeEditYChanged = onNodeEditYChanged,
                 onNodeEditApply = onNodeEditApply,
+                onProfilePickerOpen = onProfilePickerOpen,
                 onSetScale = { onToolSelected(EditorTool.SCALE) },
             )
         },
@@ -257,6 +270,16 @@ fun ManualEditorScreen(
                 }
             }
         }
+    }
+
+    if (uiState.profilePicker.isOpen) {
+        ProfilePickerSheet(
+            state = uiState.profilePicker,
+            onDismiss = onProfilePickerClose,
+            onQueryChanged = onProfileQueryChanged,
+            onProfileSelected = onProfileSelected,
+            onClearProfile = onProfileCleared,
+        )
     }
 }
 
@@ -570,6 +593,7 @@ private fun BottomSheetContent(
     onNodeEditXChanged: (String) -> Unit,
     onNodeEditYChanged: (String) -> Unit,
     onNodeEditApply: (String) -> Unit,
+    onProfilePickerOpen: (String) -> Unit,
     onSetScale: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -714,6 +738,13 @@ private fun BottomSheetContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { onProfilePickerOpen(selectedMember.id) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(text = "Choose profile")
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 when (val endpointResolution = resolveMemberEndpoints(drawing, selectedMember.id)) {
                     is MemberEndpointResolution.Resolved -> {
@@ -878,6 +909,98 @@ private fun BottomSheetContent(
                     Text(text = "Apply scale")
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ProfilePickerSheet(
+    state: ProfilePickerState,
+    onDismiss: () -> Unit,
+    onQueryChanged: (String) -> Unit,
+    onProfileSelected: (String) -> Unit,
+    onClearProfile: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Choose profile",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onClearProfile) {
+                        Text(text = "Clear")
+                    }
+                    TextButton(onClick = onDismiss) {
+                        Text(text = "Close")
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = state.queryText,
+                onValueChange = onQueryChanged,
+                label = { Text("Search profiles") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (state.lastError != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = state.lastError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            if (state.isLoading) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (state.results.isEmpty()) {
+                Text(
+                    text = "No profiles match this query.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(320.dp)
+                ) {
+                    items(state.results, key = { it.profileRef }) { item ->
+                        ListItem(
+                            headlineContent = { Text(text = item.displayName) },
+                            supportingContent = {
+                                Text(text = item.profileRef)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onProfileSelected(item.profileRef) }
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }

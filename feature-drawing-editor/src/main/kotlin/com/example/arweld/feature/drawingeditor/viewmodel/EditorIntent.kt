@@ -1,5 +1,6 @@
 package com.example.arweld.feature.drawingeditor.viewmodel
 
+import com.example.arweld.core.domain.structural.ProfileItem
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
 
@@ -71,6 +72,26 @@ sealed interface EditorIntent {
     data class MemberNodeTapped(val nodeId: String) : EditorIntent
 
     data class MemberDeleteRequested(val memberId: String) : EditorIntent
+
+    data class ProfilePickerOpen(val memberId: String) : EditorIntent
+
+    data object ProfilePickerClose : EditorIntent
+
+    data class ProfileQueryChanged(val text: String) : EditorIntent
+
+    data class ProfileSearchRequested(val query: String) : EditorIntent
+
+    data class ProfileSearchSucceeded(val results: List<ProfileItem>) : EditorIntent
+
+    data class ProfileSearchFailed(val message: String) : EditorIntent
+
+    data class ProfileSelectionApplied(val drawing: Drawing2D) : EditorIntent
+
+    data class ProfileSelectionFailed(val message: String) : EditorIntent
+
+    data class ProfileSelected(val profileRef: String) : EditorIntent
+
+    data object ProfileCleared : EditorIntent
 
     data object UndoRequested : EditorIntent
 

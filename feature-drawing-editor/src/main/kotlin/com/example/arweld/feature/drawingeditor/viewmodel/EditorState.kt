@@ -1,8 +1,9 @@
 package com.example.arweld.feature.drawingeditor.viewmodel
 
+import com.example.arweld.core.domain.structural.ProfileItem
 import com.example.arweld.core.drawing2d.editor.v1.Drawing2D
-import java.io.File
 import com.example.arweld.core.drawing2d.editor.v1.Point2D
+import java.io.File
 
 enum class EditorTool {
     SELECT,
@@ -70,6 +71,15 @@ data class MemberDraft(
     val nodeAId: String? = null,
 )
 
+data class ProfilePickerState(
+    val isOpen: Boolean = false,
+    val memberId: String? = null,
+    val queryText: String = "",
+    val results: List<ProfileItem> = emptyList(),
+    val isLoading: Boolean = false,
+    val lastError: String? = null,
+)
+
 enum class EditorErrorCode {
     MemberSameNode,
     MemberDuplicate,
@@ -91,6 +101,7 @@ data class EditorState(
     val scaleDraft: ScaleDraft = ScaleDraft(),
     val nodeEditDraft: NodeEditDraft = NodeEditDraft(),
     val memberDraft: MemberDraft = MemberDraft(),
+    val profilePicker: ProfilePickerState = ProfilePickerState(),
     val undoStack: List<Drawing2D> = emptyList(),
     val redoStack: List<Drawing2D> = emptyList(),
 )

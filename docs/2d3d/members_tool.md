@@ -18,6 +18,13 @@ always anchored to existing nodes (no free-floating endpoints).
   - Member length in drawing units (`px`), formatted with 2 decimals (Locale.US)
   - Member length in **mm** (only when scale is set and valid), formatted with 1 decimal (Locale.US)
   - Profile reference placeholder (“—” when not set)
+  - **Choose profile** action that opens the profile picker
+  - Profile picker includes:
+    - Search field (debounced)
+    - Profile list (display name + profileRef)
+    - Clear action that sets `profileRef = null`
+  - Selecting a profile updates `Member2D.profileRef` in a single undo step and persists immediately
+  - Clearing the profile is also a single undo step and persists immediately
   - If endpoints are unresolved (missing node references), the panel explicitly shows
     “unresolved endpoints” and skips length calculations.
   - If scale is missing, the panel shows a “Set scale to get mm length” CTA that switches to

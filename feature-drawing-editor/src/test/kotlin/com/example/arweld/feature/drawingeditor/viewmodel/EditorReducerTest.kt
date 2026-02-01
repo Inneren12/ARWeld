@@ -239,4 +239,62 @@ class EditorReducerTest {
         assertEquals("N2", result.memberDraft.nodeAId)
         assertEquals(initial.undoStack, result.undoStack)
     }
+
+    @Test
+    fun `profile picker open sets member and loading state`() {
+        val initial = EditorState(
+            drawing = Drawing2D(
+                nodes = emptyList(),
+                members = listOf(Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2")),
+            ),
+            selection = EditorSelection.Member("M1"),
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.ProfilePickerOpen("M1"))
+
+        assertEquals(true, result.profilePicker.isOpen)
+        assertEquals("M1", result.profilePicker.memberId)
+        assertEquals(true, result.profilePicker.isLoading)
+    }
+
+    @Test
+    fun `profile selection applied updates member profile and closes picker`() {
+        val drawing = Drawing2D(
+            nodes = emptyList(),
+            members = listOf(Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2", profileRef = null)),
+        )
+        val updated = drawing.copy(
+            members = listOf(Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2", profileRef = "W310x39")),
+        )
+        val initial = EditorState(
+            drawing = drawing,
+            selection = EditorSelection.Member("M1"),
+            profilePicker = ProfilePickerState(isOpen = true, memberId = "M1"),
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.ProfileSelectionApplied(updated))
+
+        assertEquals(false, result.profilePicker.isOpen)
+        assertEquals("W310x39", result.drawing.members.first().profileRef)
+    }
+
+    @Test
+    fun `profile clear applied sets profile to null`() {
+        val drawing = Drawing2D(
+            nodes = emptyList(),
+            members = listOf(Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2", profileRef = "W310x39")),
+        )
+        val updated = drawing.copy(
+            members = listOf(Member2D(id = "M1", aNodeId = "N1", bNodeId = "N2", profileRef = null)),
+        )
+        val initial = EditorState(
+            drawing = drawing,
+            selection = EditorSelection.Member("M1"),
+            profilePicker = ProfilePickerState(isOpen = true, memberId = "M1"),
+        )
+
+        val result = reduceEditorState(initial, EditorIntent.ProfileSelectionApplied(updated))
+
+        assertEquals(null, result.drawing.members.first().profileRef)
+    }
 }

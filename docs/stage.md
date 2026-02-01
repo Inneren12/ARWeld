@@ -1865,6 +1865,12 @@ data class ArScreenshotMetadata(
 - Added a cached, deterministic `ProfileCatalogQuery` API backed by core-structural profiles.
 - Documented profileRef normalization and ordering guarantees for editor use.
 - Added unit tests for normalization, lookup hit/miss, and deterministic ordering/search behavior.
+
+**S3-28 — Profile picker UI for members ✅ DONE:**
+- Member bottom sheet now shows **Profile: <value or —>** with a **Choose profile** action.
+- Picker supports debounced search, deterministic ordering, and profile selection/clear.
+- Selecting or clearing a profile updates `Member2D.profileRef` as a single undo step and persists immediately.
+- Added reducer + ViewModel tests for picker state and search propagation.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**

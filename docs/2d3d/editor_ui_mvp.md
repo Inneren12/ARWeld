@@ -73,6 +73,8 @@ layout for toolbar, canvas, and bottom sheet sections.
     `lengthMm = lengthPx * (realLengthMm / distance(scale.pointA, scale.pointB))`.
   - If scale is missing, show a “Set scale to get mm length” CTA that switches to the Scale tool.
   - Show a profile reference placeholder (“Profile: —” when not set).
+  - Show a **Choose profile** action that opens the profile picker (search + select).
+  - The picker includes a **Clear** action to remove the profile reference.
   - Keep the **Delete member** action visible below the details.
 
 ## Data Wiring
