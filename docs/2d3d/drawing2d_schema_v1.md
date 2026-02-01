@@ -30,7 +30,7 @@ Drawing2D v1 (manual editor) is a minimal, stable JSON schema for authoring 2D n
 | `id` | string | ✅ | Unique identifier for the member. |
 | `aNodeId` | string | ✅ | Start node id. |
 | `bNodeId` | string | ✅ | End node id. |
-| `profileRef` | string | ❌ | Optional profile designation (e.g., `W310x39`). |
+| `profileRef` | string | ❌ | Optional canonical profile reference (e.g., `W310x39`); see `docs/2d3d/profile_catalog_integration.md` for normalization rules. |
 | `meta` | array of `MetaEntryV1` | ❌ | Optional metadata. |
 
 ## ScaleInfo
