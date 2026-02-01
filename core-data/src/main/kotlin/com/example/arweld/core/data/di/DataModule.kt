@@ -15,6 +15,7 @@ import com.example.arweld.core.data.db.dao.UserDao
 import com.example.arweld.core.data.db.dao.WorkItemDao
 import com.example.arweld.core.data.auth.AuthRepositoryImpl
 import com.example.arweld.core.data.drawing2d.CurrentDrawing2DRepositoryImpl
+import com.example.arweld.core.data.structural.ProfileCatalogQueryImpl
 import com.example.arweld.core.data.system.AndroidDeviceInfoProvider
 import com.example.arweld.core.data.system.DefaultTimeProvider
 import com.example.arweld.core.data.work.ClaimWorkUseCaseImpl
@@ -32,6 +33,7 @@ import com.example.arweld.core.domain.drawing2d.Drawing2DRepository
 import com.example.arweld.core.domain.event.EventRepository
 import com.example.arweld.core.domain.evidence.EvidenceRepository
 import com.example.arweld.core.domain.policy.QcEvidencePolicy
+import com.example.arweld.core.domain.structural.ProfileCatalogQuery
 import com.example.arweld.core.domain.sync.SyncQueueRepository
 import com.example.arweld.core.domain.system.DeviceInfoProvider
 import com.example.arweld.core.domain.system.TimeProvider
@@ -43,12 +45,15 @@ import com.example.arweld.core.domain.work.usecase.FailQcUseCase
 import com.example.arweld.core.domain.work.usecase.PassQcUseCase
 import com.example.arweld.core.domain.work.usecase.StartQcInspectionUseCase
 import com.example.arweld.core.domain.work.usecase.StartWorkUseCase
+import com.example.arweld.core.structural.profiles.ProfileCatalog
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Singleton
 
 /**
@@ -115,6 +120,14 @@ object DataModule {
     fun provideQcEvidencePolicy(
         evidenceRepository: EvidenceRepository,
     ): QcEvidencePolicy = QcEvidencePolicy(evidenceRepository)
+
+    @Provides
+    @Singleton
+    fun provideProfileCatalog(): ProfileCatalog = ProfileCatalog()
+
+    @Provides
+    @Singleton
+    fun provideProfileCatalogDispatcher(): CoroutineDispatcher = Dispatchers.Default
 
     @Provides
     @Singleton
@@ -221,6 +234,12 @@ abstract class RepositoryModule {
     abstract fun bindDrawing2DRepository(
         impl: CurrentDrawing2DRepositoryImpl
     ): Drawing2DRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindProfileCatalogQuery(
+        impl: ProfileCatalogQueryImpl
+    ): ProfileCatalogQuery
 
     @Binds
     @Singleton

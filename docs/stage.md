@@ -1860,6 +1860,11 @@ data class ArScreenshotMetadata(
 - Centralized member render constants for stroke width (dp) and cap style.
 - Member stroke thickness now stays stable in screen space across zoom, with selected members drawn using a clearer overlay stroke.
 - Documentation updated to align rendering policy with hit-testing tolerance expectations.
+
+**S3-27 — Profile catalog integration for 2D editor ✅ DONE:**
+- Added a cached, deterministic `ProfileCatalogQuery` API backed by core-structural profiles.
+- Documented profileRef normalization and ordering guarantees for editor use.
+- Added unit tests for normalization, lookup hit/miss, and deterministic ordering/search behavior.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**

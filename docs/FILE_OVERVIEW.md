@@ -45,6 +45,8 @@ This document provides a **practical map** of the ARWeld codebase, explaining wh
 - `feature-drawing-editor/src/main/kotlin/com/example/arweld/feature/drawingeditor/viewmodel/EditorReducer.kt` — Pure reducer for editor state transitions.
 - `feature-drawing-editor/src/main/kotlin/com/example/arweld/feature/drawingeditor/viewmodel/ManualEditorViewModel.kt` — Loads the current Drawing2D and tracks the selected tool.
 - `feature-drawing-editor/src/main/kotlin/com/example/arweld/feature/drawingeditor/diagnostics/EditorDiagnostics.kt` — Event types and structured logging helpers for editor actions (EditorOpened, DrawingSaved, ToolChanged, NodeAdded, NodeMoved, MemberAdded, ScaleSet).
+- `core-domain/src/main/kotlin/com/example/arweld/core/domain/structural/ProfileCatalogQuery.kt` — Editor-facing profile catalog API + profileRef normalization helper.
+- `core-data/src/main/kotlin/com/example/arweld/core/data/structural/ProfileCatalogQueryImpl.kt` — Cached, deterministic core-structural-backed profile catalog provider.
 - `core-domain/src/main/kotlin/com/example/arweld/core/domain/drawing2d/Drawing2DRepository.kt` — Repository contract for retrieving the current Drawing2D.
 - `core-data/src/main/kotlin/com/example/arweld/core/data/drawing2d/CurrentDrawing2DRepositoryImpl.kt` — File-backed repository implementation for the Manual Editor (load/save current drawing).
 - Manual editor layout overview: `docs/2d3d/editor_ui_mvp.md`

@@ -60,6 +60,8 @@ class ProfileCatalog(
 
     fun listTypes(): Set<ProfileType> = index.value.types
 
+    fun listAll(): List<ProfileSpec> = index.value.specsByKey.values.toList()
+
     private fun resolveProfileKey(
         normalizedDesignation: String,
         standard: ProfileStandard

@@ -50,6 +50,7 @@ dependencies {
     // Core modules
     implementation(project(":core-domain"))
     implementation(project(":core-drawing2d"))
+    implementation(project(":core-structural"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)
@@ -70,6 +71,7 @@ dependencies {
 
     // Testing
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.robolectric)
