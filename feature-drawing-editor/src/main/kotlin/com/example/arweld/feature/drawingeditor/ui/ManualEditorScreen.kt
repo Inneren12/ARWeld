@@ -62,6 +62,7 @@ import com.example.arweld.core.drawing2d.editor.v1.Point2D
 import com.example.arweld.core.drawing2d.editor.v1.missingNodeReferences
 import com.example.arweld.feature.drawingeditor.hittest.hitTestNode
 import com.example.arweld.feature.drawingeditor.hittest.selectEntityAtTap
+import com.example.arweld.feature.drawingeditor.render.EditorRenderConstants
 import com.example.arweld.feature.drawingeditor.render.ResolvedMember
 import com.example.arweld.feature.drawingeditor.render.resolveAllMemberEndpoints
 import com.example.arweld.feature.drawingeditor.viewmodel.EditorSelection
@@ -103,7 +104,6 @@ private object RenderConfig {
     val NODE_SELECTED_STROKE_COLOR = Color(0xFF1565C0)
 
     // Member rendering
-    const val MEMBER_STROKE_WIDTH = 3f
     val MEMBER_COLOR = Color(0xFF607D8B)             // Blue grey
     val MEMBER_SELECTED_COLOR = Color(0xFF2196F3)    // Blue (selection highlight)
 
@@ -943,6 +943,12 @@ private fun DrawingCanvasWithUnderlay(
     val resolvedMembers = remember(drawing) {
         resolveAllMemberEndpoints(drawing)
     }
+    val density = LocalDensity.current
+    val memberStrokePx = with(density) { EditorRenderConstants.MEMBER_STROKE_DP.toPx() }
+    val memberSelectedStrokePx = with(density) { EditorRenderConstants.MEMBER_STROKE_SELECTED_DP.toPx() }
+    val memberStrokeWorld = memberStrokePx / viewTransform.scale.coerceAtLeast(0.001f)
+    val memberSelectedStrokeWorld = memberSelectedStrokePx / viewTransform.scale.coerceAtLeast(0.001f)
+    val memberCap = EditorRenderConstants.MEMBER_CAP_STYLE
 
     Box(modifier = modifier) {
         // Layer 1: Underlay image (rendered via Coil SubcomposeAsyncImage for fit-center)
@@ -992,7 +998,13 @@ private fun DrawingCanvasWithUnderlay(
                 drawAxes()
 
                 // Draw members as lines
-                drawMembers(resolvedMembers, selection)
+                drawMembers(
+                    resolvedMembers = resolvedMembers,
+                    selection = selection,
+                    strokeWidthWorld = memberStrokeWorld,
+                    selectedStrokeWidthWorld = memberSelectedStrokeWorld,
+                    cap = memberCap,
+                )
 
                 // Draw nodes as circles
                 drawNodes(drawing, selection, nodeRadiusWorld)
@@ -1127,26 +1139,28 @@ private fun DrawScope.drawAxes() {
 private fun DrawScope.drawMembers(
     resolvedMembers: List<ResolvedMember>,
     selection: EditorSelection,
+    strokeWidthWorld: Float,
+    selectedStrokeWidthWorld: Float,
+    cap: androidx.compose.ui.graphics.StrokeCap,
 ) {
     resolvedMembers.forEach { member ->
         val isSelected = selection is EditorSelection.Member && selection.id == member.memberId
-        val color = if (isSelected) {
-            RenderConfig.MEMBER_SELECTED_COLOR
-        } else {
-            RenderConfig.MEMBER_COLOR
-        }
-        val strokeWidth = if (isSelected) {
-            RenderConfig.MEMBER_STROKE_WIDTH * 1.5f
-        } else {
-            RenderConfig.MEMBER_STROKE_WIDTH
-        }
-
         drawLine(
-            color = color,
+            color = RenderConfig.MEMBER_COLOR,
             start = Offset(member.startPoint.x, member.startPoint.y),
             end = Offset(member.endPoint.x, member.endPoint.y),
-            strokeWidth = strokeWidth
+            strokeWidth = strokeWidthWorld,
+            cap = cap,
         )
+        if (isSelected) {
+            drawLine(
+                color = RenderConfig.MEMBER_SELECTED_COLOR,
+                start = Offset(member.startPoint.x, member.startPoint.y),
+                end = Offset(member.endPoint.x, member.endPoint.y),
+                strokeWidth = selectedStrokeWidthWorld,
+                cap = cap,
+            )
+        }
     }
 }
 
