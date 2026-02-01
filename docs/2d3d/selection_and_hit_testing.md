@@ -21,6 +21,8 @@ toleranceWorld = tolerancePx / viewTransform.scale
 
 This keeps selection behavior consistent regardless of zoom.
 
+**Rendering alignment:** Member stroke widths are also defined in screen-space dp (converted to px and divided by `viewTransform.scale`), so the visual line thickness tracks the same zoom-stable policy as hit tolerances.
+
 ## Node hit test
 `hitTestNode(worldTap, nodes, tolerancePx, viewTransform)`:
 - Computes the world-space distance from the tap to each node.

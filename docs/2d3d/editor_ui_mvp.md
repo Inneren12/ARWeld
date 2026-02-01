@@ -108,7 +108,9 @@ The canvas renderer implements a layered drawing pipeline that respects the `vie
 3. **Members** (lines between nodes)
    - Resolved via `resolveAllMemberEndpoints()` helper
    - Gracefully skips members with missing node references (debug logged)
-   - Selected members render with thicker stroke and highlight color
+   - Selected members render with a thicker highlight stroke
+   - Stroke width is defined in **screen space** (dp → px) and converted to world space using the view transform to stay visually stable across zoom
+   - Line caps use the centralized member cap style for readability (round by default)
 
 4. **Nodes** (circles/markers)
    - Drawn as filled circles with stroke outline
@@ -162,9 +164,10 @@ Defined in `RenderConfig` object:
 | Node | stroke width | 2f |
 | Node | fill color | Amber (#FFC107) |
 | Node (selected) | fill color | Blue (#2196F3) |
-| Member | stroke width | 3f |
+| Member | stroke width (screen space) | 3dp (selected: 5dp) |
 | Member | color | Blue Grey (#607D8B) |
 | Member (selected) | color | Blue (#2196F3) |
+| Member | cap style | Round |
 | Axis | length | 500f |
 | Axis | stroke width | 1.5f |
 

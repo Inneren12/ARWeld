@@ -1855,6 +1855,11 @@ data class ArScreenshotMetadata(
 - Length in mm appears when a valid scale calibration exists; missing scale shows an explicit CTA.
 - Member endpoint resolution handles missing node references with explicit “unresolved endpoints” messaging.
 - Added pure helper tests covering length math, scale conversion, and unresolved endpoints.
+
+**S3-26 — Member rendering polish (caps, thickness, selected style) ✅ DONE:**
+- Centralized member render constants for stroke width (dp) and cap style.
+- Member stroke thickness now stays stable in screen space across zoom, with selected members drawn using a clearer overlay stroke.
+- Documentation updated to align rendering policy with hit-testing tolerance expectations.
 ### 3.4.2 2D3D Editor — Smoke Test
 
 **S3-06 — Editor smoke test for serialization/validation wiring ✅ COMPLETED:**
